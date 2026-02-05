@@ -130,7 +130,7 @@ static std::vector<SCCache> calc_sc_cache(ParticleRange const &particles,
 static std::pair<std::size_t, std::size_t>
 prepare_sc_cache(ParticleRange const &particles, BoxGeometry const &box_geo,
                  double far_cut) {
-  std::cout << "ElectrostaticLayerCorrection::prepare_sc_cache()" << std::endl;
+  // TODO possibly unused function
   assert(far_cut >= 0.);
   auto const n_freq_x =
       static_cast<std::size_t>(std::ceil(far_cut * box_geo.length()[0]) + 1.);
@@ -1024,7 +1024,7 @@ void ElectrostaticLayerCorrection::sanity_checks_dielectric_contrasts() const {
 }
 
 void ElectrostaticLayerCorrection::adapt_solver() {
-  std::cout << "ElectrostaticLayerCorrection::adapt_solver()" << std::endl;
+  // TODO possibly unused function
   std::visit(
       [this](auto &solver) {
         set_prefactor(solver->prefactor);
@@ -1047,8 +1047,7 @@ void ElectrostaticLayerCorrection::recalc_box_h() {
 }
 
 void ElectrostaticLayerCorrection::recalc_space_layer() {
-  std::cout << "ElectrostaticLayerCorrection::recalc_space_layer()"
-            << std::endl;
+  // TODO possibly unused function
   if (elc.dielectric_contrast_on) {
     auto const p3m_r_cut = std::visit(
         [](auto &solver) { return solver->p3m_params.r_cut; }, base_solver);
@@ -1087,7 +1086,7 @@ elc_data::elc_data(double maxPWerror, double gap_size, double far_cut,
       // set the space_layer to be 1/3 of the gap size, so that box = layer
       space_layer{(dielectric_contrast_on) ? gap_size / 3. : 0.},
       space_box{gap_size - ((dielectric_contrast_on) ? 2. * space_layer : 0.)} {
-  std::cout << "elc_data::elc_data()" << std::endl;
+  // TODO possibly unused function
   auto const delta_range = 1. + std::sqrt(round_error_prec);
   if (far_cut <= 0. and not far_calculated) {
     throw std::domain_error("Parameter 'far_cut' must be > 0");
@@ -1130,7 +1129,7 @@ template <ChargeProtocol protocol, typename combined_ranges>
 void charge_assign(elc_data const &elc, CoulombP3M &solver,
                    combined_ranges const &p_q_pos_range) {
 
-  std::cout << "ElectrostaticLayerCorrection::charge_assign()" << std::endl;
+  // TODO possibly unused function
   solver.prepare_fft_mesh(protocol == ChargeProtocol::BOTH or
                           protocol == ChargeProtocol::IMAGE);
 
@@ -1171,7 +1170,7 @@ template <ChargeProtocol protocol, typename combined_range>
 void modify_p3m_sums(elc_data const &elc, CoulombP3M &solver,
                      combined_range const &p_q_pos_range) {
 
-  std::cout << "ElectrostaticLayerCorrection::modify_p3m_sums()" << std::endl;
+  // TODO possibly unused function
   auto local_n = std::size_t{0u};
   auto local_q2 = 0.0;
   auto local_q = 0.0;
