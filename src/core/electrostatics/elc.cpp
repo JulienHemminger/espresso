@@ -895,6 +895,8 @@ void ElectrostaticLayerCorrection::add_force() const {
 }
 
 double ElectrostaticLayerCorrection::calc_energy() const {
+  std::cout << "ElectrostaticLayerCorrection::calc_energy()" << std::endl;
+
   auto constexpr c_2pi = 2. * std::numbers::pi;
   auto const &system = get_system();
   auto const &box_geo = *system.box_geo;
