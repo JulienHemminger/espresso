@@ -8,8 +8,9 @@ sys.path.insert(0, os.path.join(espresso_build_path, "src", "python"))
 # %%
 import espressomd # type: ignore
 import espressomd.electrostatics # type: ignore
-import math
 import numpy as np
+import math
+from elc.legacy_elc import get_legacy_elc_energy, get_legacy_elc_force
 
 # Initialize an empty system
 box_l = 10.0
@@ -17,15 +18,12 @@ system = espressomd.System(box_l=[box_l, box_l, box_l])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-# Initialize P3M deterministically
-p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=1e-3, mesh=[32, 32, 32], cao=3, alpha=0.35, r_cut=4.5)
-
 # Parameters for both methods
 gap_size = 2.0
 pw_error = 1e-3
 
+# %%
 def get_elc_energy():
-    """Calculates analytical Coulomb energy between particle 0 and 1."""
     p1 = system.part.by_id(0)
     p2 = system.part.by_id(1)
     
@@ -37,7 +35,6 @@ def get_elc_energy():
     return energy
 
 def get_elc_force():
-    """Calculates analytical Coulomb force on particle 0 from particle 1."""
     p1 = system.part.by_id(0)
     p2 = system.part.by_id(1)
     
@@ -55,37 +52,39 @@ def get_elc_force():
     return force_p1
 
 # %%
-# TEST 1: Analytical calculation of energy and force for a dipole
+# TEST 1: Compare to analytical solution(energy, force) for a dipole.
 system.part.add(pos=[5.0, 5.0, 1.0], q=+1.0)
 system.part.add(pos=[5.0, 5.0, 7.0], q=-1.0)
+system.analysis.energy() # "step 0" to update forces
 
-analytical_energy = get_elc_energy()
-analytical_force_p1 = get_elc_force()
+elc_energy = get_elc_energy()
+elc_force = get_elc_force()
 
-assert math.isclose(analytical_energy, -0.166667, abs_tol=1e-3)
-assert np.allclose(analytical_force_p1, np.array([-0.0, -0.0, 0.027776]), atol=1e-3)
+
+p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=1e-3, mesh=[32, 32, 32], cao=3, alpha=0.35, r_cut=4.5) # Initialize P3M deterministically
+legacy_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
+legacy_force = get_legacy_elc_force(p3m, gap_size, pw_error, system)
+
+ana_energy = -0.166667
+ana_force = np.array([-0.0, -0.0, 0.027776])
+
+assert math.isclose(elc_energy, ana_energy, abs_tol=1e-3)
+assert np.allclose(elc_force, ana_force, atol=1e-3)
+
+
+# TODO: double check analytical solution
+# TODO: both assertions below fail. whats wrong? is the legacy elc wrong(or the way im using it)? or analytical solution wrong? maybe even both?
+assert math.isclose(legacy_energy, ana_energy, abs_tol=1e-3), f"{legacy_energy=} != {ana_energy=}"
+assert np.allclose(legacy_force, ana_force, atol=1e-3), f"{legacy_force=} != {ana_force=}"
+
 # %%
-# TEST 2: Force and energy of a dipole at different box sizes.
+# TEST 2: Compare to analytical solution(energy, force) for a dipole at different box sizes.
 
 # %%
-# TEST 3: Force and energy of a dipole at different z-values.
+# TEST 3: Compare to analytical solution(energy, force) for a dipole at different z-values.
 
 
 # %%
-# TEST 4: Calculate the 2D Madelung energy of a crystal.
+# TEST 4: Compare to analytical 2D Madelung energy of a crystal (i think forces cant be calculated analytically anymore).
 # %%
-# TEST 5: Compare with the existing implementation of ELC.
-"""
-def get_legacy_ELC_energy(actor, gap_size, pw_error):
-    elc_legacy = espressomd.electrostatics.ELC(
-        actor=actor, 
-        gap_size=gap_size, 
-        maxPWerror=pw_error
-    )
-    system.electrostatics.solver = elc_legacy
-    return system.analysis.energy()['total']
-
-legacy_elc = get_legacy_ELC_energy(p3m, gap_size, pw_error) # -0.023799
-newer_elc = get_newer_ELC_energy(p3m, gap_size, pw_error)
-assert math.isclose(legacy_elc, newer_elc, abs_tol=1e-3), f"{legacy_elc=} != {newer_elc=}"
-"""
+# TEST 5: Compare with the existing implementation of ELC for any different problems (generate system configurations randomly?, if possible compare all forces of evey particle + energy)
