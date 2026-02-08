@@ -996,7 +996,6 @@ static auto calc_total_charge(CellStructure const &cell_structure) {
 }
 
 void ElectrostaticLayerCorrection::sanity_checks_periodicity() const {
-  << std::endl;
   auto const &box_geo = *get_system().box_geo;
   if (!box_geo.periodic(0) || !box_geo.periodic(1) || !box_geo.periodic(2)) {
     throw std::runtime_error("ELC: requires periodicity (True, True, True)");
@@ -1257,7 +1256,6 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
 }
 
 void ElectrostaticLayerCorrection::add_long_range_forces() const {
-  << std::endl;
   auto const &system = get_system();
   std::visit(
       [this, &system](auto const &solver_ptr) {

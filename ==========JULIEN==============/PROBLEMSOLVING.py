@@ -30,8 +30,13 @@ f"""
 
         * test-driven developemtn: {YES_TODO}
             * {ACTION_DESCRIPTION}
-                * create "basic elc test" (minimal setup)
-                * create elc algorithm that passes that test
+                * create "basic elc test" (minimal setup): {YES_DONE}
+                    * {REFINEMENT}
+                        * use 'espressomd.System' framework to specify problems: {YES_TODO}
+                            * {REWARD_ESTIMATE}
+                                * Pro
+                                    * dont repeat yourself / dont re-invent the wheel
+                * create elc algorithm that passes that test: {YES_DONE}
 
                 * create "medium elc test" (average setup)
                 * create elc algoritm that passes that test and previous ones
