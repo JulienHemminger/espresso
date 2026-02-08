@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(espresso_build_path, "src", "python"))
 # %%
 import espressomd # type: ignore
 import espressomd.electrostatics # type: ignore
+import math
 import numpy as np
 
 # Initialize an empty system
@@ -61,15 +62,8 @@ system.part.add(pos=[5.0, 5.0, 7.0], q=-1.0)
 analytical_energy = get_elc_energy()
 analytical_force_p1 = get_elc_force()
 
-print(f"Analytical Energy: {analytical_energy}")
-print(f"Analytical Force on P1: {analytical_force_p1}")
-"""
---- Analytical Results (Dipole) ---
-Energy:   -0.1667
-Force P1: [-0.0, -0.0, 0.027777777777777776]
-"""
-
-
+assert math.isclose(analytical_energy, -0.166667, abs_tol=1e-3)
+assert np.allclose(analytical_force_p1, np.array([-0.0, -0.0, 0.027776]), atol=1e-3)
 # %%
 # TEST 2: Force and energy of a dipole at different box sizes.
 
