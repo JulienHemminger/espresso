@@ -20,8 +20,16 @@ p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error)
 
 # %%
 def get_elc_energy(p3m, gap_size, pw_error, system):
+    lx, ly, lz = system.box_l
+    
+    parts = system.part.all()
+    qs = parts.q
+    pos = parts.pos
+    xs, ys, zs = pos[:, 0], pos[:, 1], pos[:, 2]
+    
     system.electrostatics.solver = p3m
     e_3d = system.analysis.energy()["total"]
+    
     return e_3d
 
 # %%
