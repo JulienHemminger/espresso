@@ -43,8 +43,8 @@ ana_energy = -1.0/r # $$U = \frac{1}{4\pi\varepsilon_0} \frac{q_1 q_2}{r}$$
 
 elc_energy = get_p3m_energy(p3m, gap_size, pw_error, system)
 
-print(get_legacy_elc_energy(p3m, gap_size, pw_error, system))
-print(elc_energy)
+print(get_legacy_elc_energy(p3m, gap_size, pw_error, system)) # -0.2052426840688041
+print(elc_energy) # -0.24999999904163944
 
 # %%
 # TEST 2: Compare to analytical solution(energy, force) for a dipole at different box sizes.
