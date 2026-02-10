@@ -22,7 +22,6 @@ p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error)
 def get_elc_energy(p3m, gap_size, pw_error, system):
     system.electrostatics.solver = p3m
     e_3d = system.analysis.energy()["total"]
-    
     return e_3d
 
 # %%
@@ -34,50 +33,20 @@ system = espressomd.System(box_l=[l_xy, l_xy, l_z])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-r = 1.0 # 1 - 10
+r = 5.0 # 1 - 10
 system.part.add(pos=[0.0, 0.0, 0.0], q=+1.0)
 system.part.add(pos=[0.0, 0.0, r], q=-1.0)
 
 # Computation - TODO force
-ana_energy = -1.0/r # $$U = \frac{1}{4\pi\varepsilon_0} \frac{q_1 q_2}{r}$$
+ana_energy = -1.0/r
 
-elc_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
-p3m_energy = get_elc_energy(p3m, gap_size, pw_error, system)
+legacy_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
+elc_energy = float(get_elc_energy(p3m, gap_size, pw_error, system))
 
 print(f"r = {r}")
-print(f"* elc_energy = {elc_energy}")
-print(f"* p3m_energy = {p3m_energy}")
-
-
-"""
-r = 1.0
-* elc_energy = -0.9999983944026967
-* p3m_energy = -1.0024279670781735
-
-r = 2.0
-* elc_energy = -0.49998931656074147
-* p3m_energy = -0.509969094100363
-
-r = 3.0
-* elc_energy = -0.3333021468386325
-* p3m_energy = -0.3568210939607825
-
-r = 4.0
-* elc_energy = -0.24993718239513205
-* p3m_energy = -0.29476664542618203
-
-r = 5.0
-* elc_energy = -0.19989540599951577
-* p3m_energy = -0.27726707940712897
-
-r = 6.0
-* elc_energy = -0.16651414043733961
-* p3m_energy = -0.2947670750848769
-
-r = 7.0
-* elc_energy = -0.1426467321722176
-* p3m_energy = -0.3568221008774327
-"""
+print(f"* {legacy_energy=}")
+print(f"* {elc_energy=}")
+print(f"* {ana_energy=}")
 
 
 # %%
