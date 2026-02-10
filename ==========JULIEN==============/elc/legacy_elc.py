@@ -10,7 +10,7 @@ import espressomd # type: ignore
 import espressomd.electrostatics # type: ignore
 
 # %%
-def get_legacy_elc_energy(actor, gap_size, pw_error, system): #idk why but it prints stuff in the console
+def get_legacy_elc_energy(actor, gap_size, pw_error, system):
     elc_legacy = espressomd.electrostatics.ELC(
         actor=actor, 
         gap_size=gap_size, 

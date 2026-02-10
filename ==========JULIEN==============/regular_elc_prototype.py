@@ -14,12 +14,12 @@ from elc.legacy_elc import get_legacy_elc_energy, get_legacy_elc_force
 
 
 # Parameters for both methods + Initialize P3M deterministically
-p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=1e-3, mesh=[32, 32, 32], cao=3, alpha=0.35, r_cut=4.5)
+pw_error = 1e-6
 gap_size = 2.0
-pw_error = 1e-3
+p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error)
 
 # %%
-def get_p3m_energy(p3m, gap_size, pw_error, system):
+def get_elc_energy(p3m, gap_size, pw_error, system):
     system.electrostatics.solver = p3m
     e_3d = system.analysis.energy()["total"]
     
@@ -27,24 +27,58 @@ def get_p3m_energy(p3m, gap_size, pw_error, system):
 
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole.
-l_xy = 1_000.0
+l_xy = 100.0 # keep l_xy <= 200
 l_z = 10.0
 
 system = espressomd.System(box_l=[l_xy, l_xy, l_z])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-r = 4.0
+r = 1.0 # 1 - 10
 system.part.add(pos=[0.0, 0.0, 0.0], q=+1.0)
 system.part.add(pos=[0.0, 0.0, r], q=-1.0)
 
 # Computation - TODO force
 ana_energy = -1.0/r # $$U = \frac{1}{4\pi\varepsilon_0} \frac{q_1 q_2}{r}$$
 
-elc_energy = get_p3m_energy(p3m, gap_size, pw_error, system)
+elc_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
+p3m_energy = get_elc_energy(p3m, gap_size, pw_error, system)
 
-print(get_legacy_elc_energy(p3m, gap_size, pw_error, system)) # -0.2052426840688041
-print(elc_energy) # -0.24999999904163944
+print(f"r = {r}")
+print(f"* elc_energy = {elc_energy}")
+print(f"* p3m_energy = {p3m_energy}")
+
+
+"""
+r = 1.0
+* elc_energy = -0.9999983944026967
+* p3m_energy = -1.0024279670781735
+
+r = 2.0
+* elc_energy = -0.49998931656074147
+* p3m_energy = -0.509969094100363
+
+r = 3.0
+* elc_energy = -0.3333021468386325
+* p3m_energy = -0.3568210939607825
+
+r = 4.0
+* elc_energy = -0.24993718239513205
+* p3m_energy = -0.29476664542618203
+
+r = 5.0
+* elc_energy = -0.19989540599951577
+* p3m_energy = -0.27726707940712897
+
+r = 6.0
+* elc_energy = -0.16651414043733961
+* p3m_energy = -0.2947670750848769
+
+r = 7.0
+* elc_energy = -0.1426467321722176
+* p3m_energy = -0.3568221008774327
+"""
+
 
 # %%
 # TEST 2: Compare to analytical solution(energy, force) for a dipole at different box sizes.
@@ -55,21 +89,7 @@ print(elc_energy) # -0.24999999904163944
 
 # %%
 # TEST 4: Compare to analytical 2D Madelung energy of a crystal (i think forces cant be calculated analytically anymore).
+# Alex: Die Madelungen Energie ist halt die Energie pro Teilchen in einem unendlichen Kristall. Die konvergiert zu einer Konstanten, der Madelungen-Konstanten. Kann man analytisch zeigen, gibt in Espresso auch ein Testcase dazu. Kannst auch mal reinschauen
 
 # %%
 # TEST 5: Compare with the existing implementation of ELC for any different problems (generate system configurations randomly?, if possible compare all forces of evey particle + energy)
-"""
-system.part.add(pos=[1.0, 5.0, 1.0], q=+1.0)
-system.part.add(pos=[7.0, 5.0, 1.0], q=-1.0)
-system.analysis.energy() # "step 0" to update forces
-
-elc_energy = get_elc_energy(p3m, gap_size, pw_error, system)
-elc_force = get_elc_force(p3m, gap_size, pw_error, system)
-
-
-legacy_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
-legacy_force = get_legacy_elc_force(p3m, gap_size, pw_error, system)
-
-
-assert math.isclose(legacy_energy, elc_energy, abs_tol=1e-2), f"{legacy_energy=} != {elc_energy=}"
-"""
