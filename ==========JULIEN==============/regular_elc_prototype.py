@@ -32,16 +32,16 @@ import numpy as np
 import math
 from common.generate_constrained_position_pairs import generate_constrained_pairs
 from elc.get_elc_energy import get_elc_energy
+from elc.get_elc_forces import get_elc_forces
 
 
 
-# Increase test_count for a more descriptive plot
-test_count = 10
+test_count = 3
 
 # Lists to store data for plotting
 r_values = []
 legacy_energies = []
-#elc_energies = []
+elc_energies = []
 
 for pos1, pos2 in generate_constrained_pairs(test_count):
     R = np.array(pos1) - np.array(pos2)
@@ -58,40 +58,39 @@ for pos1, pos2 in generate_constrained_pairs(test_count):
     legacy_forces = get_legacy_elc_forces(p3m, gap_size, pw_error, system)
     legacy_force = legacy_forces[np.argmax(np.dot(legacy_forces, ana_force) / np.linalg.norm(legacy_forces, axis=1))]
 
-
-
-
-    #elc_energy = float(get_elc_energy(p3m, gap_size, pw_error, system)) TODO own impl
+    elc_forces = get_elc_forces(p3m, gap_size, pw_error, system)
+    elc_force = elc_forces[np.argmax(np.dot(elc_forces, ana_force) / np.linalg.norm(elc_forces, axis=1))]
 
     # Append to lists
     r_values.append(r)
 
     legacy_error = np.linalg.norm(legacy_force - ana_force)
-    print(f"{r=}: |{legacy_force} - {ana_force}| = {legacy_error}")
     legacy_energies.append(legacy_error)
-    #elc_energies.append(elc_energy)
+    
+    elc_error = np.linalg.norm(elc_force - ana_force)
+    elc_energies.append(elc_error)
 
 # Convert to numpy arrays and sort by r to ensure the lines are drawn correctly
 sort_idx = np.argsort(r_values)
 r_values = np.array(r_values)[sort_idx]
 legacy_energies = np.array(legacy_energies)[sort_idx]
-#elc_energies = np.array(elc_energies)[sort_idx]
+elc_energies = np.array(elc_energies)[sort_idx]
 
 # Plotting
 plt.figure(figsize=(10, 6))
-plt.plot(r_values, legacy_energies, label='Legacy ELC Energy', linestyle=':', marker='o', markersize=4)
-#plt.plot(r_values, elc_energies, label='ELC Energy', linestyle=':', marker='x', markersize=4)
+plt.plot(r_values, legacy_energies, label='Legacy Force Error', linestyle=':', marker='o', markersize=4)
+plt.plot(r_values, elc_energies, label='ELC Force Error', linestyle=':', marker='x', markersize=4)
 
 plt.xlabel(r'Distance $r$')
-plt.ylabel(r'Energy $E$')
-plt.title('Comparison of Energy Methods vs. Distance')
+plt.ylabel(r'Force Error')
+plt.title('Comparison of ELC Force Methods vs. Distance')
 plt.legend()
 plt.grid(True, which='both', linestyle='--', alpha=0.5)
 
 # Save and show
 impl_version = get_elc_energy.__module__.split('.')[-1]
 print("Finished evaluating "+impl_version)
-plt.savefig(f'{impl_version}_test1_forcey_n{test_count}_plot.png')
+plt.savefig(f'iX_test1_force_n{test_count}_plot.png')
 plt.show()
 
 
