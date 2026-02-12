@@ -36,18 +36,15 @@ from elc.get_elc_energy import get_elc_energy
 
 
 # Increase test_count for a more descriptive plot
-test_count = 1
+test_count = 10
 
 # Lists to store data for plotting
 r_values = []
 legacy_energies = []
-elc_energies = []
-ana_energies = []
+#elc_energies = []
 
 for pos1, pos2 in generate_constrained_pairs(test_count):
-    pos1 = [0, 0, 1]
-    pos2 = [3, 5, 6]
-
+    R = np.array(pos1) - np.array(pos2)
     r = math.dist(pos1, pos2)
     assert r >= 1
     
@@ -56,37 +53,34 @@ for pos1, pos2 in generate_constrained_pairs(test_count):
     system.part.add(pos=pos2, q=-1.0)
 
     # Calculate forces
+    ana_force = (-1.0 / r**3) * R
+    
     legacy_forces = get_legacy_elc_forces(p3m, gap_size, pw_error, system)
-    print(legacy_forces)
+    legacy_force = legacy_forces[np.argmax(np.dot(legacy_forces, ana_force) / np.linalg.norm(legacy_forces, axis=1))]
 
 
 
-    r_vec = np.array(pos1) - np.array(pos2)
-    f1 = (-1.0 / r**3) * r_vec
-    ana_forces = [f1, -f1]
-    print(str(ana_forces))
 
-
-    #elc_energy = float(get_elc_energy(p3m, gap_size, pw_error, system))
+    #elc_energy = float(get_elc_energy(p3m, gap_size, pw_error, system)) TODO own impl
 
     # Append to lists
-    #r_values.append(r)
-    #legacy_energies.append(legacy_forces)
+    r_values.append(r)
+
+    legacy_error = np.linalg.norm(legacy_force - ana_force)
+    print(f"{r=}: |{legacy_force} - {ana_force}| = {legacy_error}")
+    legacy_energies.append(legacy_error)
     #elc_energies.append(elc_energy)
-    #ana_energies.append(ana_energy)
-"""
+
 # Convert to numpy arrays and sort by r to ensure the lines are drawn correctly
 sort_idx = np.argsort(r_values)
 r_values = np.array(r_values)[sort_idx]
 legacy_energies = np.array(legacy_energies)[sort_idx]
-elc_energies = np.array(elc_energies)[sort_idx]
-ana_energies = np.array(ana_energies)[sort_idx]
+#elc_energies = np.array(elc_energies)[sort_idx]
 
 # Plotting
 plt.figure(figsize=(10, 6))
-plt.plot(r_values, ana_energies, label='Analytical Energy ($-1/r$)', linestyle=':', color='black', linewidth=2)
 plt.plot(r_values, legacy_energies, label='Legacy ELC Energy', linestyle=':', marker='o', markersize=4)
-plt.plot(r_values, elc_energies, label='ELC Energy', linestyle=':', marker='x', markersize=4)
+#plt.plot(r_values, elc_energies, label='ELC Energy', linestyle=':', marker='x', markersize=4)
 
 plt.xlabel(r'Distance $r$')
 plt.ylabel(r'Energy $E$')
@@ -97,9 +91,9 @@ plt.grid(True, which='both', linestyle='--', alpha=0.5)
 # Save and show
 impl_version = get_elc_energy.__module__.split('.')[-1]
 print("Finished evaluating "+impl_version)
-plt.savefig(f'{impl_version}_test1_energy_n{test_count}_plot.png')
+plt.savefig(f'{impl_version}_test1_forcey_n{test_count}_plot.png')
 plt.show()
-"""
+
 
 # %%
 # TEST 2: Compare to analytical solution(energy, force) for a dipole at different gap_size?, l_xy?, l_z
