@@ -19,12 +19,13 @@ def get_legacy_elc_energy(actor, gap_size, pw_error, system):
     system.electrostatics.solver = elc_legacy
     return system.analysis.energy()['total']
 
-def get_legacy_elc_force(actor, gap_size, pw_error, system):
+def get_legacy_elc_forces(actor, gap_size, pw_error, system):
     elc_legacy = espressomd.electrostatics.ELC(
         actor=actor, 
         gap_size=gap_size, 
         maxPWerror=pw_error
     )
-    system.electrostatics.solver = elc_legacy
-    # espressomd.html#espressomd.particle_data.ParticleHandle.f
-    return system.part.by_id(0).f
+    system.electrostatics.solver = actor
+
+    return [particle.f for particle in system.part.all()]
+    
