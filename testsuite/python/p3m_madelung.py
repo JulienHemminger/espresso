@@ -1,3 +1,8 @@
+import sys
+import os
+espresso_build_path = "/home/main/Documents/Career/1_Studium/espresso/build"
+sys.path.insert(0, os.path.join(espresso_build_path, "src", "python"))
+
 #
 # Copyright (C) 2013-2022 The ESPResSo project
 #
