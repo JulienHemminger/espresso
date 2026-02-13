@@ -5,9 +5,14 @@
         "env",
         "venv",
         ".venv",
-        "**/data"
+        "**/data",
+        "**/espresso_env",
+        "**/build",
+        "**/doc"
     ],
     "ignore": [
         "**/data"
-    ]
+    ],
+    "venvPath": ".",
+    "venv": "espresso_env"
 }
