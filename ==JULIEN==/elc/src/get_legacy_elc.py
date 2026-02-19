@@ -1,11 +1,4 @@
 # %%
-import sys
-import os
-# To allow me to write/run juptyer notebooks from VScode.
-espresso_build_path = "/home/main/Documents/Career/1_Studium/espresso/build"
-sys.path.insert(0, os.path.join(espresso_build_path, "src", "python"))
-
-# %%
 import espressomd # type: ignore
 import espressomd.electrostatics # type: ignore
 
