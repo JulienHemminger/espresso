@@ -8,11 +8,29 @@
         "**/data",
         "**/espresso_env",
         "**/build",
-        "**/doc"
+        "**/doc", "**/.*",
+        "**/node_modules",
+        "**/__pycache__",
+        "**/venv",
+        "**/build",
+        ".venv/",
+        "**/data",
+        "**/espresso_env/**",
+        "**/build/**",
+        "**/doc/**",
+        "**/testsuite/**",
+        "**/.*"
     ],
     "ignore": [
         "**/data"
     ],
     "venvPath": ".",
-    "venv": "espresso_env"
+    "venv": "espresso_env",
+
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none"
+    },
+    
 }

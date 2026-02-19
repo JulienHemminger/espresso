@@ -2,13 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from common.generate_constrained_position_pairs import generate_constrained_pairs
-from elc.impl.get_elc_energy import get_elc_energy
+from elc.src.get_elc_energy import get_elc_energy
 
 import espressomd # type: ignore
 import espressomd.electrostatics # type: ignore
 import numpy as np
 import math
-from elc.impl.get_legacy_elc import get_legacy_elc_energy
+from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 
 def dipole_rdm_pos_energy_test(test_count = 2):

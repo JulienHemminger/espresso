@@ -10,19 +10,18 @@ import espressomd # type: ignore
 import espressomd.electrostatics # type: ignore
 import numpy as np
 import math
-from elc.impl.get_legacy_elc import get_legacy_elc_energy
+from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position, distance r
-"""
+
 from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
 dipole_rdm_pos_energy_test(test_count=8)
-"""
+
 # %%
 # TEST 2: Compare to analytical 2D Madelung energy of a crystal
-
-from elc.tests._2_madelung.madelung_energy_test import madelung_energy_test
-madelung_energy_test()
+#from elc.tests._2_madelung.madelung_energy_test import madelung_energy_test
+#madelung_energy_test()
 
 
 # %%
