@@ -2,13 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from common.generate_constrained_position_pairs import generate_constrained_pairs
-from elc.get_elc_energy import get_elc_energy
+from elc.impl.get_elc_energy import get_elc_energy
 
 import espressomd # type: ignore
 import espressomd.electrostatics # type: ignore
 import numpy as np
 import math
-from elc.get_legacy_elc import get_legacy_elc_energy
+from elc.impl.get_legacy_elc import get_legacy_elc_energy
+
 
 def dipole_rdm_pos_energy_test(test_count = 2):
     l_xy = 100.0 # keep l_xy <= 200
@@ -57,20 +58,35 @@ def dipole_rdm_pos_energy_test(test_count = 2):
     elc_energies = np.array(elc_energies)[sort_idx]
     ana_energies = np.array(ana_energies)[sort_idx]
 
-    # Plotting
-    plt.figure(figsize=(10, 6))
-    plt.plot(r_values, ana_energies, label='Analytical Energy ($-1/r$)', linestyle=':', color='black', linewidth=2)
-    plt.plot(r_values, legacy_energies, label='Legacy ELC Energy', linestyle=':', marker='o', markersize=4)
-    plt.plot(r_values, elc_energies, label='ELC Energy', linestyle=':', marker='x', markersize=4)
+    # Create a figure with two rows, sharing the x-axis
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True, 
+                                gridspec_kw={'height_ratios': [3, 1]})
 
-    plt.xlabel(r'Distance $r$')
-    plt.ylabel(r'Energy $E$')
-    plt.title('Comparison of Energy Methods vs. Distance')
-    plt.legend()
-    plt.grid(True, which='both', linestyle='--', alpha=0.5)
+    # --- Main Plot (Top) ---
+    ax1.plot(r_values, ana_energies, label=r'Analytical Reference', 
+            color='#2c3e50', linewidth=2, zorder=1)
+    ax1.scatter(r_values, legacy_energies, label='Legacy Energy', color="#15ff00", s=30, edgecolor='white', linewidth=0.5, zorder=2)
 
-    # Save and show
-    impl_version = get_elc_energy.__module__.split('.')[-1]
-    print("Finished evaluating "+impl_version)
-    plt.savefig(f'{impl_version}_test1_energy_n{test_count}_plot.png')
+    ax1.scatter(r_values, elc_energies, label='ELC Energy', 
+                color="#e2402e", s=30, edgecolor='white', linewidth=0.5, zorder=2)
+
+    ax1.set_ylabel(r'Total Energy $E(r)$')
+    ax1.set_title('Validation of Energy Computation: Dipole System', fontweight='bold', pad=15)
+    ax1.legend(loc='lower right', frameon=True)
+
+    # --- Residual Plot (Bottom) ---
+    residuals = np.array(elc_energies) - np.array(ana_energies)
+    ax2.scatter(r_values, residuals, color='#2980b9', s=20, marker='D')
+    ax2.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+
+    ax2.set_ylabel(r'Diff ($\Delta E$)')
+    ax2.set_xlabel(r'Inter-particle distance ($r$)')
+
+    # Clean up styling for both
+    for ax in [ax1, ax2]:
+        ax.grid(True, linestyle=':', alpha=0.5)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+    plt.tight_layout()
     plt.show()

@@ -10,7 +10,7 @@ import espressomd # type: ignore
 import espressomd.electrostatics # type: ignore
 import numpy as np
 import math
-from elc.get_legacy_elc import get_legacy_elc_energy, get_legacy_elc_forces
+from elc.impl.get_legacy_elc import get_legacy_elc_energy, get_legacy_elc_forces
 
 l_xy = 100.0 # keep l_xy <= 200
 l_z = 12.0
@@ -31,8 +31,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from common.generate_constrained_position_pairs import generate_constrained_pairs
-from elc.get_elc_energy import get_elc_energy
-from elc.get_elc_forces import get_elc_forces
+from elc.impl.get_elc_energy import get_elc_energy
+from elc.impl.get_elc_forces import get_elc_forces
 
 
 

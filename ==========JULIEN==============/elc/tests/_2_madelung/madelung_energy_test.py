@@ -2,8 +2,8 @@ import espressomd
 import espressomd.electrostatics
 import numpy as np
 import matplotlib.pyplot as plt
-from elc.get_legacy_elc import get_legacy_elc_energy
-from elc.get_elc_energy import get_elc_energy
+from elc.impl.get_legacy_elc import get_legacy_elc_energy
+from elc.impl.get_elc_energy import get_elc_energy
 
 def madelung_energy_test():
     # 1. System Setup
@@ -85,6 +85,7 @@ def madelung_energy_test():
     plt.ylabel('Absolute Error (Madelung Energy)', fontsize=12)
     plt.title('ELC Validation: Error vs. System Size', fontsize=14)
     plt.grid(True, which="both", ls="-", alpha=0.5)
+    plt.legend(loc='best', fontsize=11, frameon=True)
 
     plt.tight_layout()
     plt.savefig('elc_madelung_validation_plot.png')
