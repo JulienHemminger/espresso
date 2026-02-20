@@ -4,8 +4,6 @@ espresso_path = "/home/main/Documents/Career/1_Studium/espresso"
 sys.path.insert(0, os.path.join(espresso_path, "build", "src", "python"))
 sys.path.insert(0, os.path.join(espresso_path, "==JULIEN=="))
 
-
-# %%
 import espressomd
 import espressomd.electrostatics
 import numpy as np
