@@ -21,7 +21,7 @@ def madelung_energy_test():
     elc_errors = []
 
     # 2. Loop through different spacings
-    spacings = [0.25, 0.5, 1, 2, 3]
+    spacings = [0.25, 0.5, 1, 2]
 
 
     for spacing in spacings:
@@ -56,37 +56,29 @@ def madelung_energy_test():
         legacy_errors.append(legacy_error)
         elc_errors.append(elc_error)
 
+    # Create a figure
+    fig, ax = plt.subplots(figsize=(10, 4))
 
-    # 5. Plotting the results
-    plt.figure(figsize=(10, 6))
-    plt.plot(ion_counts, legacy_errors, 
-            marker='s',           # Square marker
-            linestyle='--',       # Dashed line
-            color='teal', 
-            linewidth=2, 
-            markersize=8, 
-            alpha=0.6,            # 60% opacity
-            label='Legacy Errors')
+    # Added labels, distinct markers ('o' and 's'), and transparency (alpha)
+    ax.scatter(ion_counts, elc_errors, color='#2980b9', s=30, marker='o', alpha=0.3, label='ELC')
+    ax.scatter(ion_counts, legacy_errors, color="#ff0000", s=30, marker='s', alpha=0.3, label='Legacy')
 
-    plt.plot(ion_counts, elc_errors, 
-            marker='^',           # Triangle marker
-            linestyle=':',        # Dotted line
-            color='red', 
-            linewidth=2, 
-            markersize=9,         # Slightly larger to see 'behind' squares
-            alpha=0.8,            # 80% opacity
-            label='ELC Errors')
-    # Formatting the plot
-    plt.xscale('log')  # Log scale for Number of Ions as requested
-    # Note: Since the error ranges from 10^-7 to 10^-2, a log scale for Y is also highly recommended:
-    plt.yscale('log') 
+    ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
 
-    plt.xlabel('Number of Ions (Log Scale)', fontsize=12)
-    plt.ylabel('Absolute Error (Madelung Energy)', fontsize=12)
-    plt.title('ELC Validation: Error vs. System Size', fontsize=14)
-    plt.grid(True, which="both", ls="-", alpha=0.5)
+    # Formatting
+    ax.set_ylabel(r'Diff ($\Delta E$)')
+    ax.set_xlabel(r'Number of Ions (Log Scale)')
+    ax.set_title('Residuals of Energy Computation', fontweight='bold', pad=10)
+
+    # Display the legend to show the labels
+    plt.xscale('log')
+    plt.yscale('log')
     plt.legend(loc='best', fontsize=11, frameon=True)
 
+    # Styling
+    plt.grid(True, which="both", ls="-", alpha=0.5)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     plt.tight_layout()
-    plt.savefig('elc_madelung_validation_plot.png')
     plt.show()
