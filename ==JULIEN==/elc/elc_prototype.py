@@ -1,12 +1,8 @@
 import sys
 import os
-# ESPResSo build path
-espresso_build_path = "/home/main/Documents/Career/1_Studium/espresso/build"
-sys.path.insert(0, os.path.join(espresso_build_path, "src", "python"))
-# Add the project root (where the 'elc' folder lives)
-# Based on your ls output, this is: /home/main/Documents/Career/1_Studium/espresso/==JULIEN==
-project_root = "/home/main/Documents/Career/1_Studium/espresso/==JULIEN=="
-sys.path.insert(0, project_root)
+espresso_path = "/home/main/Documents/Career/1_Studium/espresso"
+sys.path.insert(0, os.path.join(espresso_path, "build", "src", "python"))
+sys.path.insert(0, os.path.join(espresso_path, "==JULIEN=="))
 
 
 # %%
@@ -17,16 +13,15 @@ import math
 from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 # %%
-# TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position, distance r
-
+# TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position
+"""
 from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
-dipole_rdm_pos_energy_test(test_count=8)
-
+dipole_rdm_pos_energy_test(test_count=32)
+"""
 # %%
 # TEST 2: Compare to analytical 2D Madelung energy of a crystal
-#from elc.tests._2_madelung.madelung_energy_test import madelung_energy_test
-#madelung_energy_test()
-
+from elc.tests._2_madelung.madelung_energy_test import madelung_energy_test
+madelung_energy_test()
 
 # %%
 # TEST 3: Compare with the existing implementation of ELC (elc.cpp) for a wide range of systems, where there are no analytical solutions. Compare energy + all forces.

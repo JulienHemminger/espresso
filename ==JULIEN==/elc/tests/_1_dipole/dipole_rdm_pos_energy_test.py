@@ -58,35 +58,31 @@ def dipole_rdm_pos_energy_test(test_count = 2):
     elc_energies = np.array(elc_energies)[sort_idx]
     ana_energies = np.array(ana_energies)[sort_idx]
 
-    # Create a figure with two rows, sharing the x-axis
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True, 
-                                gridspec_kw={'height_ratios': [3, 1]})
+    # Create a figure
+    fig, ax = plt.subplots(figsize=(10, 4))
 
-    # --- Main Plot (Top) ---
-    ax1.plot(r_values, ana_energies, label=r'Analytical Reference', 
-            color='#2c3e50', linewidth=2, zorder=1)
-    ax1.scatter(r_values, legacy_energies, label='Legacy Energy', color="#15ff00", s=30, edgecolor='white', linewidth=0.5, zorder=2)
+    # --- Residual Plot ---
+    elc_error = np.array(elc_energies) - np.array(ana_energies)
+    legacy_error = np.array(legacy_energies) - np.array(ana_energies)
 
-    ax1.scatter(r_values, elc_energies, label='ELC Energy', 
-                color="#e2402e", s=30, edgecolor='white', linewidth=0.5, zorder=2)
+    # Added labels, distinct markers ('o' and 's'), and transparency (alpha)
+    ax.scatter(r_values, elc_error, color='#2980b9', s=30, marker='o', alpha=0.6, label='ELC')
+    ax.scatter(r_values, legacy_error, color="#ff0000", s=30, marker='s', alpha=0.6, label='Legacy')
 
-    ax1.set_ylabel(r'Total Energy $E(r)$')
-    ax1.set_title('Validation of Energy Computation: Dipole System', fontweight='bold', pad=15)
-    ax1.legend(loc='lower right', frameon=True)
+    ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
 
-    # --- Residual Plot (Bottom) ---
-    residuals = np.array(elc_energies) - np.array(ana_energies)
-    ax2.scatter(r_values, residuals, color='#2980b9', s=20, marker='D')
-    ax2.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+    # Formatting
+    ax.set_ylabel(r'Diff ($\Delta E$)')
+    ax.set_xlabel(r'Inter-particle distance ($r$)')
+    ax.set_title('Residuals of Energy Computation', fontweight='bold', pad=10)
 
-    ax2.set_ylabel(r'Diff ($\Delta E$)')
-    ax2.set_xlabel(r'Inter-particle distance ($r$)')
+    # Display the legend to show the labels
+    ax.legend(frameon=False)
 
-    # Clean up styling for both
-    for ax in [ax1, ax2]:
-        ax.grid(True, linestyle=':', alpha=0.5)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
+    # Styling
+    ax.grid(True, linestyle=':', alpha=0.5)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     plt.tight_layout()
     plt.show()
