@@ -20,21 +20,24 @@ def madelung_energy_test():
     legacy_errors = []
     elc_errors = []
 
-    # 2. Loop through different spacings
-    spacings = [0.25, 0.5, 1, 2]
+    ions_per_axis_list = [8, 16, 32, 64] 
 
-
-    for spacing in spacings:
-        spacing = float(spacing)
+    for ions_per_axis in ions_per_axis_list:
+        # Calculate spacing based on the desired number of ions
+        spacing = box_size / ions_per_axis
+        
         system.part.clear()
-
-        ions_per_axis = int(box_size / spacing)
         ion_z_pos = system.box_l[2] / 2.0
 
         for i in range(ions_per_axis):
             for j in range(ions_per_axis):
                 charge = (-1.0)**(i + j)
                 system.part.add(pos=[i * spacing, j * spacing, ion_z_pos], q=charge)
+
+        # 3. Configure the Solvers & 4. Calculate Energy
+        # (Your existing P3M and error calculation logic remains the same)
+        # Note: Use 'ions_per_axis**2' for total ion_count
+        ion_count = ions_per_axis**2
 
         # 3. Configure the Solvers
         p3m = espressomd.electrostatics.P3M(

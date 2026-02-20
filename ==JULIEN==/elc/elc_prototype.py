@@ -12,15 +12,15 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position
+"""
 from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
 dipole_rdm_pos_energy_test(test_count=4*8)
-
+"""
 # %%
 # TEST 2: Compare to analytical 2D Madelung energy of a crystal
-"""
 from elc.tests._2_madelung.madelung_energy_test import madelung_energy_test
 madelung_energy_test()
-"""
+
 # %%
 # TEST 3: Compare with the existing implementation of ELC (elc.cpp) for a wide range of systems, where there are no analytical solutions. Compare energy + all forces.
 # TODO do legacy & new use same parameters? Sieht bisschen so aus, als würden die Korrekturen unterschiedlich genau berechnet werden
