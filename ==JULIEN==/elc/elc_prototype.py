@@ -72,23 +72,28 @@ def run_comparison_with_random_particles(n_particles, l_xyz, gap, p3m_params):
     
     return legacy_e, newer_e
 
-# --- Execution ---
-particle_counts = range(3, 8+1)
-results = {"legacy": [], "newer": []}
+# --- Execution with Multiple Passes ---
+num_passes = 2
+particle_counts = range(3, 9)
+# Initialize with the key we actually use
+results = {"avg_diffs": []}
 
 for n in particle_counts:
-    leg, new = run_comparison_with_random_particles(n, 50.0, 2.0, p3m_params)
-    results["legacy"].append(leg)
-    results["newer"].append(new)
+    pass_diffs = []
+    
+    for _ in range(num_passes):
+        leg, new = run_comparison_with_random_particles(n, 50.0, 2.0, p3m_params)
+        pass_diffs.append(new - leg)
+    
+    # Calculate the average difference for this n_particles
+    results["avg_diffs"].append(np.mean(pass_diffs))
 
 # --- Plotting ---
-diff = np.array(results["newer"]) - np.array(results["legacy"])
-
 plt.figure(figsize=(8, 5))
-plt.plot(particle_counts, diff, color='#e2402e', marker='o', linestyle='-')
+plt.plot(particle_counts, results["avg_diffs"], color='#e2402e', marker='o', linestyle='-')
 plt.axhline(0, color='black', lw=1, ls='--')
-plt.title("Residuals vs. Particle Count (Variable Charges)")
+plt.title(f"Average Residuals vs. Particle Count ({num_passes} passes)")
 plt.xlabel("Number of Particles")
-plt.ylabel(r"$\Delta E$ (Newer - Legacy)")
+plt.ylabel(r"Average $\Delta E$ (Newer - Legacy)")
 plt.grid(True, alpha=0.3)
 plt.show()
