@@ -73,8 +73,8 @@ def run_comparison_with_random_particles(n_particles, l_xyz, gap, p3m_params):
     return legacy_e, newer_e
 
 # --- Execution with Multiple Passes ---
-num_passes = 2
-particle_counts = range(3, 9)
+num_passes = 3
+particle_counts = range(3, 16+1)
 # Initialize with the key we actually use
 results = {"avg_diffs": []}
 
