@@ -90,7 +90,7 @@ for n in particle_counts:
 
 # --- Plotting ---
 plt.figure(figsize=(8, 5))
-plt.plot(particle_counts, results["avg_diffs"], color='#e2402e', marker='o', linestyle='-')
+plt.plot(particle_counts, results["avg_diffs"], color="#aa0000", marker='o', linestyle='-')
 plt.axhline(0, color='black', lw=1, ls='--')
 plt.title(f"Average Residuals vs. Particle Count ({num_passes} passes)")
 plt.xlabel("Number of Particles")
