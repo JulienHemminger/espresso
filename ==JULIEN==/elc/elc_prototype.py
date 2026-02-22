@@ -29,10 +29,12 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 # TEST 4: particle_count=3-10, non-neutral systems, varying charges q_i
 
 """
-* make it work reliably: DONE
-* compare |legacy - elc|: plots, etc.
 
 * improve my elc
+    * maybe "decompose" it further.
+        * TEST4: "q_i is not always +-1"
+        * TEST5: "random particle count (neutral system)"
+        * TEST6: "random particle count (non-neutral system)
 * energy contributions plot
 
 """
