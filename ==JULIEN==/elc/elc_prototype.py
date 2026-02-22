@@ -22,14 +22,69 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 # %%
 # TEST 3: Compare with the existing implementation of ELC (elc.cpp) for a wide range of systems, where there are no analytical solutions. Compare energy + all forces.
-from elc.tests._3_general_systems.dipole_variants_test import dipole_variants_test
-dipole_variants_test()
 
+#from elc.tests._3_general_systems.dipole_variants_test import dipole_variants_test
+#dipole_variants_test()
+# %%
+# TEST 4: particle_count=3-10, non-neutral systems, varying charges q_i
 
 """
+* make it work reliably: DONE
+* compare |legacy - elc|: plots, etc.
 
+* improve my elc
+* energy contributions plot
 
-* ?
-    * completely randomized systems? (random box_sizes, gap size, particle count, -positions, )
-    * non-neutral systems?
 """
+import matplotlib.pyplot as plt
+import numpy as np
+import espressomd
+import espressomd.electrostatics
+from elc.src.get_elc_energy import get_elc_energy
+from elc.src.get_legacy_elc import get_legacy_elc_energy
+
+# --- Setup ---
+p3m_params = {'accuracy': 1e-6, 'prefactor': 1.0, 'epsilon': 1.0, 'check_neutrality': False}
+system = espressomd.System(box_l=[50.0, 50.0, 20.0])
+system.time_step = 0.01
+system.cell_system.skin = 0.4
+
+def run_comparison_with_random_particles(n_particles, l_xyz, gap, p3m_params):
+    system.part.clear()
+    system.box_l = [l_xyz, l_xyz, l_xyz]
+    
+    # Randomly place particles with random charges
+    # Charges range from -2.0 to 2.0 to allow for net variations
+    for _ in range(n_particles):
+        pos = np.random.rand(3) * l_xyz
+
+        pos[2] =np.random.rand() * (l_xyz - gap - 1e-3)
+        q = np.random.uniform(-2.0, 2.0)
+        system.part.add(pos=pos, q=q)
+
+    p3m = espressomd.electrostatics.P3M(**p3m_params)
+    legacy_e = get_legacy_elc_energy(p3m, gap, p3m_params['accuracy'], system)
+    newer_e = get_elc_energy(p3m, gap, p3m_params['accuracy'], system)
+    
+    return legacy_e, newer_e
+
+# --- Execution ---
+particle_counts = range(3, 8+1)
+results = {"legacy": [], "newer": []}
+
+for n in particle_counts:
+    leg, new = run_comparison_with_random_particles(n, 50.0, 2.0, p3m_params)
+    results["legacy"].append(leg)
+    results["newer"].append(new)
+
+# --- Plotting ---
+diff = np.array(results["newer"]) - np.array(results["legacy"])
+
+plt.figure(figsize=(8, 5))
+plt.plot(particle_counts, diff, color='#e2402e', marker='o', linestyle='-')
+plt.axhline(0, color='black', lw=1, ls='--')
+plt.title("Residuals vs. Particle Count (Variable Charges)")
+plt.xlabel("Number of Particles")
+plt.ylabel(r"$\Delta E$ (Newer - Legacy)")
+plt.grid(True, alpha=0.3)
+plt.show()
