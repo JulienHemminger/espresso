@@ -1,3 +1,4 @@
+# %%
 import sys
 import os
 espresso_path = "/home/main/Documents/Career/1_Studium/espresso"
@@ -13,7 +14,7 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position
 #from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
-#dipole_rdm_pos_energy_test(test_count=4*8)
+#dipole_rdm_pos_energy_test(test_count=1*8)
 
 # %%
 # TEST 2: Compare to analytical 2D Madelung energy of a crystal
@@ -22,78 +23,113 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 # %%
 # TEST 3: Compare with the existing implementation of ELC (elc.cpp) for a wide range of systems, where there are no analytical solutions. Compare energy + all forces.
-
 #from elc.tests._3_general_systems.dipole_variants_test import dipole_variants_test
 #dipole_variants_test()
 # %%
 # TEST 4: particle_count=3-10, non-neutral systems, varying charges q_i
-NO = []
+YES_DONE, NO = [None, None]
 f"""
 
 * improve my elc
-    * maybe give gemini elc.cpp as info 
 
-    * maybe "decompose" it further: {NO} more tests, more problems/code/parts/errors
-        * TEST4: "q_i is not always +-1"
-        * TEST5: "random particle count (neutral system)"
+    * incrementally change the problem
+        * TEST4: basic dipole + "q_i is not always +-1": {YES_DONE}
+        * TEST5: "random particle count=3..10 (neutral system)"
         * TEST6: "random particle count (non-neutral system)
+        * ...
+    * more tests: {NO} more tests -> more problems/code/parts/errors/time
+
+    
+    * ask alex (is one of my assumptions false? e.g. p3m does non-neutrality, ..)
+    * create energy contributions plot (would this help?)
+    * maybe give gemini elc.cpp as info: {YES_DONE} 
 * energy contributions plot
 
 """
 import matplotlib.pyplot as plt
 import numpy as np
-import espressomd
-import espressomd.electrostatics
+import math
+from common.generate_constrained_position_pairs import get_rdm_constrained_point_pairs, get_rdm_point
 from elc.src.get_elc_energy import get_elc_energy
-from elc.src.get_legacy_elc import get_legacy_elc_energy
 
-# --- Setup ---
-p3m_params = {'accuracy': 1e-6, 'prefactor': 1.0, 'epsilon': 1.0, 'check_neutrality': False}
-system = espressomd.System(box_l=[50.0, 50.0, 20.0])
+import espressomd # type: ignore
+import espressomd.electrostatics # type: ignore
+import numpy as np
+import math
+from elc.src.get_legacy_elc import get_legacy_elc_energy
+import numpy as np
+import matplotlib.pyplot as plt
+import espressomd
+
+
+import numpy as np
+import espressomd
+import matplotlib.pyplot as plt
+import random
+
+test_count = 4
+l_xy = 100.0 # keep l_xy <= 200
+l_z = 10.0
+
+system = espressomd.System(box_l=[l_xy, l_xy, l_z])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-def run_comparison_with_random_particles(n_particles, l_xyz, gap, p3m_params):
-    system.part.clear()
-    system.box_l = [l_xyz, l_xyz, l_xyz]
+# Parameters for both methods + Initialize P3M deterministically
+pw_error = 1e-6
+gap_size = 1.0
+p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error)
+
+
+
+# Lists to store data for plotting
+r_values = []
+delta_energies = []
+
+for pos1, pos2 in get_rdm_constrained_point_pairs(test_count, box_size=min(l_xy, l_z-gap_size-1e-3)):
+    r = math.dist(pos1, pos2)
+    assert r >= 1
     
-    # Randomly place particles with random charges
-    # Charges range from -2.0 to 2.0 to allow for net variations
-    for _ in range(n_particles):
-        pos = np.random.rand(3) * l_xyz
 
-        pos[2] =np.random.rand() * (l_xyz - gap - 1e-3)
-        q = np.random.uniform(-2.0, 2.0)
-        system.part.add(pos=pos, q=q)
+    q = random.uniform(1.0, 10.0)
+    system.part.clear() # remove all particles
+    system.part.add(pos=pos1, q=+q)
+    system.part.add(pos=pos2, q=-q)
 
-    p3m = espressomd.electrostatics.P3M(**p3m_params)
-    legacy_e = get_legacy_elc_energy(p3m, gap, p3m_params['accuracy'], system)
-    newer_e = get_elc_energy(p3m, gap, p3m_params['accuracy'], system)
-    
-    return legacy_e, newer_e
+    # Calculate energies
+    legacy_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
+    elc_energy = float(get_elc_energy(p3m, gap_size, pw_error, system))
 
-# --- Execution with Multiple Passes ---
-num_passes = 3
-particle_counts = range(3, 16+1)
-# Initialize with the key we actually use
-results = {"avg_diffs": []}
+    # Append to lists
+    r_values.append(r)
+    delta_energies.append(legacy_energy - elc_energy)
 
-for n in particle_counts:
-    pass_diffs = []
-    
-    for _ in range(num_passes):
-        leg, new = run_comparison_with_random_particles(n, 50.0, 2.0, p3m_params)
-        pass_diffs.append(new - leg)
-    
-    # Calculate the average difference for this n_particles
-    results["avg_diffs"].append(np.mean(pass_diffs))
+# Convert to numpy arrays and sort by r to ensure the lines are drawn correctly
+sort_idx = np.argsort(r_values)
+r_values = np.array(r_values)[sort_idx]
+delta_energies = np.array(delta_energies)[sort_idx]
 
-# --- Plotting ---
-plt.figure(figsize=(8, 5))
-plt.plot(particle_counts, results["avg_diffs"], color="#aa0000", marker='o', linestyle='-')
-plt.axhline(0, color='black', lw=1, ls='--')
-plt.title(f"Average Residuals vs. Particle Count ({num_passes} passes)")
-plt.xlabel("Number of Particles")
-plt.ylabel(r"Average $\Delta E$ (Newer - Legacy)")
-plt.grid(True, alpha=0.3)
+# Create a figure
+fig, ax = plt.subplots(figsize=(10, 4))
+
+# --- Residual Plot ---
+# Added labels, distinct markers ('o' and 's'), and transparency (alpha)
+ax.scatter(r_values, delta_energies, color="#ff0000", s=30, marker='o', alpha=0.6, label='Legacy - ELC')
+
+ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+
+# Formatting
+ax.set_ylabel(r'Diff ($\Delta E$)')
+ax.set_xlabel(r'Inter-particle distance ($r$)')
+ax.set_title('Residuals of Energy Computation', fontweight='bold', pad=10)
+
+# Display the legend to show the labels
+ax.legend(frameon=False)
+
+# Styling
+ax.grid(True, linestyle=':', alpha=0.5)
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+
+plt.tight_layout()
 plt.show()

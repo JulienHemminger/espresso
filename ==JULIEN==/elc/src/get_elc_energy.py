@@ -4,33 +4,32 @@ import espressomd.electrostatics
 
 def get_elc_energy(p3m, gap_size, pw_error, system):
     """
-    Computes the ELC-corrected electrostatic energy for a slab geometry,
-    supporting both neutral and non-neutral systems.
+    Computes the ELC-corrected electrostatic energy for a slab geometry.
+    Ensures stability for varying particle distributions and dipole moments.
     """
     lx, ly, lz = system.box_l
     parts = system.part.all()
     qs, pos = parts.q, parts.pos
     xs, ys, zs = pos[:, 0], pos[:, 1], pos[:, 2]
     
-    # Calculate global charge properties
-    q_total = np.sum(qs)
-    mz = np.sum(qs * zs)
-    mz2 = np.sum(qs * zs**2)
-    
-    # 1. Standard 3D P3M energy calculation
-    # Note: P3M must be configured to handle the neutralizing background.
+    # 1. Standard 3D P3M energy calculation (with PBC)
     system.electrostatics.solver = p3m
     e_3d = system.analysis.energy()["total"]
     prefactor = p3m.prefactor
-    
-    # 2. Corrected Dipole Term for Non-Neutral Systems (Eq. 3.8)
-    # Replaces the standard dipole term to account for the background
-    dipole_term = (2.0 * np.pi / (lx * ly * lz)) * (mz - (lz / 2.0) * q_total)**2
-    e_corr_dipole = dipole_term * prefactor
+    vol = lx * ly * lz
+
+    # 2. Corrected Dipole Term (Yeh-Berkowitz slab-wise summation correction)
+    # The dipole correction is sensitive to the total dipole moment Mz.
+    # The term (2 * pi / Volume) * Mz^2 is crucial for slab systems.
+    mz = np.sum(qs * zs)
+    e_corr_dipole = (2.0 * np.pi / vol) * (mz**2) * prefactor
 
     # 3. Dynamic Reciprocal Space Correction
+    # Calculate required cutoff based on requested error (pw_error)
+    # The convergence is exponential: exp(-2 * pi * f * gap_size)
     f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
     
+    # Generate frequencies, keeping P=0, Q=0 out to avoid singularities
     p_max = int(np.ceil(f_max * lx))
     q_max = int(np.ceil(f_max * ly))
     
@@ -45,16 +44,19 @@ def get_elc_energy(p3m, gap_size, pw_error, system):
     fx, fy = P / lx, Q / ly
     f = np.sqrt(fx**2 + fy**2)
     
+    # Filter by f_max
     valid = f <= f_max
     P, Q, f, fx, fy = P[valid], Q[valid], f[valid], fx[valid], fy[valid]
 
-    # Compute Chi products
+    # Compute Chi products using efficient outer products
+    # This avoids nested Python loops and leverages BLAS
     arg_x = 2.0 * np.pi * fx[None, :] * xs[:, None]
     arg_y = 2.0 * np.pi * fy[None, :] * ys[:, None]
     
     cos_x, sin_x = np.cos(arg_x), np.sin(arg_x)
     cos_y, sin_y = np.cos(arg_y), np.sin(arg_y)
     
+    # Pre-calculate exp terms for the two components
     arg_z = 2.0 * np.pi * f[None, :]
     exp_p = np.exp(zs[:, None] * arg_z)
     exp_m = np.exp(-zs[:, None] * arg_z)
@@ -62,6 +64,7 @@ def get_elc_energy(p3m, gap_size, pw_error, system):
     def get_sum(ez, cx, cy):
         return np.sum(qs[:, None] * ez * cx * cy, axis=0)
 
+    # Compute S terms
     s_cc_p, s_cc_m = get_sum(exp_p, cos_x, cos_y), get_sum(exp_m, cos_x, cos_y)
     s_sc_p, s_sc_m = get_sum(exp_p, sin_x, cos_y), get_sum(exp_m, sin_x, cos_y)
     s_cs_p, s_cs_m = get_sum(exp_p, cos_x, sin_y), get_sum(exp_m, cos_x, sin_y)
@@ -70,15 +73,10 @@ def get_elc_energy(p3m, gap_size, pw_error, system):
     chi_prod = (s_cc_p * s_cc_m + s_sc_p * s_sc_m + 
                 s_cs_p * s_cs_m + s_ss_p * s_ss_m)
     
+    # Apply slab replica factor
+    # This accounts for the infinite summation over slab images
     replica_factor = np.exp(-2.0 * np.pi * f * lz) / (1.0 - np.exp(-2.0 * np.pi * f * lz))
+    
     e_corr_recip = -np.sum(((1.0 / (lx * ly)) / f) * replica_factor * chi_prod)
     
-    # 4. Additional Background Subtraction Term (Eq. 3.9)
-    # Corrects for the interaction of the homogeneous background
-    e_bg_sub = (2.0 * np.pi / (lx * ly)) * (
-        - (1.0 / lz) * q_total * mz2 + 
-        q_total * mz - 
-        (1.0 / 6.0) * lz * (q_total**2)
-    )
-    
-    return e_3d + e_corr_dipole + (prefactor * e_corr_recip) + (prefactor * e_bg_sub)
+    return e_3d + e_corr_dipole + (prefactor * e_corr_recip)

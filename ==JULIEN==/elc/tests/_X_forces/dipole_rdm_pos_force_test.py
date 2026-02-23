@@ -30,7 +30,7 @@ p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error)
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from common.generate_constrained_position_pairs import generate_constrained_pairs
+from common.generate_constrained_position_pairs import get_rdm_constrained_point_pairs
 from elc.src.get_elc_energy import get_elc_energy
 from elc.src.get_elc_forces import get_elc_forces
 
@@ -43,7 +43,7 @@ r_values = []
 legacy_energies = []
 elc_energies = []
 
-for pos1, pos2 in generate_constrained_pairs(test_count):
+for pos1, pos2 in get_rdm_constrained_point_pairs(test_count):
     R = np.array(pos1) - np.array(pos2)
     r = math.dist(pos1, pos2)
     assert r >= 1

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from common.generate_constrained_position_pairs import generate_constrained_pairs
+from common.generate_constrained_position_pairs import get_rdm_constrained_point_pairs
 from elc.src.get_elc_energy import get_elc_energy
 
 import espressomd # type: ignore
@@ -32,7 +32,7 @@ def dipole_rdm_pos_energy_test(test_count = 2):
     elc_energies = []
     ana_energies = []
 
-    for pos1, pos2 in generate_constrained_pairs(test_count, box_size=min(l_xy, l_z-gap_size-1e-3)):
+    for pos1, pos2 in get_rdm_constrained_point_pairs(test_count, box_size=min(l_xy, l_z-gap_size-1e-3)):
         r = math.dist(pos1, pos2)
         assert r >= 1
         
