@@ -35,6 +35,7 @@ f"""
     * incrementally change the problem
         * TEST4: basic dipole + "q_i is not always +-1": {YES_DONE}
         * TEST5: "random particle count=3..10 (neutral system)": {YES_DONE}
+                
         * TEST6: "random particle count (non-neutral system)
         * ...
     * more tests: {NO} more tests -> more problems/code/parts/errors/time
@@ -82,17 +83,18 @@ p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error, check_neut
 
 
 # Lists to store data for plotting
-particle_counts = list(range(3, 10+1))
+particle_counts = [3, 4, 5, 6, 7, 8, 9]
 delta_energies = []
 
 for point_count in particle_counts:
     system.part.clear()
 
 
-    rs = get_rdm_constrained_points(l_xy, l_xy, l_z-gap_size-1e-3, point_count=3)
+    rs = get_rdm_constrained_points(l_xy, l_xy, l_z-gap_size-1e-3, point_count)
     qs = get_rdm_charges_neutral(point_count)
     for i in range(min(len(rs), len(qs))):
         system.part.add(pos=rs[i], q=qs[i])
+        print(f"Add particle ({rs[i]}, {qs[i]})")
 
 
     # Calculate energies
