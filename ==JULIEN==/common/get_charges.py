@@ -1,5 +1,14 @@
 import random
 
+import random
+
+def get_rdm_charges(charge_count=2, min_q=-10.0, max_q=10.0):
+    """
+    Returns a list of 'charge_count' charges, each in [min_q, max_q].
+    """
+    return [random.uniform(min_q, max_q) for _ in range(charge_count)]
+
+
 def get_rdm_charges_neutral(charge_count=2, min_q=-10.0, max_q=10.0):
     """
     Returns a list of charges that sum to 0.0, with each charge in [min_q, max_q].

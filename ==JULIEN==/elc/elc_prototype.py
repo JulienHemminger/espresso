@@ -33,12 +33,11 @@ f"""
 * improve my elc
 
     * incrementally change the problem
-        * TEST4: basic dipole + "q_i is not always +-1": {YES_DONE}
-        * TEST5: "random particle count=3..10 (neutral system)": {YES_DONE}
-                
-        * TEST6: "random particle count (non-neutral system)
-        * ...
-    * more tests: {NO} more tests -> more problems/code/parts/errors/time
+        
+    
+        * TEST6: "random particle count (non-neutral system): ERR=0.6
+    
+    
 
     
     * ask alex (is one of my assumptions false? e.g. p3m does non-neutrality, ..)
@@ -61,7 +60,7 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
-from common.get_charges import get_rdm_charges_neutral
+from common.get_charges import get_rdm_charges_neutral, get_rdm_charges
 
 
 import numpy as np
@@ -83,7 +82,7 @@ p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error, check_neut
 
 
 # Lists to store data for plotting
-particle_counts = [3, 4, 5, 6, 7, 8, 9]
+particle_counts = [3, 5, 7, 9]
 delta_energies = []
 
 for point_count in particle_counts:
@@ -91,7 +90,7 @@ for point_count in particle_counts:
 
 
     rs = get_rdm_constrained_points(l_xy, l_xy, l_z-gap_size-1e-3, point_count)
-    qs = get_rdm_charges_neutral(point_count)
+    qs = get_rdm_charges(point_count)
     for i in range(min(len(rs), len(qs))):
         system.part.add(pos=rs[i], q=qs[i])
         print(f"Add particle ({rs[i]}, {qs[i]})")
