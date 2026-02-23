@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from common.generate_constrained_position_pairs import get_rdm_constrained_point_pairs
+from common.get_positions import get_rdm_constrained_point_pairs
 from elc.src.get_elc_energy import get_elc_energy
 
 import espressomd # type: ignore

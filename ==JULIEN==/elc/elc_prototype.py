@@ -34,7 +34,7 @@ f"""
 
     * incrementally change the problem
         * TEST4: basic dipole + "q_i is not always +-1": {YES_DONE}
-        * TEST5: "random particle count=3..10 (neutral system)"
+        * TEST5: "random particle count=3..10 (neutral system)": {YES_DONE}
         * TEST6: "random particle count (non-neutral system)
         * ...
     * more tests: {NO} more tests -> more problems/code/parts/errors/time
@@ -49,7 +49,7 @@ f"""
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from common.generate_constrained_position_pairs import get_rdm_constrained_point_pairs, get_rdm_point
+from common.get_positions import get_rdm_constrained_point_pairs, get_rdm_point, get_rdm_constrained_points
 from elc.src.get_elc_energy import get_elc_energy
 
 import espressomd # type: ignore
@@ -60,6 +60,7 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
+from common.get_charges import get_rdm_charges_neutral
 
 
 import numpy as np
@@ -67,7 +68,6 @@ import espressomd
 import matplotlib.pyplot as plt
 import random
 
-test_count = 4
 l_xy = 100.0 # keep l_xy <= 200
 l_z = 10.0
 
@@ -78,49 +78,44 @@ system.cell_system.skin = 0.4
 # Parameters for both methods + Initialize P3M deterministically
 pw_error = 1e-6
 gap_size = 1.0
-p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error)
-
+p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error, check_neutrality=False)
 
 
 # Lists to store data for plotting
-r_values = []
+particle_counts = list(range(3, 10+1))
 delta_energies = []
 
-for pos1, pos2 in get_rdm_constrained_point_pairs(test_count, box_size=min(l_xy, l_z-gap_size-1e-3)):
-    r = math.dist(pos1, pos2)
-    assert r >= 1
-    
+for point_count in particle_counts:
+    system.part.clear()
 
-    q = random.uniform(1.0, 10.0)
-    system.part.clear() # remove all particles
-    system.part.add(pos=pos1, q=+q)
-    system.part.add(pos=pos2, q=-q)
+
+    rs = get_rdm_constrained_points(l_xy, l_xy, l_z-gap_size-1e-3, point_count=3)
+    qs = get_rdm_charges_neutral(point_count)
+    for i in range(min(len(rs), len(qs))):
+        system.part.add(pos=rs[i], q=qs[i])
+
 
     # Calculate energies
     legacy_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
     elc_energy = float(get_elc_energy(p3m, gap_size, pw_error, system))
 
-    # Append to lists
-    r_values.append(r)
     delta_energies.append(legacy_energy - elc_energy)
 
-# Convert to numpy arrays and sort by r to ensure the lines are drawn correctly
-sort_idx = np.argsort(r_values)
-r_values = np.array(r_values)[sort_idx]
-delta_energies = np.array(delta_energies)[sort_idx]
+particle_counts = np.array(particle_counts)
+delta_energies = np.array(delta_energies)
 
 # Create a figure
 fig, ax = plt.subplots(figsize=(10, 4))
 
 # --- Residual Plot ---
 # Added labels, distinct markers ('o' and 's'), and transparency (alpha)
-ax.scatter(r_values, delta_energies, color="#ff0000", s=30, marker='o', alpha=0.6, label='Legacy - ELC')
+ax.scatter(particle_counts, delta_energies, color="#ff0000", s=30, marker='o', alpha=0.6, label='Legacy - ELC')
 
 ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
 
 # Formatting
 ax.set_ylabel(r'Diff ($\Delta E$)')
-ax.set_xlabel(r'Inter-particle distance ($r$)')
+ax.set_xlabel(r'Particle count (n)')
 ax.set_title('Residuals of Energy Computation', fontweight='bold', pad=10)
 
 # Display the legend to show the labels
