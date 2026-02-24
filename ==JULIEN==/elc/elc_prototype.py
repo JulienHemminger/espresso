@@ -27,15 +27,16 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 #dipole_variants_test()
 # %%
 # TEST 4: particle_count=3-10, non-neutral systems, varying charges q_i
-YES_DONE, NO = [None, None]
+YES_DONE, NO, ERROR = 3* [None]
 f"""
 
 * improve my elc
 
     * incrementally change the problem
         
-    
-        * TEST6: "random particle count (non-neutral system): ERR=0.6
+        * test basic dipole + "q_i is not always +-1": {ERROR}
+        * test "random particle count=3..10 (neutral system)": 
+        * TEST6: "random particle count (non-neutral system): 
     
     
 
@@ -82,7 +83,7 @@ p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error, check_neut
 
 
 # Lists to store data for plotting
-particle_counts = [3, 5, 7, 9]
+particle_counts = [2]
 delta_energies = []
 
 for point_count in particle_counts:
@@ -90,7 +91,7 @@ for point_count in particle_counts:
 
 
     rs = get_rdm_constrained_points(l_xy, l_xy, l_z-gap_size-1e-3, point_count)
-    qs = get_rdm_charges(point_count)
+    qs = get_rdm_charges(point_count) # [+1.0, -1.0, +1.0, -1.0]
     for i in range(min(len(rs), len(qs))):
         system.part.add(pos=rs[i], q=qs[i])
         print(f"Add particle ({rs[i]}, {qs[i]})")
