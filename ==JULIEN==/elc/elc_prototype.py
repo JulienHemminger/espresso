@@ -43,7 +43,7 @@ f"""
         * test E: particle_count=2, charges=any: {NO} err=0.004
         * test F: particle_count=any, charges=any:
 
-    
+        * test G: particle_count=3, charges=+-1.0 (non-neutral):     
     
 
     
