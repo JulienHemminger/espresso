@@ -40,7 +40,7 @@ f"""
         * test C particle_count=any even, charges=+-1.0: {YES_DONE}
         * test D particle_count=any, charges=any (sum=0): {YES_DONE}
 
-        * test E: particle_count=2, charges=any: {NO}
+        * test E: particle_count=2, charges=any: {NO} err=0.04
         * test F: particle_count=any, charges=any:
 
     
