@@ -34,16 +34,19 @@ f"""
 
     * incrementally change the problem
         
-        * test basic dipole + "q_i is not always +-1": {ERROR}
-        * test "random particle count=3..10 (neutral system)": 
-        * TEST6: "random particle count (non-neutral system): 
+        * test A particle_count=2, charges=+-1.0: {YES_DONE}
+        * test B particle_count=2, charges=any (sum=0): {YES_DONE}
+
+        * test C particle_count=any even, charges=+-1.0: {YES_DONE}
+        * test D particle_count=any, charges=any (sum=0): {YES_DONE}
+
+        * test E: particle_count=2, charges=any: {NO}
+        * test F: particle_count=any, charges=any:
+
     
     
 
     
-    * ask alex (is one of my assumptions false? e.g. p3m does non-neutrality, ..)
-    * create energy contributions plot (would this help?)
-    * maybe give gemini elc.cpp as info: {YES_DONE} 
 * energy contributions plot
 
 """
@@ -91,7 +94,7 @@ for point_count in particle_counts:
 
 
     rs = get_rdm_constrained_points(l_xy, l_xy, l_z-gap_size-1e-3, point_count)
-    qs = get_rdm_charges(point_count) # [+1.0, -1.0, +1.0, -1.0]
+    qs = get_rdm_charges(point_count) #99 * [+1.0, -1.0] 
     for i in range(min(len(rs), len(qs))):
         system.part.add(pos=rs[i], q=qs[i])
         print(f"Add particle ({rs[i]}, {qs[i]})")
