@@ -48,8 +48,16 @@ f"""
         * test F: particle_count=any, charges=any:
 
         * test G: particle_count=3, charges=+-1.0 (non-neutral):     
-    
 
+        * FIX
+            * prompt sequence
+                * explain what changes are needed to handle non-neutral systems
+                * implementatio plan
+                * actual implementation
+
+                * TODO maybe
+                    * give p3m.cpp code?
+                    * instead of paper.pdf rely on web search, other papers?
     
 * energy contributions plot
 
