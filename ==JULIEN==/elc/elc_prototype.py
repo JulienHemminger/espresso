@@ -13,8 +13,12 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position
+
 #from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
 #dipole_rdm_pos_energy_test(test_count=1*8)
+
+#from elc.tests._1_dipole.dipole_rdm_pos_energy_non_square_test import dipole_rdm_pos_energy_non_square_test
+#dipole_rdm_pos_energy_non_square_test()
 
 # %%
 # TEST 2: Compare to analytical 2D Madelung energy of a crystal
@@ -72,10 +76,11 @@ import espressomd
 import matplotlib.pyplot as plt
 import random
 
-l_xy = 100.0 # keep l_xy <= 200
+l_x = 100.0 # keep l_xy <= 200
+l_y = 100.0
 l_z = 10.0
 
-system = espressomd.System(box_l=[l_xy, l_xy, l_z])
+system = espressomd.System(box_l=[l_x, l_y, l_z])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
@@ -93,7 +98,7 @@ for point_count in particle_counts:
     system.part.clear()
 
 
-    rs = get_rdm_constrained_points(l_xy, l_xy, l_z-gap_size-1e-3, point_count)
+    rs = get_rdm_constrained_points(l_x, l_y, l_z-gap_size-1e-3, point_count)
     qs = 99 * [+1.0, -1.0]  # get_rdm_charges(point_count)
     for i in range(min(len(rs), len(qs))):
         system.part.add(pos=rs[i], q=qs[i])
