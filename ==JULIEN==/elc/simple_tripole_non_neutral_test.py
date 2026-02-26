@@ -9,9 +9,6 @@ sys.path.insert(0, os.path.join(espresso_path, "==JULIEN=="))
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from common.get_positions import get_rdm_constrained_point_pairs 
-# Note: You might need to adjust your helper to return 3 points instead of 2.
-# For this example, I'll assume a simple placement strategy for the 3rd particle.
 
 import espressomd
 import espressomd.electrostatics
@@ -35,13 +32,11 @@ def triplet_rdm_pos_energy_test(test_count=20):
     legacy_errors = []
     elc_errors = []
 
-    # Charges: +1, -1, -1
+
     charges = [1.0, -1.0, -1.0]
 
     for _ in range(test_count):
         # Generating random positions within the constrained volume
-        # (Assuming your helper provides valid positions for the 3 particles)
-        # For simplicity, here is a manual random placement within the gap-safe zone:
         limit = l_z - gap_size - 0.1
         pos = [np.random.uniform(0, limit, 3) for _ in range(3)]
         
