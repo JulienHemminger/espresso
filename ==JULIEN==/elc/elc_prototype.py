@@ -14,8 +14,8 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position
 
-#from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
-#dipole_rdm_pos_energy_test(test_count=1*8)
+from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
+dipole_rdm_pos_energy_test(test_count=1*8)
 
 #from elc.tests._1_dipole.dipole_rdm_pos_energy_non_square_test import dipole_rdm_pos_energy_non_square_test
 #dipole_rdm_pos_energy_non_square_test()
