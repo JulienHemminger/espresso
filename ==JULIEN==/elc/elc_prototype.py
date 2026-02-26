@@ -58,6 +58,8 @@ f"""
                 * TODO maybe
                     * give p3m.cpp code?
                     * instead of paper.pdf rely on web search, other papers?
+                    * use cursor ide?
+                    * implement get_elc_energy from scratch?
     
 * energy contributions plot
 
