@@ -102,7 +102,7 @@ p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error, check_neut
 
 
 # Lists to store data for plotting
-particle_counts = [3, 4, 5, 6]
+particle_counts = [2, 3, 4, 5, 6, 7, 8, 9]
 delta_energies = []
 
 for point_count in particle_counts:
