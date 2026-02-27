@@ -14,8 +14,8 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position
 # TODO err=1e-4
-#from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
-#dipole_rdm_pos_energy_test(test_count=1)
+from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
+dipole_rdm_pos_energy_test(test_count=1)
 
 #from elc.tests._1_dipole.dipole_rdm_pos_energy_non_square_test import dipole_rdm_pos_energy_non_square_test
 #dipole_rdm_pos_energy_non_square_test()
@@ -44,10 +44,9 @@ f"""
         * test C particle_count=any even, charges=+-1.0: {YES_DONE}
         * test D particle_count=any, charges=any (sum=0): {YES_DONE}
 
-        * test E: particle_count=2, charges=any: {NO} err=0.004
+        * test E: particle_count=2, charges=any: {YES_DONE}
         * test F: particle_count=any, charges=any:
 
-        * test G: particle_count=3, charges=+-1.0 (non-neutral):     
 
         * FIX
             * prompt sequence
@@ -110,7 +109,7 @@ for point_count in particle_counts:
 
 
     rs = get_rdm_constrained_points(l_x, l_y, l_z-gap_size-1e-3, point_count)
-    qs = 99 * [+1.0, -1.0]
+    qs = get_rdm_charges(point_count)
     for i in range(min(len(rs), len(qs))):
         system.part.add(pos=rs[i], q=qs[i])
 
