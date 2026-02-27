@@ -13,9 +13,9 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position
-
-from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
-dipole_rdm_pos_energy_test(test_count=1*8)
+# TODO err=1e-4
+#from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
+#dipole_rdm_pos_energy_test(test_count=1)
 
 #from elc.tests._1_dipole.dipole_rdm_pos_energy_non_square_test import dipole_rdm_pos_energy_non_square_test
 #dipole_rdm_pos_energy_non_square_test()
@@ -64,6 +64,7 @@ f"""
 * energy contributions plot
 
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -101,7 +102,7 @@ p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error, check_neut
 
 
 # Lists to store data for plotting
-particle_counts = 5 * [3]
+particle_counts = [3, 4, 5, 6]
 delta_energies = []
 
 for point_count in particle_counts:
@@ -109,10 +110,9 @@ for point_count in particle_counts:
 
 
     rs = get_rdm_constrained_points(l_x, l_y, l_z-gap_size-1e-3, point_count)
-    qs = 99 * [+1.0, -1.0]  # get_rdm_charges(point_count)
+    qs = 99 * [+1.0, -1.0]
     for i in range(min(len(rs), len(qs))):
         system.part.add(pos=rs[i], q=qs[i])
-        print(f"Add particle ({rs[i]}, {qs[i]})")
 
 
     # Calculate energies
