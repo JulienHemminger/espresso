@@ -1,6 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-def get_elc_energy(p3m, gap_size, pw_error, system):
+def get_elc_energy(p3m, gap_size, pw_error, system, do_contributions_plot=True):
     
     lx, ly, lz = system.box_l
     parts = system.part.all()
@@ -9,7 +10,7 @@ def get_elc_energy(p3m, gap_size, pw_error, system):
     # 1. 3D Periodic Energy from P3M
     system.electrostatics.solver = p3m
     e_3d = system.analysis.energy()["total"]
-    pre = p3m.prefactor
+    prefactor = p3m.prefactor
     
     # 2. Charge Moments
     xi0 = np.sum(qs)        
@@ -58,6 +59,55 @@ def get_elc_energy(p3m, gap_size, pw_error, system):
     # The reciprocal energy correction
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
     e_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
+
+    # Plotting
+    if do_contributions_plot:
+        show_contributions_plot(prefactor, e_recip, e_3d, e_non_neutral_corr)
     
     # 5. Final Energy Assembly
-    return e_3d + (pre * e_non_neutral_corr) + (pre * e_recip)
+    return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)
+
+def show_contributions_plot(prefactor, e_corr_recip, e_3d, e_corr_dipole):
+    # Define the components
+        e_recip_final = prefactor * e_corr_recip
+        components = {
+            'P3M (3D)': e_3d,
+            'Yeh-Berkowitz': e_corr_dipole,
+            'ELC Reciprocal': e_recip_final
+        }
+        
+        labels = list(components.keys())
+        values = list(components.values())
+        total_energy = e_3d + e_corr_dipole + e_recip_final
+
+        fig, ax = plt.subplots(figsize=(9, 6))
+
+        # 1. Stacked Bar for Contributions (Index 0)
+        current_bottom = 0
+        for i, (label, val) in enumerate(components.items()):
+            ax.bar(0, val, bottom=current_bottom, label=label, edgecolor='white', width=0.6)
+            
+            # Use numeric x=0 for text placement
+            if abs(val) > abs(total_energy * 0.05):
+                ax.text(0, current_bottom + val/2, f'{val:.2f}', 
+                        ha='center', va='center', fontweight='bold', color='white')
+            current_bottom += val
+
+        # 2. Total Energy Bar (Index 1)
+        ax.bar(1, total_energy, color='gray', alpha=0.3, label='Final ELC Sum', width=0.6)
+        ax.text(1, total_energy, f'{total_energy:.2f}', 
+                ha='center', va='bottom' if total_energy > 0 else 'top', 
+                fontweight='bold', color='black')
+
+        # Formatting
+        ax.set_xticks([0, 1])
+        ax.set_xticklabels(['Breakdown', 'Total Energy'])
+        ax.set_ylabel('Energy (Reduced Units)')
+        ax.set_title('ELC Electrostatic Energy Decomposition')
+        ax.axhline(0, color='black', linewidth=0.8, linestyle='--')
+        
+        # Move legend outside the plot
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        
+        plt.tight_layout()
+        plt.show()
