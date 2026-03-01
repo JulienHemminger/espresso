@@ -88,20 +88,20 @@ import random
 
 l_x = 10.0 # keep l_xy <= 200
 l_y = 10.0
-l_z = 10.0
+l_z = 3.0
 
 system = espressomd.System(box_l=[l_x, l_y, l_z])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
 # Parameters for both methods + Initialize P3M deterministically
-pw_error = 1e-6
+pw_error = 1e-4
 gap_size = 1.0
 p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error, check_neutrality=False)
 
 
 # Lists to store data for plotting
-particle_counts = [5]
+particle_counts = [2]
 delta_energies = []
 
 for point_count in particle_counts:
