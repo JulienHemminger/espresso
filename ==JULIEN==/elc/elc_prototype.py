@@ -13,8 +13,8 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 
 # %%
 # TEST 1: Compare to analytical solution(energy, force) for a dipole, varying particle position
-#from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
-#dipole_rdm_pos_energy_test(test_count=1)
+from elc.tests._1_dipole.dipole_rdm_pos_energy_test import dipole_rdm_pos_energy_test
+dipole_rdm_pos_energy_test(test_count=6)
 
 #from elc.tests._1_dipole.dipole_rdm_pos_energy_non_square_test import dipole_rdm_pos_energy_non_square_test
 #dipole_rdm_pos_energy_non_square_test()
@@ -30,5 +30,5 @@ from elc.src.get_legacy_elc import get_legacy_elc_energy
 #dipole_variants_test()
 # %%
 # TEST 4: particle_count=3-10, non-neutral systems, varying charges q_i
-from elc.tests._3_general_systems.non_neutral_system_test import run_test
-run_test()
+#from elc.tests._3_general_systems.non_neutral_system_test import run_test
+#run_test()

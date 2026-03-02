@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def get_elc_energy(p3m, gap_size, pw_error, system, do_contributions_plot=True):
+def get_elc_energy(p3m, gap_size, pw_error, system, do_contributions_plot=not True):
     
     lx, ly, lz = system.box_l
     parts = system.part.all()
