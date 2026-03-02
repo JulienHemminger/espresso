@@ -30,7 +30,7 @@ def es_system():
     
     # Cleanup if necessary (though usually handled by process exit)
     system.part.clear()
-"""
+
 @pytest.mark.parametrize("test_count", [5])  # Run 5 random pair tests
 def test_elc_energy_accuracy(es_system, test_count):
     # Setup parameters
@@ -77,7 +77,7 @@ def test_elc_energy_accuracy(es_system, test_count):
         assert legacy_diff < max_error, (
             f"Legacy energy error {legacy_diff} exceeded tolerance {max_error} at r={r}"
         )
-"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import linregress
