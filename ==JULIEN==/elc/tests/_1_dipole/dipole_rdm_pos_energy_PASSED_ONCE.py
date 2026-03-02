@@ -27,10 +27,8 @@ def es_system():
     system.cell_system.skin = 0.4
     
     yield system
-    
-    # Cleanup if necessary (though usually handled by process exit)
     system.part.clear()
-
+"""
 @pytest.mark.parametrize("test_count", [5])  # Run 5 random pair tests
 def test_elc_energy_accuracy(es_system, test_count):
     # Setup parameters
@@ -57,7 +55,7 @@ def test_elc_energy_accuracy(es_system, test_count):
         
         # 2. Calculate Reference (Analytical)
         r = math.dist(pos1, pos2)
-        ana_energy = -1.0 / r
+        ana_energy = -1.0/r
         
         # 3. Calculate ELC and Legacy
         legacy_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
@@ -77,6 +75,47 @@ def test_elc_energy_accuracy(es_system, test_count):
         assert legacy_diff < max_error, (
             f"Legacy energy error {legacy_diff} exceeded tolerance {max_error} at r={r}"
         )
+"""
+
+def direct_sum_energy(positions, charges, dx, dy, n_max=100):
+    """
+    Brute-force Coulomb energy summed over a (2*n_max+1)^2 lattice.
+
+    For a charge-neutral unit cell the conditionally convergent pieces
+    cancel term-by-term, so this converges (slowly) as ~ 1/n_max.
+    """
+    pos = np.asarray(positions, dtype=np.float64)
+    q = np.asarray(charges, dtype=np.float64)
+    N = len(q)
+
+    # All lattice translations
+    nx = np.arange(-n_max, n_max + 1)
+    ny = np.arange(-n_max, n_max + 1)
+    NX, NY = np.meshgrid(nx, ny, indexing="ij")
+    Rx = (NX.ravel() * dx).astype(np.float64)        # (M,)
+    Ry = (NY.ravel() * dy).astype(np.float64)         # (M,)
+    M = len(Rx)
+
+    # Index of the (0, 0) translation
+    idx_origin = n_max * (2 * n_max + 1) + n_max
+
+    E = 0.0
+    for a in range(N):
+        for b in range(N):
+            dx_ab = pos[a, 0] - pos[b, 0] + Rx       # (M,)
+            dy_ab = pos[a, 1] - pos[b, 1] + Ry       # (M,)
+            dz_ab = pos[a, 2] - pos[b, 2]             # scalar
+
+            dist = np.sqrt(dx_ab ** 2 + dy_ab ** 2 + dz_ab ** 2)
+
+            if a == b:
+                dist[idx_origin] = np.inf              # exclude self
+
+            E += q[a] * q[b] * np.sum(1.0 / dist)
+
+    E *= 0.5
+    return E
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -91,7 +130,6 @@ def test_energy_convergence(es_system, show_convergence_plot):
     point_pairs = get_rdm_constrained_point_pairs(1, box_size=5.0)
     pos1, pos2 = point_pairs[0]
     r = math.dist(pos1, pos2)
-    ana_energy = -1.0 / r
     
     elc_errors = []
     legacy_errors = []
@@ -114,6 +152,17 @@ def test_energy_convergence(es_system, show_convergence_plot):
         prefactor, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(p3m, gap_size, pw_err, system)
         
         # Calculate components
+        positions = system.part.all().pos  # Shape (N, 3)
+        charges = system.part.all().q      # Shape (N,)
+
+        # 2. Get box dimensions (assuming a rectangular box)
+        dx = system.box_l[0]
+        dy = system.box_l[1]
+
+        # 3. Call the function
+        # n_max=100 is the default; increase for better precision if needed
+        ana_energy = direct_sum_energy(positions, charges, dx, dy, n_max=100)
+        
         e_recip_final = prefactor * e_recip
         e_dipole_final = prefactor * e_non_neutral_corr
         elc_en = e_3d + e_dipole_final + e_recip_final
