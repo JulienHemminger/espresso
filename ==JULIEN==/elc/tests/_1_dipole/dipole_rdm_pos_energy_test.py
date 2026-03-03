@@ -11,7 +11,6 @@ from scipy.stats import linregress
 
 @pytest.fixture(scope="module")
 def es_system():
-   
     l_xy = 10.0
     l_z = 3.0
     system = espressomd.System(box_l=[l_xy, l_xy, l_z])
@@ -20,26 +19,23 @@ def es_system():
     
     yield system
     system.part.clear()
-"""
+
 @pytest.mark.parametrize("test_count", [5])  # Run 5 random pair tests
-def test_elc_energy_accuracy(es_system, test_count):
+def test_rdm_particle_pos(es_system, test_count):
     # Setup parameters
     pw_error = 1e-6
     gap_size = 1.0
     system = es_system
+    l_x = system.box_l[0]
+    l_y = system.box_l[1]
     l_z = system.box_l[2]
-    l_xy = system.box_l[0]
     
     # Initialize P3M
     p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_error)
     
     # Generate points
-    point_pairs = get_rdm_constrained_point_pairs(
-        test_count, 
-        box_size=min(l_xy, l_z - gap_size - 1e-3)
-    )
 
-    for pos1, pos2 in point_pairs:
+    for pos1, pos2 in [get_rdm_constrained_points(l_x, l_y, l_z - gap_size - 1e-3) for i in range(test_count)]:
         # 1. Reset particles
         system.part.clear()
         system.part.add(pos=pos1, q=+1.0)
@@ -47,7 +43,7 @@ def test_elc_energy_accuracy(es_system, test_count):
         
         # 2. Calculate Reference (Analytical)
         r = math.dist(pos1, pos2)
-        ana_energy = -1.0/r
+        ana_energy = get_ewald_energy_2d(system)
         
         # 3. Calculate ELC and Legacy
         legacy_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
@@ -59,7 +55,7 @@ def test_elc_energy_accuracy(es_system, test_count):
         legacy_diff = abs(legacy_energy - ana_energy)
         
         
-        max_error = 1e3 * pw_error
+        max_error = 1e2 * pw_error
 
         assert elc_diff < max_error, (
             f"ELC energy error {elc_diff} exceeded tolerance {max_error} at r={r}"
@@ -67,7 +63,7 @@ def test_elc_energy_accuracy(es_system, test_count):
         assert legacy_diff < max_error, (
             f"Legacy energy error {legacy_diff} exceeded tolerance {max_error} at r={r}"
         )
-"""
+
 
 
 from elc.src.third_party.get_ewald_energy_2d import get_ewald_energy_2d
@@ -76,7 +72,7 @@ import numpy as np
 from scipy.stats import linregress
 
 @pytest.mark.parametrize("show_convergence_plot", [True]) 
-def test_energy_convergence(es_system, show_convergence_plot):
+def test_accuracy_convergence(es_system, show_convergence_plot):
     pw_errors = np.logspace(-4, -6, num=2)
     
     
@@ -126,8 +122,8 @@ def test_energy_convergence(es_system, show_convergence_plot):
 
     # --- Assertions (Keep your existing logic) ---
     slope, _, _, p_value, _ = linregress(np.log10(pw_errors), np.log10(elc_errors))
-    #assert slope > 0.4 and p_value < 0.05
-    #assert elc_errors[0] / min(elc_errors) > 50
+    assert slope > 0.4 and p_value < 0.05 # pyright: ignore[reportOperatorIssue]
+    assert elc_errors[0] / min(elc_errors) > 50
 
     if show_convergence_plot:
         fig, ax1 = plt.subplots(figsize=(10, 7))
