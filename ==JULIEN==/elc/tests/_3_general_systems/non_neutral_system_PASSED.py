@@ -5,7 +5,7 @@ import espressomd.electrostatics
 from common.get_positions import get_rdm_constrained_points
 from common.get_charges import get_rdm_charges
 from elc.src.get_elc_energy import get_elc_energy
-from elc.src.get_legacy_elc import get_legacy_elc_energy
+from elc.src.third_party.get_legacy_elc import get_legacy_elc_energy
 
 @pytest.fixture(scope="module")
 def system():

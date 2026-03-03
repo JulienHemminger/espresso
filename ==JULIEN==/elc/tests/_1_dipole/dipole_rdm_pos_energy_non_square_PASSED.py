@@ -4,7 +4,7 @@ import espressomd
 import espressomd.electrostatics
 from common.get_positions import get_rdm_constrained_points
 from elc.src.get_elc_energy import get_elc_energy
-from elc.src.get_legacy_elc import get_legacy_elc_energy
+from elc.src.third_party.get_legacy_elc import get_legacy_elc_energy
 
 def test_dipole_rdm_pos_energy_non_square():
     # --- Setup ---
