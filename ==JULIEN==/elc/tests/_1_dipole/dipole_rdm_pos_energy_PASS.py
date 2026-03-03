@@ -73,7 +73,7 @@ from scipy.stats import linregress
 
 @pytest.mark.parametrize("show_convergence_plot", [True]) 
 def test_accuracy_convergence(es_system, show_convergence_plot):
-    pw_errors = np.logspace(-4, -6, num=2)
+    pw_errors = np.logspace(-4, -8, num=5)
     
     
     system = es_system

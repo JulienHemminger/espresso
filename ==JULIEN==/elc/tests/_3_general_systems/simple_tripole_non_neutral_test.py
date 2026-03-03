@@ -65,8 +65,8 @@ def test_triplet_energy_residuals(system, positions):
     # --- Assertions ---
     # Tolerance for Non-Neutral systems (against analytical) is higher (~0.1)
     # Consistency between ELC methods should still be tight (~1e-5)
-    
-    assert elc_energy == pytest.approx(ana_energy, abs=0.15), \
+    max_error = pw_error
+    assert elc_energy == pytest.approx(ana_energy, abs=max_error), \
         f"Triplets vs Analytical failed: ELC={elc_energy}, Analytical={ana_energy}"
         
     assert elc_energy == pytest.approx(legacy_energy, abs=1e-5), \

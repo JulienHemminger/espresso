@@ -5,6 +5,9 @@ import espressomd
 import espressomd.electrostatics
 from elc.src.get_elc_energy import get_elc_energy
 from elc.src.third_party.get_legacy_elc import get_legacy_elc_energy
+from elc.src.third_party.get_legacy_elc import get_legacy_elc_energy
+from elc.src.third_party.get_ewald_energy_2d import get_ewald_energy_2d
+
 
 @pytest.fixture(scope="module")
 def system():
@@ -14,24 +17,20 @@ def system():
     s.cell_system.skin = 0.4
     yield s
 
-# Defining the test cases as (pos1, pos2, q1, q2)
-# You can add more tuples to this list to test different distances/charges
-@pytest.mark.parametrize("pos1, pos2, q1, q2", [
-    ([50.0, 50.0, 1.0], [50.0, 50.0, 9.0], +1.0, +1.0), 
-])
-def test_elc_vs_analytical_energy(system, pos1, pos2, q1, q2):
+def test_non_neutral_dipole(system):
+    pos1 = [50.0, 50.0, 1.0]
+    pos2 = [50.0, 50.0, 9.0]
+    q1 = 1.0
+    q2 = 1.0
+    
     # --- Setup ---
     l_xy, l_z = 100.0, 10.0
     gap_size = 1.0
     pw_error = 1e-6
     
-    system.box_l = [l_xy, l_xy, l_z]
     system.part.clear()
+    system.box_l = [l_xy, l_xy, l_z]
 
-    # Calculate analytical baseline: E = (q1 * q2) / r
-    r = math.dist(pos1, pos2)
-    assert r >= 1.0, "Particles are too close for stable P3M testing"
-    ana_energy = (q1 * q2) / r
 
     # Add particles to system
     system.part.add(pos=pos1, q=q1)
@@ -44,18 +43,21 @@ def test_elc_vs_analytical_energy(system, pos1, pos2, q1, q2):
         check_neutrality=False
     )
 
+    # Calculate analytical baseline: E = (q1 * q2) / r
+    r = math.dist(pos1, pos2)
+    assert r >= 1.0, "Particles are too close for stable P3M testing"
+    ana_energy = get_ewald_energy_2d(system)
     # --- Calculation ---
     legacy_energy = get_legacy_elc_energy(p3m, gap_size, pw_error, system)
     elc_energy = float(get_elc_energy(p3m, gap_size, pw_error, system))
 
     # --- Assertions ---
-    # Based on your comments: 
-    # Neutral systems ~ 1e-4 error, Non-neutral ~ 0.08 error.
-    # We use a broad tolerance here to cover the non-neutral case (+1, +1 charges)
-    tolerance = 0.1 
+    max_error = 1e2 * pw_error
 
-    assert elc_energy == pytest.approx(ana_energy, abs=tolerance), \
+    assert elc_energy == pytest.approx(ana_energy, abs=max_error), \
         f"ELC failed analytical comparison: ELC={elc_energy}, Analytical={ana_energy}"
     
-    assert elc_energy == pytest.approx(legacy_energy, abs=1e-5), \
+    assert elc_energy == pytest.approx(legacy_energy, abs=max_error), \
         f"ELC and Legacy mismatch: ELC={elc_energy}, Legacy={legacy_energy}"
+        
+        
