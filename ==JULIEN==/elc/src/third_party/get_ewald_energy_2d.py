@@ -85,3 +85,48 @@ def get_ewald_energy_2d(system, n_max=100):
 
     E_total = E_real + E_recip + E_self + E_G0
     return E_total
+
+
+def direct_sum_energy(system, n_max=100):
+    """
+    Brute-force Coulomb energy summed over a (2*n_max+1)^2 lattice.
+
+    For a charge-neutral unit cell the conditionally convergent pieces
+    cancel term-by-term, so this converges (slowly) as ~ 1/n_max.
+    """
+    positions = system.part.all().pos  # Shape (N, 3)
+    charges = system.part.all().q      # Shape (N,)
+    lx = system.box_l[0]
+    ly = system.box_l[1]
+    
+    pos = np.asarray(positions, dtype=np.float64)
+    q = np.asarray(charges, dtype=np.float64)
+    N = len(q)
+
+    # All lattice translations
+    nx = np.arange(-n_max, n_max + 1)
+    ny = np.arange(-n_max, n_max + 1)
+    NX, NY = np.meshgrid(nx, ny, indexing="ij")
+    Rx = (NX.ravel() * lx).astype(np.float64)        # (M,)
+    Ry = (NY.ravel() * ly).astype(np.float64)         # (M,)
+    M = len(Rx)
+
+    # Index of the (0, 0) translation
+    idx_origin = n_max * (2 * n_max + 1) + n_max
+
+    E = 0.0
+    for a in range(N):
+        for b in range(N):
+            dx_ab = pos[a, 0] - pos[b, 0] + Rx       # (M,)
+            dy_ab = pos[a, 1] - pos[b, 1] + Ry       # (M,)
+            dz_ab = pos[a, 2] - pos[b, 2]             # scalar
+
+            dist = np.sqrt(dx_ab ** 2 + dy_ab ** 2 + dz_ab ** 2)
+
+            if a == b:
+                dist[idx_origin] = np.inf              # exclude self
+
+            E += q[a] * q[b] * np.sum(1.0 / dist)
+
+    E *= 0.5
+    return E
