@@ -3,10 +3,10 @@ import numpy as np
 import math
 import espressomd
 import espressomd.electrostatics
-from elc.src.get_elc_energy import get_elc_energy
-from elc.src.third_party.get_legacy_elc import get_legacy_elc_energy
-from elc.src.third_party.get_legacy_elc import get_legacy_elc_energy
-from elc.src.third_party.get_ewald_energy_2d import get_ewald_energy_2d
+from elc.src.energy.get_elc_energy import get_elc_energy
+from elc.src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
+from elc.src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
+from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 
 
 @pytest.fixture(scope="module")

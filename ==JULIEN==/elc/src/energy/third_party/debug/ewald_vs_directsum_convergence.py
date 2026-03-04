@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from elc.src.third_party.get_ewald_energy_2d import get_ewald_energy_2d, direct_sum_energy
+from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d, direct_sum_energy
 PREFACTOR = 1.7
 def get_energies(n_values):
     # 1. System Setup
