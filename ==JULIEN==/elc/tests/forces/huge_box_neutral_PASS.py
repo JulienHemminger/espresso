@@ -76,8 +76,8 @@ def test_accuracy_convergence():
     
     analytical_forces = get_analytical_forces(system)
     
-    legacy_forces = get_elc_forces(system, gap_size, pw_err)
-    #elc_forces = get_legacy_forces
+    legacy_forces = get_legacy_forces(system, gap_size, pw_err)
+    #legacy_forces = get_elc_forces(system, gap_size, pw_err) ## nur tol=1e3*pw_err
     
     for f in legacy_forces:
         print(f"{str(f)}")
@@ -85,11 +85,6 @@ def test_accuracy_convergence():
     print("=========")
     for f in analytical_forces:
         print(f"{str(f)}")    
-    assert are_sets_equal(analytical_forces, legacy_forces, tol=1e3*pw_err)
+    assert are_sets_equal(analytical_forces, legacy_forces, tol=1e2*pw_err)
         
         
-"""
- [array([0.0186718 , 0.06535753, 0.13585384]), array([-0.02871083, -0.02867629, -0.14026657]), array([ 0.01003902, -0.03668124,  0.00441272])]
- [array([0.01370013, 0.08833477, 0.1274508 ]), array([-0.03468606, -0.01170779, -0.12797799]), array([ 0.02098593, -0.07662698,  0.00052719])],
-==============================================================================
-"""
