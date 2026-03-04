@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import erfc, erf
 
-def get_ewald_energy_2d(system, n_max=100):
+def get_ewald_energy_2d(system, n_max=100, prefactor=1.0):
     positions = system.part.all().pos  # Shape (N, 3)
     charges = system.part.all().q      # Shape (N,)
 
@@ -84,13 +84,12 @@ def get_ewald_energy_2d(system, n_max=100):
     E_G0 = -np.pi / A * np.sum(qq * g0_terms)
 
     E_total = E_real + E_recip + E_self + E_G0
-    return E_total
+    return E_total * prefactor
 
 import numpy as np
 
-import numpy as np
 
-def direct_sum_energy(system, n_max=100, eps=1.0, eps0=1.0):
+def direct_sum_energy(system, n_max=100, prefactor = 1.0, eps=1.0, eps0=1.0):
     """
     Brute-force Coulomb energy for 2D periodic systems with non-neutral correction.
     
@@ -135,8 +134,8 @@ def direct_sum_energy(system, n_max=100, eps=1.0, eps0=1.0):
 
     # Apply 0.5 factor for pair counting
     # Note: In MD units, 1/(4*pi*eps0) is usually the 'prefactor'
-    prefactor = 1.0 
-    E_direct = 0.5 * prefactor * E_sum
+    
+    E_direct = 0.5 * E_sum
 
     
-    return E_direct
+    return prefactor * E_direct

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 from elc.src.third_party.get_ewald_energy_2d import get_ewald_energy_2d, direct_sum_energy
-
+PREFACTOR = 1.7
 def get_energies(n_values):
     # 1. System Setup
     l_xy = 10.0
@@ -29,8 +29,8 @@ def get_energies(n_values):
         print(f"Processing n_max = {n_int}...")
         
         # Calculate both methods
-        e_ewald = get_ewald_energy_2d(system, n_int)
-        e_direct = direct_sum_energy(system, n_int)
+        e_ewald = get_ewald_energy_2d(system, n_int, PREFACTOR)
+        e_direct = direct_sum_energy(system, n_int, PREFACTOR)
         
         ewald_energies.append(e_ewald)
         direct_energies.append(e_direct)
