@@ -3,7 +3,7 @@ import numpy as np
 import math
 import espressomd
 import espressomd.electrostatics
-from elc.src.common.get_positions import get_rdm_constrained_points
+from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy, get_elc_energy_contribs
 from elc.src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
 import matplotlib.pyplot as plt
@@ -27,9 +27,8 @@ def test_accuracy_convergence():
     pw_err = 1e-4
     gap_size = 1.0
     
-    pos1, pos2 = get_rdm_constrained_points(l_x, l_y, l_z-gap_size-1e-3)
-    pos1 = np.array([0.0, 0.0, 0.0])
-    pos2 = np.array([9.0, 9.0, 2.0])
+    pos1, pos2 = get_rdm_constrained_points_np(l_x, l_y, l_z-gap_size-1e-3, max_distance = 5)
+    print(f"{pos1=}, {pos2=}")
     q1, q2 = +1.0, -1.0
     
     system.part.clear()
