@@ -115,12 +115,13 @@ def test_accuracy_convergence():
     pw_err = 1e-6
     gap_size = 1.0
     
-    pos1, pos2 = get_rdm_constrained_points_np(l_x, l_y, l_z-gap_size-1e-3, 2, max_distance = 10)
+    pos1, pos2, pos3 = get_rdm_constrained_points_np(l_x, l_y, l_z-gap_size-1e-3, 3, max_distance = 10)
    
     
     system.part.clear()
     system.part.add(pos=pos1, q=-1)
-    system.part.add(pos=pos2, q=+1)
+    system.part.add(pos=pos2, q=-1)
+    system.part.add(pos=pos3, q=+2)
     
     
     
