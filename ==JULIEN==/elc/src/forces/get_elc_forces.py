@@ -11,7 +11,7 @@ def get_elc_forces(system, gap_size=1.0, pw_err=1e-6) -> list[np.ndarray]:
 
     # 1. 3D Periodic Forces from P3M
     # We assume the system box already includes the gap_size in the Z dimension
-    p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_err)
+    p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_err, check_neutrality=False)
     system.electrostatics.solver = p3m
     system.integrator.run(0)
     
