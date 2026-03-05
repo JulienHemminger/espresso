@@ -66,8 +66,3 @@ def get_elc_energy_contribs(p3m, gap_size, pw_error, system):
 def get_elc_energy(p3m, gap_size, pw_error, system):
     prefactor, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(p3m, gap_size, pw_error, system)
     return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)
-
-
-
-
-
