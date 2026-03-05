@@ -4,66 +4,86 @@ import espressomd.electrostatics
 
 def get_elc_forces(system, gap_size=1.0, pw_err=1e-6) -> list[np.ndarray]:
     lx, ly, lz = system.box_l
-    particles = system.part.all()
-    qs, (xs, ys, zs) = particles.q, particles.pos.T
+    parts = system.part.all()
+    qs = parts.q
+    xs, ys, zs = parts.pos.T
     n_part = len(qs)
 
-    # 1. Setup P3M and get 3D Forces
-    # Note: For ELC, P3M dipole correction should be disabled 
-    # as we manually add the 2D+h dipole term.
-    p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_err, tune=True)
+    # 1. Base 3D P3M Forces
+    # Note: Accuracy should be high enough to handle the gap
+    p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_err)
     system.electrostatics.solver = p3m
     system.integrator.run(0)
-    
-    # Extract 3D periodic forces
-    f_3d = np.array([p.f for p in particles])
-    prefactor = p3m.prefactor
+    f_3d = np.array([p.f for p in parts])
+    pref = p3m.prefactor
 
-    # 2. Spectral (Reciprocal) Force Correction
-    # Use the same spectral parameters as the energy implementation
+    # 2. Dipole Correction (z-direction only for neutral systems)
+    volume = lx * ly * lz
+    xi1 = np.sum(qs * zs)
+    f_dip = np.zeros((n_part, 3))
+    f_dip[:, 2] = - (4.0 * np.pi / volume) * qs * xi1
+
+    # 3. Reciprocal ELC Correction
     f_max = -np.log(pw_err) / (2.0 * np.pi * gap_size)
-    p_vals = np.arange(-int(np.ceil(f_max * lx)), int(np.ceil(f_max * lx)) + 1)
-    q_vals = np.arange(-int(np.ceil(f_max * ly)), int(np.ceil(f_max * ly)) + 1)
-    P, Q = np.meshgrid(p_vals, q_vals)
+    p_max = int(np.ceil(f_max * lx))
+    q_max = int(np.ceil(f_max * ly))
+    
+    # Generate k-vectors
+    p = np.arange(-p_max, p_max + 1)
+    q = np.arange(-q_max, q_max + 1)
+    P, Q = np.meshgrid(p, q)
     P, Q = P.flatten(), Q.flatten()
     
     mask = ((P != 0) | (Q != 0)) & (np.sqrt((P/lx)**2 + (Q/ly)**2) <= f_max)
-    fx, fy = P[mask] / lx, Q[mask] / ly
-    f = np.sqrt(fx**2 + fy**2)
-    
-    # Frequencies
-    ux, uy = 1.0/lx, 1.0/ly
-    omega_p = 2.0 * np.pi * fx
-    omega_q = 2.0 * np.pi * fy
-    omega_f = 2.0 * np.pi * f
-    
-    # Calculate Factors (Chi) [cite: 67, 76]
-    # chi_plus[combination, frequency_index]
-    def get_chis(z_arr, sign=1):
-        ez = np.exp(sign * omega_f * z_arr[:, None])
-        c_x, s_x = np.cos(omega_p * xs[:, None]), np.sin(omega_p * xs[:, None])
-        c_y, s_y = np.cos(omega_q * ys[:, None]), np.sin(omega_q * ys[:, None])
-        
-        # Combinations: cc, sc, cs, ss
-        res = []
-        for cx, sx in [(c_x, s_x), (s_x, c_x)]: # This logic needs careful alignment with energy combinations
-             # ... simplified for brevity: compute 4 combinations as in energy code
-             pass
-        return ez, c_x, s_x, c_y, s_y
+    kx, ky = 2.0 * np.pi * P[mask] / lx, 2.0 * np.pi * Q[mask] / ly
+    k = np.sqrt(kx**2 + ky**2)
 
-    # Force components for ELC spectral part
-    # Grad_z (exp term) brings down +/- 2*pi*f
-    # Grad_x/y (sin/cos terms) brings down omega_p/q
-    f_elc_spectral = np.zeros((n_part, 3))
-    
-    # 3. Dipole Force Correction [cite: 75, 77]
-    # For a neutral system, the ELC dipole energy is 2*pi*ux*uy*uz * (sum q_i z_i)^2
-    # The force F_z = -dE/dz = -4 * pi * ux * uy * uz * q_i * (sum q_j z_j)
-    xi1 = np.sum(qs * zs)
-    dipole_fac = 4.0 * np.pi / (lx * ly * lz)
-    f_dipole_z = -dipole_fac * qs * xi1
-    
-    f_elc_total = f_3d + (prefactor * f_elc_spectral)
-    f_elc_total[:, 2] += prefactor * f_dipole_z
+    # Precompute trigonometric and exponential terms
+    # Shape: (n_part, n_kvectors)
+    phase = kx * xs[:, None] + ky * ys[:, None]
+    cos_p, sin_p = np.cos(phase), np.sin(phase)
+    exp_plus, exp_minus = np.exp(k * zs[:, None]), np.exp(-k * zs[:, None])
 
-    return [f for f in f_elc_total]
+    # Compute Global Form Factors (sum over particles)
+    # These are O(N) to compute
+    A_p = np.sum(qs[:, None] * exp_plus * cos_p, axis=0)
+    B_p = np.sum(qs[:, None] * exp_plus * sin_p, axis=0)
+    A_m = np.sum(qs[:, None] * exp_minus * cos_p, axis=0)
+    B_m = np.sum(qs[:, None] * exp_minus * sin_p, axis=0)
+
+    # Spectral Factor (accounts for the infinite sum of z-images)
+    # factor = 1 / (exp(k*Lz) - 1)
+    spec_fac = 1.0 / (np.exp(k * lz) - 1.0)
+    term_pref = (2.0 / (lx * ly * k)) * spec_fac
+
+    # Compute Forces (O(N) per k-vector)
+    # Derivatives of the energy term w.r.t xi, yi, zi
+    f_recip = np.zeros((n_part, 3))
+
+    # We use the fact that the reciprocal energy is proportional to:
+    # Sum_k term_pref * [ (A_p*A_m + B_p*B_m) ]
+    
+    # Z-force: d/dzi
+    # d/dzi (exp(k*zi)) = k*exp(k*zi) ; d/dzi (exp(-k*zi)) = -k*exp(-k*zi)
+    f_recip[:, 2] = np.sum(term_pref * k * qs[:, None] * (
+        exp_plus * (A_m * cos_p + B_m * sin_p) - 
+        exp_minus * (A_p * cos_p + B_p * sin_p)
+    ), axis=1)
+
+    # X-force: d/dxi
+    # d/dxi (cos(kx*xi + ky*yi)) = -kx*sin(...)
+    f_recip[:, 0] = np.sum(term_pref * kx * qs[:, None] * (
+        exp_plus * (A_m * (-sin_p) + B_m * cos_p) + 
+        exp_minus * (A_p * (-sin_p) + B_p * cos_p)
+    ), axis=1)
+
+    # Y-force: d/dyi
+    f_recip[:, 1] = np.sum(term_pref * ky * qs[:, None] * (
+        exp_plus * (A_m * (-sin_p) + B_m * cos_p) + 
+        exp_minus * (A_p * (-sin_p) + B_p * cos_p)
+    ), axis=1)
+
+    # Combine all contributions
+    total_forces = f_3d + pref * (f_dip + f_recip)
+    
+    return [f for f in total_forces]
