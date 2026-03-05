@@ -125,14 +125,17 @@ def test_accuracy_convergence():
     
     
     analytical_forces = get_ewald_forces_2d(system)
+    legacy_forces = get_legacy_forces(system, gap_size, pw_err)
     
-    #legacy_forces = get_legacy_forces(system, gap_size, pw_err)
-    legacy_forces = get_elc_forces(system, gap_size, pw_err)
+    elc_forces = get_elc_forces(system, gap_size, pw_err)
     
     for f in analytical_forces:
         print(f"{str(f)}")    
     print("=========")
     for f in legacy_forces:
+        print(f"{str(f)}")
+    print("=========")
+    for f in elc_forces:
         print(f"{str(f)}")
         
         
