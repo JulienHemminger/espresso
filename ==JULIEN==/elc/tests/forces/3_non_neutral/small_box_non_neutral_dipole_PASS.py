@@ -119,8 +119,8 @@ def test_accuracy_convergence():
    
     
     system.part.clear()
-    system.part.add(pos=pos1, q=-2)
-    system.part.add(pos=pos2, q=+1)
+    system.part.add(pos=pos1, q=+2)
+    system.part.add(pos=pos2, q=-1)
     
     
     
@@ -136,5 +136,5 @@ def test_accuracy_convergence():
         print(f"{str(f)}")
         
         
-    #assert are_sets_equal(analytical_forces, legacy_forces, tol=pw_err)
+    assert are_sets_equal(analytical_forces, legacy_forces, tol=pw_err)
         
