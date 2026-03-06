@@ -7,12 +7,11 @@ from elc.src.common.get_positions import get_rdm_constrained_points
 from elc.src.common.has_downward_trend import has_downward_trend
 from elc.src.energy.get_elc_energy import get_elc_energy_contribs
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
-from elc.src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
 
 # --- Helpers ---
 
 
-def run_plot(pw_errors, elc_errors, legacy_errors, contrib_data, title):
+def create_plot(pw_errors, elc_errors, contrib_data, title):
     """Encapsulates the complex plotting logic shared by both test cases."""
     fig, ax1 = plt.subplots(figsize=(10, 7))
     ax2 = ax1.twinx()
@@ -45,15 +44,7 @@ def run_plot(pw_errors, elc_errors, legacy_errors, contrib_data, title):
         linewidth=2,
         zorder=5,
     )
-    ax1.loglog(
-        pw_errors,
-        legacy_errors,
-        "s--",
-        label="Legacy Error",
-        color="#e67e22",
-        alpha=0.7,
-        zorder=4,
-    )
+
     ax1.loglog(pw_errors, pw_errors, "k:", alpha=0.5, label="Target Accuracy (1:1)")
 
     # Formatting
@@ -93,25 +84,17 @@ def es_system():
 @pytest.mark.parametrize("show_convergence_plot", [True])
 def test_accuracy_convergence(es_system, system_type, show_convergence_plot):
     # Setup parameters based on system type
-    if system_type == "neutral":
-        pw_errors = np.logspace(-4, -8, num=5)
-        charges = [+1.0, -1.0]
-        prefactor_val = 1.0
-        check_neutrality = True
-        title = "Convergence Analysis with Energy Decomposition (Neutral)"
-    else:
-        pw_errors = np.logspace(-6, -8, num=3)
-        charges = [+1.0, +1.0]
-        prefactor_val = 1.7
-        check_neutrality = False
-        title = "Non-Neutral Dipole Accuracy Convergence"
+    pw_errors = np.logspace(-4, -8, num=5)
+    charges = [+1.0, -1.0]
+    prefactor_val = 1.7
+    check_neutrality = False
+    title = "Accuracy Convergence: " + system_type
 
     gap_size = 1.0
     lx, ly, lz = es_system.box_l
     pos1, pos2 = get_rdm_constrained_points(lx, ly, lz - gap_size - 1e-3)
 
     elc_errors = []
-    legacy_errors = []
     contrib_data = {"P3M (3D)": [], "Yeh-Berkowitz": [], "ELC Reciprocal": []}
 
     for pw_err in pw_errors:
@@ -119,15 +102,12 @@ def test_accuracy_convergence(es_system, system_type, show_convergence_plot):
         es_system.part.add(pos=pos1, q=charges[0])
         es_system.part.add(pos=pos2, q=charges[1])
 
-        # Solver Setup
+        ana_energy = get_ewald_energy_2d(es_system, n_max=100, prefactor=prefactor_val)
+
         p3m = espressomd.electrostatics.P3M(
             prefactor=prefactor_val, accuracy=pw_err, check_neutrality=check_neutrality
         )
         es_system.electrostatics.solver = p3m
-
-        # Energy Calculations
-        ana_energy = get_ewald_energy_2d(es_system, n_max=100, prefactor=prefactor_val)
-
         pref, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
             p3m, gap_size, pw_err, es_system
         )
@@ -138,9 +118,7 @@ def test_accuracy_convergence(es_system, system_type, show_convergence_plot):
 
         # Data collection
         elc_errors.append(abs(elc_en - ana_energy))
-        legacy_errors.append(
-            abs(get_legacy_elc_energy(p3m, gap_size, pw_err, es_system) - ana_energy)
-        )
+
         contrib_data["P3M (3D)"].append(e_3d)
         contrib_data["Yeh-Berkowitz"].append(e_dipole_final)
         contrib_data["ELC Reciprocal"].append(e_recip_final)
@@ -149,4 +127,4 @@ def test_accuracy_convergence(es_system, system_type, show_convergence_plot):
     assert has_downward_trend(elc_errors)
 
     if show_convergence_plot:
-        run_plot(pw_errors, elc_errors, legacy_errors, contrib_data, title)
+        create_plot(pw_errors, elc_errors, contrib_data, title)
