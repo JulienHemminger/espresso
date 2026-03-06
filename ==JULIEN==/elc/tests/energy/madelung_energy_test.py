@@ -1,57 +1,34 @@
 import espressomd
 import espressomd.electrostatics
 import numpy as np
-import pytest
-from elc.src.energy.get_elc_energy import get_elc_energy
+from elc.src.energy.get_elc_energy import get_elc_energy_new
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 
 
-@pytest.fixture(scope="module")
-def system():
-    """Create a single system instance for the entire test module."""
-    s = espressomd.System(box_l=[1.0, 1.0, 1.0])
-    yield s
-    # No explicit 'delete' needed usually, but we ensure it's ready for the next run
-    # if you were running multiple modules.
-
-
-@pytest.mark.parametrize("ions_per_axis", [16])
-def test_madelung_energy_convergence(system, ions_per_axis):
-    # --- 1. System Setup (Re-configuration) ---
-    box_size = 20.0
-    system.part.clear()
-    system.box_l = [box_size, box_size, box_size * 3]
-    system.cell_system.skin = 0.4
+def test_madelung():
+    system = espressomd.System(box_l=[20, 20, 60])
     system.time_step = 0.01
+    system.cell_system.skin = 0.4
 
-    # Theoretical Madelung constant for 2D square lattice
-    accuracy_goal = 1e-6
+    run_madelung(system, ions_per_axis=8)
 
-    # --- 2. Particle Placement ---
-    spacing = box_size / ions_per_axis
+
+def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
+    l_xy = min(system.box_l[0], system.box_l[1])
+
+    spacing = l_xy / ions_per_axis
     ion_z_pos = system.box_l[2] / 2.0
-
     for i in range(ions_per_axis):
         for j in range(ions_per_axis):
             charge = (-1.0) ** (i + j)
             system.part.add(pos=[i * spacing, j * spacing, ion_z_pos], q=charge)
 
-    # --- 3. Configure Solver ---
-    p3m = espressomd.electrostatics.P3M(
-        prefactor=1.0, accuracy=accuracy_goal, check_neutrality=False
-    )
-
-    # --- 4. Calculate Energies ---
     ion_count = len(system.part)
     madelung_2d_ref = -1.6155426267128247 * ion_count / (2.0 * spacing)
 
-    # We pass the p3m actor and system
     legacy_energy = get_ewald_energy_2d(system)
-    # legacy_energy = get_legacy_elc_energy(p3m, box_size, accuracy_goal, system)
-    elc_energy = get_elc_energy(p3m, box_size, accuracy_goal, system)
+    elc_energy = get_elc_energy_new(system, gap_size, accuracy)
 
-    # --- 5. Assertions ---
-    tolerance = 1e-3  # Madelung convergence is slower than P3M accuracy
-
+    tolerance = 1e3 * accuracy  # 1e-3
     assert np.abs(madelung_2d_ref - legacy_energy) < tolerance
     assert np.abs(madelung_2d_ref - elc_energy) < tolerance
