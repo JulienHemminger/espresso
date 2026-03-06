@@ -1,7 +1,7 @@
 import espressomd
 import espressomd.electrostatics
 import numpy as np
-from elc.src.energy.get_elc_energy import get_elc_energy_new
+from elc.src.energy.get_elc_energy import get_elc_energy
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 
 
@@ -27,7 +27,7 @@ def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
     madelung_2d_ref = -1.6155426267128247 * ion_count / (2.0 * spacing)
 
     legacy_energy = get_ewald_energy_2d(system)
-    elc_energy = get_elc_energy_new(system, gap_size, accuracy)
+    elc_energy = get_elc_energy(system, gap_size, accuracy)
 
     tolerance = 1e3 * accuracy  # 1e-3
     assert np.abs(madelung_2d_ref - legacy_energy) < tolerance

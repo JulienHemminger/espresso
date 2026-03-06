@@ -86,8 +86,6 @@ def test_accuracy_convergence(es_system, system_type, show_convergence_plot):
     # Setup parameters based on system type
     pw_errors = np.logspace(-4, -8, num=5)
     charges = [+1.0, -1.0]
-    prefactor_val = 1.7
-    check_neutrality = False
     title = "Accuracy Convergence: " + system_type
 
     gap_size = 1.0
@@ -102,14 +100,10 @@ def test_accuracy_convergence(es_system, system_type, show_convergence_plot):
         es_system.part.add(pos=pos1, q=charges[0])
         es_system.part.add(pos=pos2, q=charges[1])
 
-        ana_energy = get_ewald_energy_2d(es_system, n_max=100, prefactor=prefactor_val)
+        ana_energy = get_ewald_energy_2d(es_system, n_max=100)
 
-        p3m = espressomd.electrostatics.P3M(
-            prefactor=prefactor_val, accuracy=pw_err, check_neutrality=check_neutrality
-        )
-        es_system.electrostatics.solver = p3m
         pref, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
-            p3m, gap_size, pw_err, es_system
+            gap_size, pw_err, es_system
         )
 
         e_recip_final = pref * e_recip

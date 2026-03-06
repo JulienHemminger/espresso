@@ -3,7 +3,10 @@ import espressomd.electrostatics
 import numpy as np
 
 
-def get_elc_energy_contribs(p3m, gap_size, pw_error, system):
+def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
+    p3m = espressomd.electrostatics.P3M(
+        prefactor=prefactor, accuracy=pw_error, check_neutrality=False
+    )
 
     lx, ly, lz = system.box_l
     parts = system.part.all()
@@ -12,7 +15,6 @@ def get_elc_energy_contribs(p3m, gap_size, pw_error, system):
     # 1. 3D Periodic Energy from P3M
     system.electrostatics.solver = p3m
     e_3d = system.analysis.energy()["total"]
-    prefactor = p3m.prefactor
 
     # 2. Charge Moments
     xi0 = np.sum(qs)
@@ -66,19 +68,8 @@ def get_elc_energy_contribs(p3m, gap_size, pw_error, system):
     return (float(prefactor), float(e_recip), float(e_3d), float(e_non_neutral_corr))
 
 
-def get_elc_energy(p3m, gap_size, pw_error, system):
-    prefactor, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
-        p3m, gap_size, pw_error, system
-    )
-    return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)
-
-
-def get_elc_energy_new(system, gap_size, pw_error):
-    p3m = espressomd.electrostatics.P3M(
-        prefactor=1.0, accuracy=pw_error, check_neutrality=False
-    )
-
-    prefactor, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
-        p3m, gap_size, pw_error, system
+def get_elc_energy(system, gap_size, pw_error, prefactor=1.0):
+    _, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
+        gap_size, pw_error, system, prefactor
     )
     return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)

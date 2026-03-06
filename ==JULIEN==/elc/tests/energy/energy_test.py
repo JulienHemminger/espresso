@@ -2,18 +2,12 @@ import espressomd
 import espressomd.electrostatics
 from elc.src.common.get_charges import get_rdm_charges
 from elc.src.common.get_positions import get_rdm_constrained_points_np
-from elc.src.energy.get_elc_energy import get_elc_energy_new
+from elc.src.energy.get_elc_energy import get_elc_energy
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 
 
 def run(
-    system,
-    lx,
-    ly,
-    lz,
-    gap_size=1.0,
-    charges=[+1.0, -1.0],
-    pw_error=1e-6,
+    system, lx, ly, lz, gap_size=1.0, charges=[+1.0, -1.0], pw_error=1e-6, prefactor=1.0
 ):
 
     particle_count = len(charges)
@@ -28,8 +22,8 @@ def run(
     for i in range(particle_count):
         system.part.add(pos=positions[i], q=charges[i])
 
-    analytical_energy = get_ewald_energy_2d(system)
-    elc_energy = get_elc_energy_new(system, gap_size, pw_error)
+    analytical_energy = get_ewald_energy_2d(system, prefactor=prefactor)
+    elc_energy = get_elc_energy(system, gap_size, pw_error)
 
     # Validation logic
     print(f"Testing Box: {lx}x{ly}x{lz} with charges {charges}")
