@@ -1,6 +1,5 @@
 import espressomd
 import espressomd.electrostatics
-from elc.src.common.get_charges import get_rdm_charges
 from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
@@ -23,7 +22,7 @@ def run(
         system.part.add(pos=positions[i], q=charges[i])
 
     analytical_energy = get_ewald_energy_2d(system, prefactor=prefactor)
-    elc_energy = get_elc_energy(system, gap_size, pw_error)
+    elc_energy = get_elc_energy(system, gap_size, pw_error, prefactor=prefactor)
 
     # Validation logic
     print(f"Testing Box: {lx}x{ly}x{lz} with charges {charges}")
@@ -35,7 +34,13 @@ def run(
 def test_all():
     system = espressomd.System(box_l=[1, 1, 1])
     system.time_step = 0.01
+
     """
+    # varying prefactor
+    run(system, 10, 7, 3, 1, [+1, -1], prefactor=1.7)
+    run(system, 10, 7, 3, 1, [+1, -1], prefactor=2.3)
+    
+    
     # small_box_neutral_dipole
     run(system, 10, 10, 3, 1, [+1, -1])
 
@@ -56,6 +61,6 @@ def test_all():
     # run(system, 10, 10, 3, gap_size=2, charges=[+1, -1])
 
     #
-    run(system, 10, 10, 3, 1, charges=get_rdm_charges(2))
+    # run(system, 10, 10, 3, 1, charges=get_rdm_charges(2))
 
     # todo madelung, plots, more particles, ..
