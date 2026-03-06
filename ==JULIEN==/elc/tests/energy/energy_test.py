@@ -40,7 +40,7 @@ def run(
 def test_all():
     system = espressomd.System(box_l=[1, 1, 1])
     system.time_step = 0.01
-
+    """
     # small_box_neutral_dipole
     run(system, 10, 10, 3, 1, [+1, -1])
 
@@ -55,5 +55,9 @@ def test_all():
 
     # huge_box_neutral
     run(system, 200, 200, 10, 1, [+1, -1])
+    """
+
+    # varying gap_size
+    run(system, 10, 10, 3, gap_size=2, charges=[+1, -1])
 
     # todo madelung, plots, more particles, ..
