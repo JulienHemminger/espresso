@@ -4,6 +4,7 @@ from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.common.set_utils import are_sets_equal
 from elc.src.forces.get_elc_forces import get_elc_forces
 from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
+from elc.tests.forces.accuracy_convergence_utils import run_accuracy_convergence
 from elc.tests.forces.madelung_utils import run_madelung
 
 
@@ -45,11 +46,8 @@ def test_all():
     system = espressomd.System(box_l=[10, 10, 10])
     system.time_step = 0.01
 
-    run_madelung(system, ions_per_axis=8)
-    """
-    run_accuracy_convergence(system, False)
-    
-    
+    # TODO maybe the order of the test needs to be changed. its wonky to set system.box_l
+
     # small_box_neutral_dipole
     run_basic(system, 10, 10, 3, 1, [+1, -1])
 
@@ -59,6 +57,9 @@ def test_all():
     # small_box_non_neutral_dipole_test
     run_basic(system, 10, 10, 3, 1, [+2, -1])
 
+    run_madelung(system, ions_per_axis=8)
+
+    run_accuracy_convergence(system, False)
+
     # huge_box_neutral
     run_basic(system, 200, 200, 10, 1, [+1, -1])
-    """

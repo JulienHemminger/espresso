@@ -39,12 +39,6 @@ def test_all():
 
     # TODO maybe the order of the test needs to be changed. its wonky to set system.box_l
 
-    run_madelung(system, ions_per_axis=8)
-
-    # accuracy convergence plots
-    run_accuracy_convergence(system, is_neutral=True)
-    run_accuracy_convergence(system, is_neutral=False)
-
     # varying prefactor
     run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=1.7)
     run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=2.3)
@@ -61,8 +55,14 @@ def test_all():
     # small_box_non_neutral_dipole_test
     run_basic(system, 10, 10, 3, 1, [+2, -1])
 
-    # huge_box_neutral
-    run_basic(system, 200, 200, 10, 1, [+1, -1])
-
     # varying gap_size
     run_basic(system, 10, 10, 3, gap_size=2, charges=[+1, -1])
+
+    run_madelung(system, ions_per_axis=8)
+
+    # accuracy convergence plots
+    run_accuracy_convergence(system, is_neutral=True)
+    run_accuracy_convergence(system, is_neutral=False)
+
+    # huge_box_neutral
+    run_basic(system, 200, 200, 10, 1, [+1, -1])
