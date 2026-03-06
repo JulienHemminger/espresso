@@ -1,5 +1,6 @@
 import espressomd
 import espressomd.electrostatics
+from elc.src.common.get_charges import get_rdm_charges
 from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy_new
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
@@ -58,6 +59,9 @@ def test_all():
     """
 
     # varying gap_size
-    run(system, 10, 10, 3, gap_size=2, charges=[+1, -1])
+    # run(system, 10, 10, 3, gap_size=2, charges=[+1, -1])
+
+    #
+    run(system, 10, 10, 3, 1, charges=get_rdm_charges(2))
 
     # todo madelung, plots, more particles, ..
