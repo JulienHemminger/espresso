@@ -10,7 +10,7 @@ def run_accuracy_convergence(system, is_neutral=True, show_convergence_plot=True
     # Setup parameters based on system type
     pw_errors = np.logspace(-4, -8, num=5)
     charges = [+1.0, -1.0]
-    title = f"Energy Accuracy Convergence ({is_neutral=}) "
+    title = f"Force Accuracy Convergence ({is_neutral=}) "
 
     gap_size = 1.0
     lx, ly, lz = system.box_l

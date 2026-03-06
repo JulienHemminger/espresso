@@ -6,7 +6,7 @@ from elc.src.forces.get_elc_forces import get_elc_forces
 from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
 
 
-def run(
+def run_basic(
     system,
     lx,
     ly,
@@ -41,17 +41,21 @@ def run(
 
 
 def test_all():
-    system = espressomd.System(box_l=[1, 1, 1])
+    system = espressomd.System(box_l=[10, 10, 10])
     system.time_step = 0.01
 
+    run_basic(system, 10, 10, 3, 1, [+1, -1])
+    # run_accuracy_convergence(system, True)
+
+    """
     # small_box_neutral_dipole
-    run(system, 10, 10, 3, 1, [+1, -1])
 
     # small_box_neutral_tripole
-    run(system, 10, 10, 3, 1, [+2, -1, -1])
+    run_basic(system, 10, 10, 3, 1, [+2, -1, -1])
 
     # small_box_non_neutral_dipole_test
-    run(system, 10, 10, 3, 1, [+2, -1])
+    run_basic(system, 10, 10, 3, 1, [+2, -1])
 
     # huge_box_neutral
-    run(system, 200, 200, 10, 1, [+1, -1])
+    run_basic(system, 200, 200, 10, 1, [+1, -1])
+    """

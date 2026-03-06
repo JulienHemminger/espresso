@@ -1,8 +1,9 @@
-import numpy as np
 import espressomd
 import espressomd.electrostatics
+import numpy as np
 
-def get_elc_forces(system, gap_size=1.0, pw_err=1e-6) -> list[np.ndarray]:
+
+def get_elc_forces_contribs(system, gap_size=1.0, pw_err=1e-6):
     lx, ly, lz = system.box_l
     particles = system.part.all()
     n_part = len(particles)
@@ -12,17 +13,19 @@ def get_elc_forces(system, gap_size=1.0, pw_err=1e-6) -> list[np.ndarray]:
 
     # 1. 3D Periodic Forces from P3M
     # Note: check_neutrality=False is required for systems where sum(q) != 0
-    p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=pw_err, check_neutrality=False)
+    p3m = espressomd.electrostatics.P3M(
+        prefactor=1.0, accuracy=pw_err, check_neutrality=False
+    )
     system.electrostatics.solver = p3m
     system.integrator.run(0)
-    
-    f_total = np.array([p.f for p in particles])
+
+    f_3d = np.array([p.f for p in particles])
     prefactor = p3m.prefactor
 
     # 2. Moments calculation
-    xi0 = np.sum(qs)       # Net charge
+    xi0 = np.sum(qs)  # Net charge
     xi1 = np.sum(qs * zs)  # Dipole moment
-    
+
     # 3. Non-Neutral / Dipole Force Correction
     # This combines the standard dipole correction and the net-charge correction
     # F_iz = - (4*pi/V) * q_i * (xi1 - xi0 * z_i)
@@ -42,15 +45,15 @@ def get_elc_forces(system, gap_size=1.0, pw_err=1e-6) -> list[np.ndarray]:
     P, Q = P.flatten(), Q.flatten()
 
     # Mask k=0 and apply circular cutoff
-    mask = ((P != 0) | (Q != 0)) & (np.sqrt((P/lx)**2 + (Q/ly)**2) <= f_max)
+    mask = ((P != 0) | (Q != 0)) & (np.sqrt((P / lx) ** 2 + (Q / ly) ** 2) <= f_max)
     pk, qk = P[mask], Q[mask]
     fx, fy = pk / lx, qk / ly
     f = np.sqrt(fx**2 + fy**2)
-    
+
     arg_x = 2.0 * np.pi * fx
     arg_y = 2.0 * np.pi * fy
     arg_z = 2.0 * np.pi * f
-    
+
     # Shapes: (n_part, n_k_vectors)
     cx, sx = np.cos(arg_x * xs[:, None]), np.sin(arg_x * xs[:, None])
     cy, sy = np.cos(arg_y * ys[:, None]), np.sin(arg_y * ys[:, None])
@@ -61,10 +64,18 @@ def get_elc_forces(system, gap_size=1.0, pw_err=1e-6) -> list[np.ndarray]:
         return np.sum(qs[:, None] * ez * tx * ty, axis=0)
 
     # Precompute Chi for all 4 trig combinations
-    chi_p = [get_chi(ex_p, cx, cy), get_chi(ex_p, sx, cy), 
-             get_chi(ex_p, cx, sy), get_chi(ex_p, sx, sy)]
-    chi_m = [get_chi(ex_m, cx, cy), get_chi(ex_m, sx, cy), 
-             get_chi(ex_m, cx, sy), get_chi(ex_m, sx, sy)]
+    chi_p = [
+        get_chi(ex_p, cx, cy),
+        get_chi(ex_p, sx, cy),
+        get_chi(ex_p, cx, sy),
+        get_chi(ex_p, sx, sy),
+    ]
+    chi_m = [
+        get_chi(ex_m, cx, cy),
+        get_chi(ex_m, sx, cy),
+        get_chi(ex_m, cx, sy),
+        get_chi(ex_m, sx, sy),
+    ]
 
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
     term_pref = (1.0 / (lx * ly * f)) * rep
@@ -77,21 +88,37 @@ def get_elc_forces(system, gap_size=1.0, pw_err=1e-6) -> list[np.ndarray]:
         ty = cy if i in [0, 1] else sy
         dtx = -arg_x * sx if i in [0, 2] else arg_x * cx
         dty = -arg_y * sy if i in [0, 1] else arg_y * cy
-        
+
         # Reciprocal X force
-        f_elc_recip[:, 0] += qs[:, None] * (ex_p * dtx * ty * chi_m[i] + 
-                                           ex_m * dtx * ty * chi_p[i]) @ term_pref
-        
+        f_elc_recip[:, 0] += (
+            qs[:, None]
+            * (ex_p * dtx * ty * chi_m[i] + ex_m * dtx * ty * chi_p[i])
+            @ term_pref
+        )
+
         # Reciprocal Y force
-        f_elc_recip[:, 1] += qs[:, None] * (ex_p * tx * dty * chi_m[i] + 
-                                           ex_m * tx * dty * chi_p[i]) @ term_pref
-        
+        f_elc_recip[:, 1] += (
+            qs[:, None]
+            * (ex_p * tx * dty * chi_m[i] + ex_m * tx * dty * chi_p[i])
+            @ term_pref
+        )
+
         # Reciprocal Z force
-        f_elc_recip[:, 2] += qs[:, None] * arg_z * (ex_p * tx * ty * chi_m[i] - 
-                                                   ex_m * tx * ty * chi_p[i]) @ term_pref
+        f_elc_recip[:, 2] += (
+            qs[:, None]
+            * arg_z
+            * (ex_p * tx * ty * chi_m[i] - ex_m * tx * ty * chi_p[i])
+            @ term_pref
+        )
+
+    return (prefactor, f_3d, f_elc_recip, f_corr_moments)
+
+
+def get_elc_forces(system, gap_size=1.0, pw_err=1e-6):
+    prefactor, f_3d, f_elc_recip, f_corr_moments = get_elc_forces_contribs(
+        system, gap_size, pw_err
+    )
 
     # Total Force Assembly
-    # F = F_3D + Prefactor * (F_reciprocal_correction + F_moment_correction)
-    f_final = f_total + prefactor * (f_elc_recip + f_corr_moments)
-
+    f_final = f_3d + prefactor * (f_elc_recip + f_corr_moments)
     return [f for f in f_final]
