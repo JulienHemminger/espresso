@@ -3,9 +3,11 @@ import espressomd.electrostatics
 from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
+from elc.tests.energy.accuracy_convergence_utils import run_accuracy_convergence
+from elc.tests.energy.madelung_energy_utils import run_madelung
 
 
-def run(
+def run_basic(
     system, lx, ly, lz, gap_size=1.0, charges=[+1.0, -1.0], pw_error=1e-6, prefactor=1.0
 ):
 
@@ -35,32 +37,32 @@ def test_all():
     system = espressomd.System(box_l=[1, 1, 1])
     system.time_step = 0.01
 
-    """
+    # TODO maybe the order of the test needs to be changed. its wonky to set system.box_l
+
+    run_madelung(system, ions_per_axis=8)
+
+    # accuracy convergence plots
+    run_accuracy_convergence(system, is_neutral=True)
+    run_accuracy_convergence(system, is_neutral=False)
+
     # varying prefactor
-    run(system, 10, 7, 3, 1, [+1, -1], prefactor=1.7)
-    run(system, 10, 7, 3, 1, [+1, -1], prefactor=2.3)
-    
-    
+    run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=1.7)
+    run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=2.3)
+
     # small_box_neutral_dipole
-    run(system, 10, 10, 3, 1, [+1, -1])
+    run_basic(system, 10, 10, 3, 1, [+1, -1])
 
     # small_non_square_box_neutral_dipole
-    run(system, 10, 7, 3, 1, [+1, -1])
+    run_basic(system, 10, 7, 3, 1, [+1, -1])
 
     # small_box_neutral_tripole
-    run(system, 10, 10, 3, 1, [+2, -1, -1])
+    run_basic(system, 10, 10, 3, 1, [+2, -1, -1])
 
     # small_box_non_neutral_dipole_test
-    run(system, 10, 10, 3, 1, [+2, -1])
+    run_basic(system, 10, 10, 3, 1, [+2, -1])
 
     # huge_box_neutral
-    run(system, 200, 200, 10, 1, [+1, -1])
-    """
+    run_basic(system, 200, 200, 10, 1, [+1, -1])
 
     # varying gap_size
-    # run(system, 10, 10, 3, gap_size=2, charges=[+1, -1])
-
-    #
-    # run(system, 10, 10, 3, 1, charges=get_rdm_charges(2))
-
-    # todo madelung, plots, more particles, ..
+    run_basic(system, 10, 10, 3, gap_size=2, charges=[+1, -1])

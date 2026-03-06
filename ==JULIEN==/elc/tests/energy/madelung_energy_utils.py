@@ -1,16 +1,6 @@
-import espressomd
-import espressomd.electrostatics
 import numpy as np
 from elc.src.energy.get_elc_energy import get_elc_energy
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
-
-
-def test_madelung():
-    system = espressomd.System(box_l=[20, 20, 60])
-    system.time_step = 0.01
-    system.cell_system.skin = 0.4
-
-    run_madelung(system, ions_per_axis=8)
 
 
 def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
