@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from elc.src.common.get_positions import get_rdm_constrained_points
 from elc.src.common.has_downward_trend import has_downward_trend
-from elc.src.energy.get_elc_energy import get_elc_energy_contribs
-from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
+from elc.src.forces.get_elc_forces import get_elc_forces_contribs
+from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
 
 
 def run_accuracy_convergence(system, is_neutral=True, show_convergence_plot=True):
@@ -24,22 +24,25 @@ def run_accuracy_convergence(system, is_neutral=True, show_convergence_plot=True
         system.part.add(pos=pos1, q=charges[0])
         system.part.add(pos=pos2, q=charges[1])
 
-        ana_energy = get_ewald_energy_2d(system, n_max=100)
+        ana_forces = get_ewald_forces_2d(system, n_max=100)
 
-        pref, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
-            gap_size, pw_err, system
+        pref, f_3d, f_elc_recip, f_corr_moments = get_elc_forces_contribs(
+            system, gap_size, pw_err
         )
 
-        e_recip_final = pref * e_recip
-        e_dipole_final = pref * e_non_neutral_corr
-        elc_en = e_3d + e_dipole_final + e_recip_final
+        f_final = list(f_3d + pref * (f_elc_recip + f_corr_moments))
 
-        # Data collection
-        elc_errors.append(abs(elc_en - ana_energy))
+        i = 0  # choose a random particle
+        elc_errors.append(
+            abs(
+                np.linalg.norm(f_final[i] - ana_forces[i])
+                / np.linalg.norm(ana_forces[i])
+            )
+        )  # Vector L2 Relative Error
 
-        contrib_data["P3M (3D)"].append(e_3d)
-        contrib_data["Yeh-Berkowitz"].append(e_dipole_final)
-        contrib_data["ELC Reciprocal"].append(e_recip_final)
+        contrib_data["P3M (3D)"].append(np.linalg.norm(f_3d[i]))
+        contrib_data["Yeh-Berkowitz"].append(pref * np.linalg.norm(f_corr_moments[i]))
+        contrib_data["ELC Reciprocal"].append(pref * np.linalg.norm(f_elc_recip[i]))
 
     # --- Assertions ---
     assert has_downward_trend(elc_errors)
@@ -82,7 +85,7 @@ def run_accuracy_convergence(system, is_neutral=True, show_convergence_plot=True
         # Formatting
         ax1.set_xlabel("Requested Accuracy (pw_error)")
         ax1.set_ylabel("Measured Error (Log Scale)", color="#2980b9")
-        ax2.set_ylabel("Energy Component Value (Linear Scale)", color="#7f8c8d")
+        ax2.set_ylabel("Force Component Value (Linear Scale)", color="#7f8c8d")
         plt.title(title)
 
         lines, labels = ax1.get_legend_handles_labels()
