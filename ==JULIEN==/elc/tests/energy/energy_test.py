@@ -2,9 +2,7 @@ import espressomd
 import espressomd.electrostatics
 from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy_new
-from elc.src.energy.third_party.get_legacy_elc import (
-    get_legacy_elc_energy_new,
-)
+from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 
 
 def run(
@@ -15,7 +13,6 @@ def run(
     gap_size=1.0,
     charges=[+1.0, -1.0],
     pw_error=1e-6,
-    tolerance=1e-6,
 ):
 
     particle_count = len(charges)
@@ -30,7 +27,7 @@ def run(
     for i in range(particle_count):
         system.part.add(pos=positions[i], q=charges[i])
 
-    analytical_energy = get_legacy_elc_energy_new(system, gap_size, pw_error)
+    analytical_energy = get_ewald_energy_2d(system)
     elc_energy = get_elc_energy_new(system, gap_size, pw_error)
 
     # Validation logic
