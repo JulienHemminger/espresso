@@ -4,6 +4,7 @@ from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.common.set_utils import are_sets_equal
 from elc.src.forces.get_elc_forces import get_elc_forces
 from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
+from elc.tests.forces.madelung_utils import run_madelung
 
 
 def run_basic(
@@ -44,6 +45,7 @@ def test_all():
     system = espressomd.System(box_l=[10, 10, 10])
     system.time_step = 0.01
 
+    run_madelung(system, ions_per_axis=8)
     """
     run_accuracy_convergence(system, False)
     
