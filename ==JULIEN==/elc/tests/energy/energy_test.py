@@ -4,7 +4,7 @@ from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 from elc.tests.energy.accuracy_convergence_utils import run_accuracy_convergence
-from elc.tests.energy.madelung_energy_utils import run_madelung
+from elc.tests.energy.madelung_utils import run_madelung
 
 
 def run_basic(
