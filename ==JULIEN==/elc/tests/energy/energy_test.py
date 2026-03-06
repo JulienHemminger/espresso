@@ -41,5 +41,19 @@ def test_all():
     system = espressomd.System(box_l=[1, 1, 1])
     system.time_step = 0.01
 
-    # dipole_rdm_pos_energy_non_square_test
-    run(system, 100.0, 50.0, 10.0, 1, [+1, -1])
+    # small_box_neutral_dipole
+    run(system, 10, 10, 3, 1, [+1, -1])
+
+    # small_non_square_box_neutral_dipole
+    run(system, 10, 7, 3, 1, [+1, -1])
+
+    # small_box_neutral_tripole
+    run(system, 10, 10, 3, 1, [+2, -1, -1])
+
+    # small_box_non_neutral_dipole_test
+    run(system, 10, 10, 3, 1, [+2, -1])
+
+    # huge_box_neutral
+    run(system, 200, 200, 10, 1, [+1, -1])
+
+    # todo madelung, plots, more particles, ..
