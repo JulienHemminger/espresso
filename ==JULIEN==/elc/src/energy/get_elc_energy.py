@@ -1,45 +1,46 @@
+import espressomd
+import espressomd.electrostatics
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 def get_elc_energy_contribs(p3m, gap_size, pw_error, system):
-    
+
     lx, ly, lz = system.box_l
     parts = system.part.all()
     qs, (xs, ys, zs) = parts.q, parts.pos.T
-    
+
     # 1. 3D Periodic Energy from P3M
     system.electrostatics.solver = p3m
     e_3d = system.analysis.energy()["total"]
     prefactor = p3m.prefactor
-    
+
     # 2. Charge Moments
-    xi0 = np.sum(qs)        
-    xi1 = np.sum(qs * zs)   
+    xi0 = np.sum(qs)
+    xi1 = np.sum(qs * zs)
     xi2 = np.sum(qs * zs**2)
-    
+
     # 3. Handle the Non-Neutral/Dipole Corrections
     volume = lx * ly * lz
     fac = 2.0 * np.pi / volume
-    
+
     # correction for non-neutral systems:
     e_non_neutral_corr = fac * (xi1**2 - xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
-    
+
     # 4. Reciprocal Space ELC Term
     f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
     p_max = int(np.ceil(f_max * lx))
     q_max = int(np.ceil(f_max * ly))
-    
+
     p = np.arange(-p_max, p_max + 1)
     q = np.arange(-q_max, q_max + 1)
     P, Q = np.meshgrid(p, q)
     P, Q = P.flatten(), Q.flatten()
-    
+
     # Exclude the k=0 mode (handled by the real space and dipole terms)
-    mask = ((P != 0) | (Q != 0)) & (np.sqrt((P/lx)**2 + (Q/ly)**2) <= f_max)
+    mask = ((P != 0) | (Q != 0)) & (np.sqrt((P / lx) ** 2 + (Q / ly) ** 2) <= f_max)
     fx, fy = P[mask] / lx, Q[mask] / ly
     f = np.sqrt(fx**2 + fy**2)
 
-    
     # Particle-wise components
     arg_x, arg_y, arg_z = 2.0 * np.pi * fx, 2.0 * np.pi * fy, 2.0 * np.pi * f
     cx, sx = np.cos(arg_x * xs[:, None]), np.sin(arg_x * xs[:, None])
@@ -47,22 +48,37 @@ def get_elc_energy_contribs(p3m, gap_size, pw_error, system):
     ex_p, ex_m = np.exp(arg_z * zs[:, None]), np.exp(-arg_z * zs[:, None])
 
     # Compute form factors (Chi) linearly
-    def s_term(ez, c1, c2): 
+    def s_term(ez, c1, c2):
         return np.sum(qs[:, None] * ez * c1 * c2, axis=0)
 
     # Summing over the four combinations of sin/cos for the 2D Fourier transform
-    chi = (s_term(ex_p, cx, cy) * s_term(ex_m, cx, cy) + 
-           s_term(ex_p, sx, cy) * s_term(ex_m, sx, cy) +
-           s_term(ex_p, cx, sy) * s_term(ex_m, cx, sy) + 
-           s_term(ex_p, sx, sy) * s_term(ex_m, sx, sy))
-    
+    chi = (
+        s_term(ex_p, cx, cy) * s_term(ex_m, cx, cy)
+        + s_term(ex_p, sx, cy) * s_term(ex_m, sx, cy)
+        + s_term(ex_p, cx, sy) * s_term(ex_m, cx, sy)
+        + s_term(ex_p, sx, sy) * s_term(ex_m, sx, sy)
+    )
+
     # The reciprocal energy correction
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
     e_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
 
-    return (prefactor, e_recip, e_3d, e_non_neutral_corr)
+    return (float(prefactor), float(e_recip), float(e_3d), float(e_non_neutral_corr))
 
 
 def get_elc_energy(p3m, gap_size, pw_error, system):
-    prefactor, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(p3m, gap_size, pw_error, system)
+    prefactor, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
+        p3m, gap_size, pw_error, system
+    )
+    return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)
+
+
+def get_elc_energy_new(system, gap_size, pw_error):
+    p3m = espressomd.electrostatics.P3M(
+        prefactor=1.0, accuracy=pw_error, check_neutrality=False
+    )
+
+    prefactor, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
+        p3m, gap_size, pw_error, system
+    )
     return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)
