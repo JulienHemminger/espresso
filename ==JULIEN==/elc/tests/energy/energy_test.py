@@ -37,8 +37,6 @@ def test_all():
     system = espressomd.System(box_l=[1, 1, 1])
     system.time_step = 0.01
 
-    # TODO maybe the order of the test needs to be changed. its wonky to set system.box_l
-
     # varying prefactor
     run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=1.7)
     run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=2.3)

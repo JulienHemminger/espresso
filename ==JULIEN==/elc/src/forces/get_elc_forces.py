@@ -14,7 +14,7 @@ def get_elc_forces_contribs(system, gap_size=1.0, pw_err=1e-6):
     # 1. 3D Periodic Forces from P3M
     # Note: check_neutrality=False is required for systems where sum(q) != 0
     p3m = espressomd.electrostatics.P3M(
-        prefactor=1.0, accuracy=pw_err, check_neutrality=False
+        prefactor=1.0, accuracy=pw_err, check_neutrality=False, verbose=False
     )
     system.electrostatics.solver = p3m
     system.integrator.run(0)

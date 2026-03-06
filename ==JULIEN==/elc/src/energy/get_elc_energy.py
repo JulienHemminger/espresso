@@ -5,7 +5,7 @@ import numpy as np
 
 def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     p3m = espressomd.electrostatics.P3M(
-        prefactor=prefactor, accuracy=pw_error, check_neutrality=False
+        prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
     )
 
     lx, ly, lz = system.box_l
