@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from elc.src.common.get_positions import get_rdm_constrained_points_np
+from elc.src.common.has_downward_trend import has_downward_trend
 from elc.src.forces.get_elc_forces import get_elc_forces_contribs
 from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
 
@@ -53,7 +54,7 @@ def run_accuracy_convergence(
         contrib_data["ELC Reciprocal"].append(pref * np.linalg.norm(f_elc_recip[i]))
 
     # --- Assertions ---
-    # assert has_downward_trend(elc_errors)
+    assert has_downward_trend(elc_errors)
 
     if show_convergence_plot:
         fig, ax1 = plt.subplots(figsize=(10, 7))
