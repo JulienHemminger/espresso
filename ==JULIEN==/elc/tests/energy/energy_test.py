@@ -3,7 +3,6 @@ import espressomd.electrostatics
 from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
-from elc.tests.energy.accuracy_convergence_utils import run_accuracy_convergence
 
 
 def run_basic(
@@ -37,19 +36,23 @@ def test_all():
     system = espressomd.System(box_l=[10, 10, 3])
     system.time_step = 0.01
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=1.0, charges=[+1, -1])  # PASS
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=1.0, charges=[+1, -1])  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1]) # PASS
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1]) # PASSED
 
-    """MAYBE IN BETWEEN
-    run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1])
-    
-    run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9])
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1]) # PASSED
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9])  # PASSED
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])  # PASSED
+
     """
-
+    system.part.clear()
+    system.box_l = [7, 12, 2]
     run_accuracy_convergence(
         system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3]
     )  # PASS
+    """
 
     """
     # varying prefactor
