@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from elc.src.common.get_positions import get_rdm_constrained_points
+from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy_contribs
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 
@@ -18,15 +18,19 @@ def run_accuracy_convergence(
     title = "Energy Accuracy Convergence"
 
     lx, ly, lz = system.box_l
-    pos1, pos2 = get_rdm_constrained_points(lx, ly, lz - gap_size - 1e-3)
+
+    particle_count = len(charges)
+    positions = get_rdm_constrained_points_np(
+        lx, ly, lz - gap_size - 1e-3, particle_count
+    )
 
     elc_errors = []
     contrib_data = {"P3M (3D)": [], "Yeh-Berkowitz": [], "ELC Reciprocal": []}
 
     for pw_err in pw_errors:
         system.part.clear()
-        system.part.add(pos=pos1, q=charges[0])
-        system.part.add(pos=pos2, q=charges[1])
+        for i in range(particle_count):
+            system.part.add(pos=positions[i], q=charges[i])
 
         ana_energy = get_ewald_energy_2d(system, n_max=100, prefactor=prefactor)
 

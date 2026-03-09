@@ -37,13 +37,19 @@ def test_all():
     system = espressomd.System(box_l=[10, 10, 3])
     system.time_step = 0.01
 
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=1.0, charges=[+1, -1])  # PASS
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1]) # PASS
+
+    """MAYBE IN BETWEEN
+    run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1])
+    
+    run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9])
+    """
+
     run_accuracy_convergence(
-        system, prefactor=1.7, gap_size=1.0, charges=[+1, -1]
-    )  # ERROR
-
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1])
-
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])
+        system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3]
+    )  # PASS
 
     """
     # varying prefactor
