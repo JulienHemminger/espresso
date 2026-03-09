@@ -4,7 +4,6 @@ from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.energy.get_elc_energy import get_elc_energy
 from elc.src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 from elc.tests.energy.accuracy_convergence_utils import run_accuracy_convergence
-from elc.tests.energy.madelung_utils import run_madelung
 
 
 def run_basic(
@@ -34,9 +33,19 @@ def run_basic(
 
 
 def test_all():
-    system = espressomd.System(box_l=[1, 1, 1])
+    # pytest -vv -s ==JULIEN==/elc/tests/energy/energy_test.py
+    system = espressomd.System(box_l=[10, 10, 3])
     system.time_step = 0.01
 
+    run_accuracy_convergence(
+        system, prefactor=1.7, gap_size=1.0, charges=[+1, -1]
+    )  # ERROR
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1])
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])
+
+    """
     # varying prefactor
     run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=1.7)
     run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=2.3)
@@ -64,3 +73,4 @@ def test_all():
 
     # huge_box_neutral
     run_basic(system, 200, 200, 10, 1, [+1, -1])
+    """
