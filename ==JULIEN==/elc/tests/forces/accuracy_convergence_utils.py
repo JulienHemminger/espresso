@@ -7,67 +7,63 @@ from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
 
 def run_accuracy_convergence(
     system,
-    show_convergence_plot=True,
     prefactor=1.0,
     gap_size=1.0,
     charges=[+1.0, -1.0],
+    show_convergence_plot=True,
+    *args,
+    **kwargs,
 ):
-    # Setup parameters
+    # Setup parameters based on system type
     pw_errors = np.logspace(-4, -8, num=5)
-
     title = "Force Accuracy Convergence"
 
     lx, ly, lz = system.box_l
     particle_count = len(charges)
+    positions = get_rdm_constrained_points_np(
+        lx, ly, lz - gap_size - 1e-3, particle_count
+    )
 
     elc_errors = []
     contrib_data = {"P3M (3D)": [], "Yeh-Berkowitz": [], "ELC Reciprocal": []}
 
     for pw_err in pw_errors:
         system.part.clear()
-
-        positions = get_rdm_constrained_points_np(lx, ly, lz, particle_count)
         for i in range(particle_count):
             system.part.add(pos=positions[i], q=charges[i])
 
-        # Reference force from 2D Ewald
         ana_forces = get_ewald_forces_2d(system, n_max=100, prefactor=prefactor)
 
-        # ELC force components
         pref, f_3d, f_elc_recip, f_corr_moments = get_elc_forces_contribs(
-            system, gap_size=gap_size, pw_err=pw_err, prefactor=prefactor
+            system, gap_size, pw_err, prefactor
         )
 
-        # Final force calculation
-        f_final = f_3d + pref * (f_elc_recip + f_corr_moments)
+        f_final = list(f_3d + pref * (f_elc_recip + f_corr_moments))
 
-        # --- Error calculation using Z-component only ---
-        i = 0  # Focus on the first particle
-        fz_numeric = np.linalg.norm(f_final[i])
-        fz_analytic = np.linalg.norm(ana_forces[i])
+        i = 0  # choose a random particle
+        elc_errors.append(
+            abs(
+                np.linalg.norm(f_final[i] - ana_forces[i])
+                / np.linalg.norm(ana_forces[i])
+            )
+        )  # Vector L2 Relative Error
 
-        # Scalar relative error for the Z component
-        rel_err_z = abs((fz_numeric - fz_analytic) / fz_analytic)
-        elc_errors.append(rel_err_z)
-
-        # Contribution data (using Z-component magnitude)
         contrib_data["P3M (3D)"].append(np.linalg.norm(f_3d[i]))
-        contrib_data["Yeh-Berkowitz"].append(np.linalg.norm(pref * f_corr_moments[i]))
-        contrib_data["ELC Reciprocal"].append(np.linalg.norm(pref * f_elc_recip[i]))
+        contrib_data["Yeh-Berkowitz"].append(pref * np.linalg.norm(f_corr_moments[i]))
+        contrib_data["ELC Reciprocal"].append(pref * np.linalg.norm(f_elc_recip[i]))
 
     # --- Assertions ---
-    """
-    assert has_downward_trend(elc_errors), (
-        "Error did not decrease with requested accuracy!"
-    )"""
+    # assert has_downward_trend(elc_errors)
 
     if show_convergence_plot:
         fig, ax1 = plt.subplots(figsize=(10, 7))
         ax2 = ax1.twinx()
+
         colors = ["#1abc9c", "#f1c40f", "#9b59b6"]
         bottoms = np.zeros(len(pw_errors))
         bar_width = 0.2 * np.array(pw_errors)
 
+        # 1. Secondary Axis: Energy Contributions (Stacked Bars)
         for i, (label, vals) in enumerate(contrib_data.items()):
             ax2.bar(
                 pw_errors,
@@ -81,29 +77,35 @@ def run_accuracy_convergence(
             )
             bottoms += np.array(vals)
 
+        # 2. Primary Axis: Errors (Lines)
         ax1.loglog(
             pw_errors,
             elc_errors,
             "o-",
-            label="ELC Error (Z)",
+            label="ELC Error",
             color="#2980b9",
+            linewidth=2,
             zorder=5,
         )
-        ax1.loglog(pw_errors, pw_errors, "k:", alpha=0.5, label="Target Accuracy")
 
-        # --- Legend Logic ---
-        # Collect handles and labels from both axes
-        lines, labels = ax1.get_legend_handles_labels()
-        bars, bar_labels = ax2.get_legend_handles_labels()
+        ax1.loglog(pw_errors, pw_errors, "k:", alpha=0.5, label="Target Accuracy (1:1)")
 
-        # Combine them and create a single legend on ax1 (or ax2)
-        ax1.legend(lines + bars, labels + bar_labels, loc="upper left", frameon=True)
-
+        # Formatting
         ax1.set_xlabel("Requested Accuracy (pw_error)")
-        ax1.set_ylabel("Measured Rel. Error in $F_z$", color="#2980b9")
-        ax2.set_ylabel("Force Component Value ($|F_z|$)", color="#7f8c8d")
+        ax1.set_ylabel("Measured Error (Log Scale)", color="#2980b9")
+        ax2.set_ylabel("Force Component Value (Linear Scale)", color="#7f8c8d")
         plt.title(title)
 
+        lines, labels = ax1.get_legend_handles_labels()
+        bars, bar_labels = ax2.get_legend_handles_labels()
+        ax1.legend(
+            lines + bars,
+            labels + bar_labels,
+            loc="upper left",
+            bbox_to_anchor=(1.15, 1),
+        )
+
+        ax1.grid(True, which="both", ls="-", alpha=0.2)
         ax1.invert_xaxis()
         fig.tight_layout()
         plt.show()

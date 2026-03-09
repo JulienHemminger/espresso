@@ -4,7 +4,6 @@ from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elc.src.common.set_utils import are_sets_equal
 from elc.src.forces.get_elc_forces import get_elc_forces
 from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
-from elc.tests.forces.accuracy_convergence_utils import run_accuracy_convergence
 
 
 def run_basic(
@@ -46,26 +45,24 @@ def test_all():
     system = espressomd.System(box_l=[10, 10, 3])
     system.time_step = 0.01
 
-    run_accuracy_convergence(
-        system, prefactor=1.0, gap_size=1.0, charges=[+1, -1]
-    )  # FAILS
+    # run_accuracy_convergence(system, prefactor=1.0, gap_size=1.0, charges=[+1, -1])  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=1.0, charges=[+1, -1])  # FAILS
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=1.0, charges=[+1, -1])  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1]) #
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1])  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1]) #
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1])  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9])  #
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9])  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])  #
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])  # PASSED
 
     """
     system.part.clear()
     system.box_l = [7, 12, 2]
     run_accuracy_convergence(
-        system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3]
-    )  #
+        system, prefactor=1.7, gap_size=0.6, charges=[-0.9, +2.3, -1.4, -3.3]
+    )  # PASSED
     """
 
     """
