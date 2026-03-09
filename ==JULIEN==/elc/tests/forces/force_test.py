@@ -5,7 +5,6 @@ from elc.src.common.set_utils import are_sets_equal
 from elc.src.forces.get_elc_forces import get_elc_forces
 from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
 from elc.tests.forces.accuracy_convergence_utils import run_accuracy_convergence
-from elc.tests.forces.madelung_utils import run_madelung
 
 
 def run_basic(
@@ -43,13 +42,29 @@ def run_basic(
 
 
 def test_all():
-    system = espressomd.System(box_l=[10, 10, 10])
+    # pytest -vv -s ==JULIEN==/elc/tests/forces/force_test.py
+    system = espressomd.System(box_l=[10, 10, 3])
     system.time_step = 0.01
 
-    # small_box_neutral_dipole
-    run_basic(system, 10, 10, 3, 1, [+1, -1])
+    run_accuracy_convergence(
+        system, prefactor=1.7, gap_size=1.0, charges=[+1, -1]
+    )  # ERROR
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1])
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])
+
+    """FAILS
+    system.part.clear()
+    system.box_l = [12, 8, 7]
+    run_accuracy_convergence(
+        system, prefactor=2.3, gap_size=0.4, charges=[-0.9, +2.3, -1.4, -3.3]
+    )"""
 
     """
+    # small_box_neutral_dipole
+    run_basic(system, 10, 10, 3, 1, [+1, -1])
+    
     # small_box_neutral_tripole
     run_basic(system, 10, 10, 3, 1, [+2, -1, -1])
 
@@ -58,7 +73,6 @@ def test_all():
 
     run_madelung(system, ions_per_axis=8)
 
-    run_accuracy_convergence(system, False)
 
     # huge_box_neutral
     run_basic(system, 200, 200, 10, 1, [+1, -1])

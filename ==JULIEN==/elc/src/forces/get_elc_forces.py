@@ -3,7 +3,7 @@ import espressomd.electrostatics
 import numpy as np
 
 
-def get_elc_forces_contribs(system, gap_size=1.0, pw_err=1e-6):
+def get_elc_forces_contribs(system, gap_size=1.0, pw_err=1e-6, prefactor=1.0):
     lx, ly, lz = system.box_l
     particles = system.part.all()
     n_part = len(particles)
@@ -14,13 +14,12 @@ def get_elc_forces_contribs(system, gap_size=1.0, pw_err=1e-6):
     # 1. 3D Periodic Forces from P3M
     # Note: check_neutrality=False is required for systems where sum(q) != 0
     p3m = espressomd.electrostatics.P3M(
-        prefactor=1.0, accuracy=pw_err, check_neutrality=False, verbose=False
+        prefactor=prefactor, accuracy=pw_err, check_neutrality=False, verbose=False
     )
     system.electrostatics.solver = p3m
     system.integrator.run(0)
 
     f_3d = np.array([p.f for p in particles])
-    prefactor = p3m.prefactor
 
     # 2. Moments calculation
     xi0 = np.sum(qs)  # Net charge
@@ -114,9 +113,9 @@ def get_elc_forces_contribs(system, gap_size=1.0, pw_err=1e-6):
     return (prefactor, f_3d, f_elc_recip, f_corr_moments)
 
 
-def get_elc_forces(system, gap_size=1.0, pw_err=1e-6):
+def get_elc_forces(system, gap_size=1.0, pw_err=1e-6, prefactor=1.0):
     prefactor, f_3d, f_elc_recip, f_corr_moments = get_elc_forces_contribs(
-        system, gap_size, pw_err
+        system, gap_size, pw_err, prefactor
     )
 
     # Total Force Assembly
