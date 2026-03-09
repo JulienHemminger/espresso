@@ -47,19 +47,26 @@ def test_all():
     system.time_step = 0.01
 
     run_accuracy_convergence(
-        system, prefactor=1.7, gap_size=1.0, charges=[+1, -1]
-    )  # ERROR
+        system, prefactor=1.0, gap_size=1.0, charges=[+1, -1]
+    )  # FAILS
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1])
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=1.0, charges=[+1, -1])  # FAILS
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1]) #
 
-    """FAILS
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1]) #
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9])  #
+
+    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])  #
+
+    """
     system.part.clear()
-    system.box_l = [12, 8, 7]
+    system.box_l = [7, 12, 2]
     run_accuracy_convergence(
-        system, prefactor=2.3, gap_size=0.4, charges=[-0.9, +2.3, -1.4, -3.3]
-    )"""
+        system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3]
+    )  #
+    """
 
     """
     # small_box_neutral_dipole

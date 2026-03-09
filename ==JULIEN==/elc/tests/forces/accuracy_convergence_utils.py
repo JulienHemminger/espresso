@@ -15,7 +15,7 @@ def run_accuracy_convergence(
     # Setup parameters
     pw_errors = np.logspace(-4, -8, num=5)
 
-    title = "Force Accuracy Convergence (Z-component only) "
+    title = "Force Accuracy Convergence"
 
     lx, ly, lz = system.box_l
     particle_count = len(charges)
@@ -44,16 +44,16 @@ def run_accuracy_convergence(
         # --- Error calculation using Z-component only ---
         i = 0  # Focus on the first particle
         fz_numeric = np.linalg.norm(f_final[i])
-        fz_analytic = np.linalg.norm(ana_forces[i][2])
+        fz_analytic = np.linalg.norm(ana_forces[i])
 
         # Scalar relative error for the Z component
         rel_err_z = abs((fz_numeric - fz_analytic) / fz_analytic)
         elc_errors.append(rel_err_z)
 
         # Contribution data (using Z-component magnitude)
-        contrib_data["P3M (3D)"].append(abs(f_3d[i][2]))
-        contrib_data["Yeh-Berkowitz"].append(abs(pref * f_corr_moments[i][2]))
-        contrib_data["ELC Reciprocal"].append(abs(pref * f_elc_recip[i][2]))
+        contrib_data["P3M (3D)"].append(np.linalg.norm(f_3d[i]))
+        contrib_data["Yeh-Berkowitz"].append(np.linalg.norm(pref * f_corr_moments[i]))
+        contrib_data["ELC Reciprocal"].append(np.linalg.norm(pref * f_elc_recip[i]))
 
     # --- Assertions ---
     """
