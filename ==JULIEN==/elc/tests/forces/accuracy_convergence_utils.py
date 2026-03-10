@@ -12,8 +12,6 @@ def run_accuracy_convergence(
     gap_size=1.0,
     charges=[+1.0, -1.0],
     show_convergence_plot=True,
-    *args,
-    **kwargs,
 ):
     # Setup parameters based on system type
     pw_errors = np.logspace(-4, -8, num=5)
