@@ -1,88 +1,82 @@
-"""Tyagi_JCP_129.pdf
-
-* system
-    * lz=1, lx=ly=4, 10, 40
-    * q=+1 at (0, 0, 1/4)
-    * q=-1 at (0, 0, 3/4)
-    * dielectic interfaces
-        * at z = 0 and z = 1
-        * eps_top=eps_bottom=eps_outside
-        * eps_middle=1
-
-
-
-
-* analytical solution
-    * Coulomb’s law for an infinite open system and summing over the image charges,
-    * f z = 41 +  k=0 − k 1 + 2k2 ,
-        * where  = m − outside / m + outside
-    * axpprox using cutoff simulation
-
-
-* numerical solution
-    * P3M, ELC of ESpresso
-
-
-* measure F_z of q=+1 particle
-"""
-
-import espressomd.electrostatic_extensions
+import espressomd
 import espressomd.electrostatics
 import numpy as np
 
-pw_error = 1e-6
-prefactor = 1.0
+# --- Configuration & Constants ---
+BOX_L = 200.0
+HALF_BOX_L = BOX_L / 2.0
+GAP_SIZE = 75.0
+ACCURACY = 1e-7
+PREFACTOR = 2.0
 
-system = espressomd.System(box_l=[10, 10, 3])
-system.time_step = 0.01
+# Fixed Positions
+P1_POS_Z = 10.0  # z-position of the first particle
+R_P1_P2 = 1.0  # Vertical distance between particles
 
-p3m = espressomd.electrostatics.P3M(
-    prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
-)
-n_icc = 10
-icc = espressomd.electrostatic_extensions.ICC(
-    n_icc=n_icc,
-    areas=np.zeros(n_icc),
-    epsilons=np.zeros(n_icc),
-    normals=np.full((n_icc, 3), [1, 0, 0]),
-)
+# Dielectric contrast
+DELTA_MID_TOP = 0.0
+DELTA_MID_BOT = 39.0 / 41.0
 
 
-# Set the ICC line density and calculate the number of
-# ICC particles according to the box size
-box_l = 9.0
-system.box_l = [box_l, box_l, 12.0]
-nicc = 3  # linear density
-nicc_per_electrode = nicc**2  # surface density
-nicc_tot = 2 * nicc_per_electrode
-iccArea = box_l**2 / nicc_per_electrode
-L = box_l / nicc
+def setup_system():
+    """Initializes the ESPResSo system with two fixed particles."""
+    system = espressomd.System(box_l=[BOX_L, BOX_L, BOX_L + GAP_SIZE])
+    system.time_step = 0.01
+    system.cell_system.set_regular_decomposition(use_verlet_lists=True)
 
-# Lists to collect required parameters
-iccNormals = []
-iccAreas = []
-iccSigmas = []
-iccEpsilons = []
+    # Add particles with q1=+1 and q2=-1 at fixed z-positions
+    system.part.add(pos=[HALF_BOX_L, HALF_BOX_L, P1_POS_Z], q=1.0)
+    system.part.add(pos=[HALF_BOX_L, HALF_BOX_L, P1_POS_Z + R_P1_P2], q=-1.0)
 
-# Add the fixed ICC particles:
-icc_type = 0
-# Left electrode (normal [0, 0, 1])
-for xi in range(nicc):
-    for yi in range(nicc):
-        system.part.add(
-            pos=[L * xi, L * yi, 0.0], q=-0.0001, type=icc_type, fix=[True, True, True]
-        )
-iccNormals.extend([[0.0, 0.0, 1.0]] * nicc_per_electrode)
+    p3m = espressomd.electrostatics.P3M(prefactor=PREFACTOR, accuracy=ACCURACY)
+    elc = espressomd.electrostatics.ELC(
+        actor=p3m,
+        gap_size=GAP_SIZE,
+        maxPWerror=ACCURACY,
+        delta_mid_bot=DELTA_MID_BOT,
+        delta_mid_top=DELTA_MID_TOP,
+    )
+    system.electrostatics.solver = elc
+    return system
 
-# Right electrode (normal [0, 0, -1])
-for xi in range(nicc):
-    for yi in range(nicc):
-        system.part.add(
-            pos=[L * xi, L * yi, box_l], q=0.0001, type=icc_type, fix=[True, True, True]
-        )
-iccNormals.extend([[0.0, 0.0, -1.0]] * nicc_per_electrode)
 
-# Common area, sigma and metallic epsilon
-iccAreas.extend([iccArea] * nicc_tot)
-iccSigmas.extend([0.0] * nicc_tot)
-iccEpsilons.extend([100000.0] * nicc_tot)
+def calculate_analytic(z, dist):
+    """Calculates analytic force and energy for q=1 at a specific z."""
+    # Based on image charge method for a dipole near a dielectric interface
+    # F = q^2 * prefactor * (1/d^2 + delta * (1/(2z)^2 - 1/(2z+d)^2))
+    force = PREFACTOR * (
+        1 / dist**2 + DELTA_MID_BOT * (1 / (2 * z) ** 2 - 1 / (2 * z + dist) ** 2)
+    )
+
+    energy = PREFACTOR * (
+        -1 / dist
+        + DELTA_MID_BOT * (1 / (4 * z) - 1 / (2 * z + dist) + 1 / (4 * (z + dist)))
+    )
+    return force, energy
+
+
+if __name__ == "__main__":
+    system = setup_system()
+    system.integrator.run(0)  # Update forces
+
+    # Get Simulation results
+    p1 = system.part.by_id(0)
+    elc_force = p1.f[2]
+    elc_energy = system.analysis.energy()["total"]
+
+    # Get Analytic results
+    ana_force, ana_energy = calculate_analytic(P1_POS_Z, R_P1_P2)
+
+    # Output results
+    print(f"--- Comparison at z={P1_POS_Z} ---")
+    print(
+        f"Force  | ELC: {elc_force:10.7f} | Analytic: {ana_force:10.7f} | Diff: {elc_force - ana_force:.2e}"
+    )
+    print(
+        f"Energy | ELC: {elc_energy:10.7f} | Analytic: {ana_energy:10.7f} | Diff: {elc_energy - ana_energy:.2e}"
+    )
+
+    # Final Validation
+    np.testing.assert_allclose(elc_force, ana_force, atol=1e-4)
+    np.testing.assert_allclose(elc_energy, ana_energy, atol=1e-4)
+    print("\nVerification successful.")

@@ -4,7 +4,7 @@ import numpy as np
 
 # --- Configuration & Constants ---
 BOX_L = 200.0
-ELC_GAP = 75.0
+GAP_SIZE = 75.0
 ACCURACY = 1e-7
 PREFACTOR = 2.0
 
@@ -20,7 +20,7 @@ DELTA_MID_BOT = 39.0 / 41.0
 
 def setup_system():
     """Initializes the ESPResSo system with two fixed particles."""
-    system = espressomd.System(box_l=[BOX_L, BOX_L, BOX_L + ELC_GAP])
+    system = espressomd.System(box_l=[BOX_L, BOX_L, BOX_L + GAP_SIZE])
     system.time_step = 0.01
     system.cell_system.set_regular_decomposition(use_verlet_lists=True)
 
@@ -28,17 +28,14 @@ def setup_system():
     system.part.add(pos=[CENTER, CENTER, Z_POS], q=1.0)
     system.part.add(pos=[CENTER, CENTER, Z_POS + DISTANCE], q=-1.0)
 
-    p3m = espressomd.electrostatics.P3M(
-        prefactor=PREFACTOR, accuracy=ACCURACY, mesh=[58, 58, 70], cao=4, gpu=False
-    )
+    p3m = espressomd.electrostatics.P3M(prefactor=PREFACTOR, accuracy=ACCURACY)
     elc = espressomd.electrostatics.ELC(
         actor=p3m,
-        gap_size=ELC_GAP,
+        gap_size=GAP_SIZE,
         maxPWerror=ACCURACY,
         delta_mid_bot=DELTA_MID_BOT,
         delta_mid_top=DELTA_MID_TOP,
     )
-
     system.electrostatics.solver = elc
     return system
 
