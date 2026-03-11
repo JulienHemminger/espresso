@@ -3,21 +3,7 @@ import espressomd.electrostatics
 import numpy as np
 
 
-def get_elcic_energy_contribs(
-    gap_size, pw_error, system, prefactor, delta_mid_bot, delta_mid_top
-):
-    p3m = espressomd.electrostatics.P3M(
-        prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
-    )
-
-    lx, ly, lz = system.box_l
-    parts = system.part.all()
-    qs, (xs, ys, zs) = parts.q, parts.pos.T
-
-    # 1. 3D Periodic Energy from P3M
-    system.electrostatics.solver = p3m
-    e_3d = system.analysis.energy()["total"]
-
+def _get_e_non_neutral_corr(lx, ly, lz, zs, qs):
     # 2. Charge Moments
     xi0 = np.sum(qs)
     xi1 = np.sum(qs * zs)
@@ -28,8 +14,10 @@ def get_elcic_energy_contribs(
     fac = 2.0 * np.pi / volume
 
     # correction for non-neutral systems:
-    e_non_neutral_corr = fac * (xi1**2 - xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
+    return fac * (xi1**2 - xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
 
+
+def _get_e_recip(lx, ly, lz, xs, ys, zs, qs, pw_error, gap_size):
     # 4. Reciprocal Space ELC Term
     f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
     p_max = int(np.ceil(f_max * lx))
@@ -65,7 +53,26 @@ def get_elcic_energy_contribs(
 
     # The reciprocal energy correction
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
-    e_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
+    return -np.sum((1.0 / (lx * ly * f)) * rep * chi)
+
+
+def get_elcic_energy_contribs(
+    gap_size, pw_error, system, prefactor, delta_mid_bot, delta_mid_top
+):
+    p3m = espressomd.electrostatics.P3M(
+        prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
+    )
+    lx, ly, lz = system.box_l
+    parts = system.part.all()
+    qs, (xs, ys, zs) = parts.q, parts.pos.T
+
+    # 1. 3D Periodic Energy from P3M
+    system.electrostatics.solver = p3m
+    e_3d = system.analysis.energy()["total"]
+
+    e_non_neutral_corr = _get_e_non_neutral_corr(lx, ly, lz, zs, qs)
+
+    e_recip = _get_e_recip(lx, ly, lz, xs, ys, zs, qs, pw_error, gap_size)
 
     return (float(prefactor), float(e_recip), float(e_3d), float(e_non_neutral_corr))
 
