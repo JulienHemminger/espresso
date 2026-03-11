@@ -71,7 +71,6 @@ def run_test(
     )
 
     # Legacy ELC
-    """
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor, accuracy=accuracy, check_neutrality=False
     )
@@ -83,12 +82,14 @@ def run_test(
         delta_mid_top=delta_mid_top,
         neutralize=False,
         check_neutrality=False,
+        const_pot=True,
     )
     system.electrostatics.solver = elc
     system.integrator.run(0)  # Update forces
     p1 = system.part.by_id(0)
     elc_force = p1.f[2]
-    """
+    elc_energy = system.analysis.energy()["total"]
+
     elc_energy = get_elcic_energy(
         system,
         gap_size,
@@ -97,7 +98,6 @@ def run_test(
         delta_mid_bot=delta_mid_bot,
         delta_mid_top=delta_mid_top,
     )
-    elc_force = 0
 
     # Get Analytic results
     ana_force, ana_energy = calculate_analytic(
@@ -131,13 +131,39 @@ if __name__ == "__main__":
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
     }
+    # SINGLE PLATE
     # run_test(**params)  # neutral, metallic, PASS
 
     params["delta_mid_bot"] = 0.9
     # run_test(**params)  # neutral, non-metallic, PASS
 
     params["charges"] = [+1.2, -0.7]
-    run_test(**params)  # non-neutral, non-metallic, FAIL - legacy elc doesnt work
+    # run_test(**params)  # non-neutral, non-metallic, FAIL - legacy elc doesnt work
 
     params["delta_mid_bot"] = -1.0
     # run_test(**params)  # non-neutral, metallic, FAIL - legacy elc doesnt work
+
+    # DOUBLE PLATES
+    params["charges"] = [+1, -1]
+    params["delta_mid_top"] = -1.0
+    params["delta_mid_bot"] = -1.0
+    # run_test(**params)  # neutral, both metallic, ??
+
+    params["delta_mid_top"] = 0.7
+    params["delta_mid_bot"] = 0.7
+    # run_test(**params)  # neutral, both non-metallic, ??
+
+    params["delta_mid_bot"] = -1.0
+    # run_test(**params)  # neutral, mixed metallic + non-metallic, ??
+
+    params["charges"] = [+1.2, -0.7]
+    params["delta_mid_top"] = -1.0
+    params["delta_mid_bot"] = -1.0
+    # run_test(**params)  # non-neutral, both metallic, ?? - legacy elc doesnt work
+
+    params["delta_mid_top"] = 0.7
+    params["delta_mid_bot"] = 0.7
+    # run_test(**params)  # non-neutral, both non-metallic, ?? - legacy elc doesnt work
+
+    params["delta_mid_bot"] = -1.0
+    # run_test(**params)  # non-neutral, mixed metallic + non-metallic, ?? - legacy elc doesnt work
