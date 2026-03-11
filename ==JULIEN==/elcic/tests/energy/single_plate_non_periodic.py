@@ -71,7 +71,7 @@ def run_test(
     )
 
     # Legacy ELC
-
+    """
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor, accuracy=accuracy, check_neutrality=False
     )
@@ -88,7 +88,7 @@ def run_test(
     system.integrator.run(0)  # Update forces
     p1 = system.part.by_id(0)
     elc_force = p1.f[2]
-
+    """
     elc_energy = get_elcic_energy(
         system,
         gap_size,
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     # run_test(**params)  # neutral, non-metallic, PASS
 
     params["charges"] = [+1.2, -0.7]
-    # run_test(**params)  # non-neutral, non-metallic, FAIL - legacy elc doesnt work
+    run_test(**params)  # non-neutral, non-metallic, FAIL - legacy elc doesnt work
 
     params["delta_mid_bot"] = -1.0
     # run_test(**params)  # non-neutral, metallic, FAIL - legacy elc doesnt work
