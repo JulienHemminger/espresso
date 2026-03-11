@@ -1,6 +1,7 @@
 import espressomd
 import espressomd.electrostatics
 import numpy as np
+from elcic.src.energy.get_elcic_energy import get_elcic_energy
 
 # --- Configuration & Constants ---
 BOX_L = 200.0
@@ -15,7 +16,7 @@ R_P1_P2 = 1.0  # Vertical distance between particles
 
 # Dielectric contrast
 DELTA_MID_TOP = 0.0
-DELTA_MID_BOT = 39.0 / 41.0
+DELTA_MID_BOT = -1.0  # 39.0 / 41.0
 
 
 def setup_system():
@@ -62,7 +63,16 @@ if __name__ == "__main__":
     # Get Simulation results
     p1 = system.part.by_id(0)
     elc_force = p1.f[2]
-    elc_energy = system.analysis.energy()["total"]
+    # elc_energy = system.analysis.energy()["total"]
+
+    elc_energy = get_elcic_energy(
+        system,
+        GAP_SIZE,
+        ACCURACY,
+        PREFACTOR,
+        delta_mid_bot=DELTA_MID_BOT,
+        delta_mid_top=DELTA_MID_TOP,
+    )
 
     # Get Analytic results
     ana_force, ana_energy = calculate_analytic(P1_POS_Z, R_P1_P2)
