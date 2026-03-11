@@ -160,7 +160,7 @@ if __name__ == "__main__":
     params["charges"] = [+1.2, -0.7]
     params["delta_mid_top"] = -1.0
     params["delta_mid_bot"] = -1.0
-    # run_test(**params)  # non-neutral, both metallic, FAIL - legacy elc doesnt work
+    run_test(**params)  # non-neutral, both metallic, FAIL - legacy elc doesnt work
 
     params["delta_mid_top"] = 0.7
     params["delta_mid_bot"] = 0.7

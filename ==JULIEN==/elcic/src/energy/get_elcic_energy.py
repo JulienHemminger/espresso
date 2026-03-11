@@ -73,6 +73,9 @@ def _get_e_far_field(lx, ly, lz, gap_size, pw_error, qs, xs, ys, zs, db, dt):
     e_far = -np.sum(
         (1.0 / (lx * ly * f)) * sum(chi0_m[i] * chi_m2_p[i] for i in range(4))
     )
+    e_far += -np.sum(
+        (1.0 / (lx * ly * f)) * sum(chi0_p[i] * chi_p2_m[i] for i in range(4))
+    )
     # (Repeat similarly for chi_p2_m and add to e_far)
     return e_far
 
