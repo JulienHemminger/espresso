@@ -28,13 +28,16 @@ def setup_system():
     system.part.add(pos=[CENTER, CENTER, Z_POS], q=1.0)
     system.part.add(pos=[CENTER, CENTER, Z_POS + DISTANCE], q=-1.0)
 
-    p3m = espressomd.electrostatics.P3M(prefactor=PREFACTOR, accuracy=ACCURACY)
+    p3m = espressomd.electrostatics.P3M(
+        prefactor=PREFACTOR, accuracy=ACCURACY, check_neutrality=False
+    )
     elc = espressomd.electrostatics.ELC(
         actor=p3m,
         gap_size=GAP_SIZE,
         maxPWerror=ACCURACY,
         delta_mid_bot=DELTA_MID_BOT,
         delta_mid_top=DELTA_MID_TOP,
+        neutralize=False,
     )
     system.electrostatics.solver = elc
     return system
