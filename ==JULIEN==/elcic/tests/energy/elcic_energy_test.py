@@ -8,30 +8,57 @@ from elcic.src.energy.get_elcic_energy import get_elcic_energy_contribs
 
 @pytest.fixture(scope="module")
 def system():
-    """Initializes the ESPResSo system singleton once for the session."""
+    """Initializes the ESPResSo system singleton."""
     return espressomd.System(box_l=[1.0, 1.0, 1.0])
 
 
-def setup_system(system, box_l, gap_size, p1_pos_z, r_p1_p2, charges=[+1, -1]):
-    """Resets and reconfigures the existing ESPResSo system."""
+def setup_system_random(system, box_l, gap_size, min_distance, charges=[+1, -1]):
+    """Resets system and places two particles at a fixed distance in random positions."""
     system.part.clear()
     system.electrostatics.clear()
 
-    system.box_l = [box_l, box_l, box_l + gap_size]
+    # The actual Z-boundary including gap
+    full_box_z = box_l + gap_size
+    system.box_l = [box_l, box_l, full_box_z]
     system.time_step = 0.01
     system.cell_system.set_regular_decomposition(use_verlet_lists=True)
 
-    half_box_l = box_l / 2.0
-    system.part.add(pos=[half_box_l, half_box_l, p1_pos_z], q=charges[0])
-    system.part.add(pos=[half_box_l, half_box_l, p1_pos_z + r_p1_p2], q=charges[1])
-    return system
+    # 1. Generate random position for Particle 1 (p1)
+    # We leave a buffer of 'min_distance' to ensure p2 doesn't go out of bounds
+    p1_pos = np.random.uniform(low=min_distance, high=box_l - min_distance, size=3)
+
+    # 2. Generate a random unit vector for direction
+    phi = np.random.uniform(0, 2 * np.pi)
+    costheta = np.random.uniform(-1, 1)
+    theta = np.arccos(costheta)
+
+    dx = min_distance * np.sin(theta) * np.cos(phi)
+    dy = min_distance * np.sin(theta) * np.sin(phi)
+    dz = min_distance * np.cos(theta)
+
+    p2_pos = p1_pos + np.array([dx, dy, dz])
+
+    # Add particles
+    system.part.add(pos=p1_pos, q=charges[0])
+    system.part.add(pos=p2_pos, q=charges[1])
+
+    return system, p1_pos, p2_pos
 
 
-def calculate_analytic(z, dist, prefactor, delta_mid_bot):
-    """Calculates analytic energy for q=1 at a specific z."""
+def calculate_analytic(p1_pos, p2_pos, prefactor, delta_mid_bot):
+    """Calculates analytic energy for q=1 based on particle positions."""
+    # Vertical distance (dist) and height above bottom (z)
+    dist = np.linalg.norm(p1_pos - p2_pos)
+    z1 = p1_pos[2]
+    z2 = p2_pos[2]
+
+    # Using the existing formula logic relative to the lower particle (z_min)
+    z_min = min(z1, z2)
+
     energy = prefactor * (
         -1 / dist
-        + delta_mid_bot * (1 / (4 * z) - 1 / (2 * z + dist) + 1 / (4 * (z + dist)))
+        + delta_mid_bot
+        * (1 / (4 * z_min) - 1 / (2 * z_min + dist) + 1 / (4 * (z_min + dist)))
     )
     return energy
 
@@ -41,51 +68,33 @@ def run(
     box_l,
     gap_size,
     prefactor,
-    p1_pos_z,
-    r_p1_p2,
+    min_distance,  # Replaced p1_pos_z and r_p1_p2
     delta_mid_top,
     delta_mid_bot,
     charges=[+1, -1],
 ):
-    """LEGACY ELC
-    p3m = espressomd.electrostatics.P3M(
-        prefactor=prefactor, accuracy=acc, check_neutrality=False
-    )
-    elc = espressomd.electrostatics.ELC(
-        actor=p3m,
-        gap_size=gap_size,
-        maxPWerror=acc,
-        delta_mid_bot=delta_mid_bot,
-        delta_mid_top=delta_mid_top,
-        neutralize=False,
-    )
-    system.electrostatics.solver = elc
-    elc_total = system.analysis.energy()["total"]
-    """
     accuracies = [1e-5, 1e-6, 1e-7, 1e-8]
     errors = []
-
-    # New regrouped storage
     comp_data = {"Total e_3d": [], "Total e_corr": [], "e_far": []}
 
-    ana_energy = calculate_analytic(p1_pos_z, r_p1_p2, prefactor, delta_mid_bot)
+    # Setup system once to get the random positions for this 'run'
+    system, p1_pos, p2_pos = setup_system_random(
+        system, box_l, gap_size, min_distance, charges
+    )
+
+    # Calculate analytic energy based on the generated positions
+    ana_energy = calculate_analytic(p1_pos, p2_pos, prefactor, delta_mid_bot)
 
     for acc in accuracies:
-        setup_system(
-            system,
-            box_l,
-            gap_size,
-            p1_pos_z,
-            r_p1_p2,
-            charges,
-        )
+        # Re-apply setup for each accuracy (keeping positions consistent for this run)
+        system.part.clear()
+        system.part.add(pos=p1_pos, q=charges[0])
+        system.part.add(pos=p2_pos, q=charges[1])
 
-        # Get detailed contributions
         contribs = get_elcic_energy_contribs(
             system, gap_size, acc, prefactor, delta_mid_bot, delta_mid_top
         )
 
-        # Calculate totals using ELC inclusion-exclusion formula coefficients: 0.5 * (Lt - Pm1 + L0)
         e_3d_total = 0.5 * (
             contribs["lt"]["e_3d"] - contribs["pm1"]["e_3d"] + contribs["l0"]["e_3d"]
         )
@@ -168,8 +177,7 @@ def test_all(system):
         "box_l": 4.0,
         "gap_size": 1.5,
         "prefactor": 2.0,
-        "p1_pos_z": 0.1,
-        "r_p1_p2": 2.0,
+        "min_distance": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
