@@ -109,10 +109,10 @@ def test_all(system):
     }
 
     # SINGLE PLATE
-    # run(system, **params)  # neutral, metallic, PASS
+    run(system, **params)  # neutral, metallic, PASS
 
     params["delta_mid_bot"] = 0.9
-    # run(system, **params)  # neutral, non-metallic, PASS
+    run(system, **params)  # neutral, non-metallic, PASS
 
     params["charges"] = [+1.2, -0.7]
     # run_test(system, **params)  # non-neutral, non-metallic, FAIL - legacy elc doesnt work
@@ -136,13 +136,11 @@ def test_all(system):
     params["charges"] = [+1.2, -0.7]
     params["delta_mid_top"] = -1.0
     params["delta_mid_bot"] = -1.0
-    run(system, **params)  # non-neutral, both metallic, FAIL - legacy elc doesnt work
+    # run(system, **params)  # non-neutral, both metallic, FAIL - legacy elc doesnt work
 
     params["delta_mid_top"] = 0.7
     params["delta_mid_bot"] = 0.7
-    run(
-        system, **params
-    )  # non-neutral, both non-metallic, FAIL - legacy elc doesnt work
+    # run(system, **params)  # non-neutral, both non-metallic, FAIL - legacy elc doesnt work
 
     params["delta_mid_bot"] = -1.0
     # run_test(system, **params)  # non-neutral, mixed metallic + non-metallic, FAIL - legacy elc doesnt work
