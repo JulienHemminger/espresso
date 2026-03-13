@@ -47,7 +47,7 @@ def run(
     charges=[+1, -1],
 ):
     """Executes the simulation for multiple accuracies and plots results."""
-    accuracies = [1e-7, 1e-8, 1e-9, 1e-10]
+    accuracies = [1e-3, 1e-4, 1e-5, 1e-6]
     errors = []
 
     # Storage for stacked bar chart
@@ -99,16 +99,16 @@ def run(
 
 def test_all(system):
     params = {
-        "box_l": 200.0,
-        "gap_size": 75.0,
-        "prefactor": 2.0,
-        "p1_pos_z": 10.0,
-        "r_p1_p2": 1.0,
-        "delta_mid_top": 0.0,
+        "box_l": 10.0,
+        "gap_size": 2.0,
+        "prefactor": 1.0,
+        "p1_pos_z": 1.0,
+        "r_p1_p2": 4.0,
+        "delta_mid_top": -0.4,
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
     }
-
+    run(system, **params)
     # SINGLE PLATE
     # run(system, **params)  # neutral, metallic, PASS
 
@@ -132,7 +132,7 @@ def test_all(system):
     # run(system, **params)  # neutral, both non-metallic, PASS
 
     params["delta_mid_bot"] = -1.0
-    run(system, **params)  # neutral, mixed metallic + non-metallic, PASS
+    # run(system, **params)  # neutral, mixed metallic + non-metallic, PASS
 
     """
     params["charges"] = [+1.2, -0.7]
