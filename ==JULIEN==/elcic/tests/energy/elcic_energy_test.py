@@ -4,22 +4,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from elcic.src.energy.get_analytical_energy import calculate_elcic_energy
+from elcic.src.energy.get_elcic_energy import get_elcic_energy_contribs
+
+# Assuming the file containing get_elcic_energy_contribs is elcic_utils.py
 
 
 @pytest.fixture(scope="module")
 def system():
-    """Initializes the ESPResSo system singleton once for the session."""
     return espressomd.System(box_l=[1.0, 1.0, 1.0])
 
 
 def setup_system(system, box_l, gap_size, p1_pos_z, r_p1_p2, charges=[+1, -1]):
-    """Resets and reconfigures the existing ESPResSo system."""
     system.part.clear()
-    system.electrostatics.clear()
-
     system.box_l = [box_l, box_l, box_l + gap_size]
-    system.time_step = 0.01
     system.cell_system.set_regular_decomposition(use_verlet_lists=True)
+    system.time_step = 0.01
 
     half_box_l = box_l / 2.0
     system.part.add(pos=[half_box_l, half_box_l, p1_pos_z], q=charges[0])
@@ -39,17 +38,20 @@ def run(
     charges=[+1, -1],
     params={},
 ):
-    """Executes the simulation for multiple accuracies and plots results."""
     accuracies = [1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
-    errors = []
+    errors_legacy = []
+    errors_elcic = []
 
-    # Storage for stacked bar chart
+    # Storage for stacked bars
+    e_3d_sums = []
+    e_corr_sums = []
+    e_far_vals = []
 
-    # Set up the base system geometry
     setup_system(system, box_l, gap_size, p1_pos_z, r_p1_p2, charges)
     ana_energy = calculate_elcic_energy(params)
 
     for acc in accuracies:
+        # 1. Legacy ELC Calculation
         p3m = espressomd.electrostatics.P3M(
             prefactor=prefactor, accuracy=acc, check_neutrality=False
         )
@@ -63,35 +65,99 @@ def run(
         )
         system.electrostatics.solver = elc
         legacy_energy = system.analysis.energy()["total"]
-        errors.append(abs(legacy_energy - ana_energy))
+        errors_legacy.append(abs(legacy_energy - ana_energy))
+
+        # 2. ELCIC Decomposition Calculation
+        contribs = get_elcic_energy_contribs(
+            system, gap_size, acc, prefactor, delta_mid_bot, delta_mid_top
+        )
+
+        # Aggregate components for the bar chart
+        e_3d_sums.append(
+            contribs["l0"]["e_3d"] + contribs["pm1"]["e_3d"] + contribs["lt"]["e_3d"]
+        )
+        e_corr_sums.append(
+            contribs["l0"]["e_corr"]
+            + contribs["pm1"]["e_corr"]
+            + contribs["lt"]["e_corr"]
+        )
+        e_far_vals.append(contribs["e_far"])
+
+        # Calculate ELCIC specific error
+        elcic_total = contribs["e_near"] + contribs["e_far"]
+        errors_elcic.append(abs(elcic_total - ana_energy))
 
     # --- Plotting ---
-    fig, ax1 = plt.subplots(figsize=(12, 7))  # Slightly wider for long labels
-    x_labels = [f"{a:.0e}" for a in accuracies]
-    x_pos = np.arange(len(x_labels))
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+    x_pos = np.arange(len(accuracies))
 
-    ax1.set_ylabel("Energy Contribution Value", fontsize=12)
-    # ... (rest of the formatting code remains the same)
+    # Stacked Bar Chart (behind the points)
+    ax1.bar(x_pos, e_3d_sums, label="Sum E_3D", alpha=0.3, color="blue")
+    ax1.bar(
+        x_pos,
+        e_corr_sums,
+        bottom=e_3d_sums,
+        label="Sum E_Corr",
+        alpha=0.3,
+        color="green",
+    )
+    ax1.bar(
+        x_pos,
+        e_far_vals,
+        bottom=np.array(e_3d_sums) + np.array(e_corr_sums),
+        label="E_Far",
+        alpha=0.3,
+        color="orange",
+    )
+
+    ax1.set_ylabel("Energy Components (Sum of Sets)", fontsize=12)
     ax1.set_xticks(x_pos)
-    ax1.set_xticklabels(x_labels)
+    ax1.set_xticklabels([f"{a:.0e}" for a in accuracies])
     ax1.legend(loc="upper left")
 
-    # 2. Scatter Plot (Accuracy Error) on Right Axis
+    # Dual Scatter Plots for Error
     ax2 = ax1.twinx()
     ax2.scatter(
-        x_pos, errors, color="black", marker="D", s=100, label="Abs Error", zorder=5
+        x_pos,
+        errors_legacy,
+        color="black",
+        marker="D",
+        s=80,
+        label="Legacy Error",
+        zorder=5,
     )
-    ax2.set_ylabel("Error |ELC - Analytic|", color="red")
-    ax2.set_yscale("log")
+    ax2.scatter(
+        x_pos,
+        errors_elcic,
+        color="red",
+        marker="o",
+        s=80,
+        label="ELCIC Error",
+        zorder=5,
+    )
 
-    title = f"ELCIC Convergence (Bot={delta_mid_bot}, Top={delta_mid_top})"
-    plt.title(title)
+    ax2.set_ylabel("Absolute Error vs Analytic", color="black")
+    ax2.set_yscale("log")
+    ax2.legend(loc="upper right")
+
+    plt.title(
+        f"ELCIC Convergence & Energy Breakdown (Bot={delta_mid_bot:.2f}, Top={delta_mid_top:.2f})"
+    )
     plt.grid(True, which="both", ls="-", alpha=0.2)
     plt.show()
 
+    # --- Print Bar Values ---
+    print("\n" + "=" * 50)
+    print(f"{'Accuracy':<10} | {'Sum E_3D':<12} | {'Sum E_Corr':<12} | {'E_Far':<12}")
+    print("-" * 50)
+    for i, acc in enumerate(accuracies):
+        print(
+            f"{acc:<10.0e} | {e_3d_sums[i]:<12.6f} | {e_corr_sums[i]:<12.6f} | {e_far_vals[i]:<12.6f}"
+        )
+    print("=" * 50 + "\n")
+
 
 def test_all(system):
-
     params = {
         "box_l": 200.0,
         "gap_size": 75.0,
