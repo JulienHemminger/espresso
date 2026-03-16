@@ -1,45 +1,51 @@
+import numpy as np
+
+
 def calculate_elcic_energy(params):
     """
-    Computes the total electrostatic energy for a 2D+h system
-    with two dielectric interfaces based on Tyagi et al. (2008).
+    Computes total electrostatic energy for an N-particle 2D+h system
+    using image charge summation (Tyagi et al. 2008).
     """
-    box_l = params["box_l"]
+    lz = params["lz"]
     prefactor = params["prefactor"]
     dt = params["delta_mid_top"]
     db = params["delta_mid_bot"]
     delta = dt * db
 
-    # Particle properties
-    q = params["charges"]
-    z = [params["p1_pos_z"], params["p1_pos_z"] + params["r_p1_p2"]]
+    q = np.array(params["charges"])
+    pos = np.array(params["positions"])
+    z = pos[:, 2]  # Extract only z-coordinates for image interactions
+    n_part = len(q)
 
     energy = 0.0
-    # Interaction between the two real charges
-    r_12 = abs(z[0] - z[1])
-    energy += prefactor * q[0] * q[1] / r_12
 
-    # Interaction with image charges (direct summation)
-    # We sum over 'n' generations of reflections.
-    # For delta < 1, this converges quickly.
+    # 1. Direct Real-Real Interaction (Coulomb)
+    # Using a double loop for clarity; can be vectorized for performance
+    for i in range(n_part):
+        for j in range(i + 1, n_part):
+            r = np.linalg.norm(pos[i] - pos[j])
+            energy += prefactor * q[i] * q[j] / r
+
+    # 2. Image Charge Interactions
+    # We sum over 'max_gen' reflections across the top and bottom interfaces
     max_gen = 100
 
-    for i in range(2):
-        for j in range(2):
+    for i in range(n_part):
+        for j in range(n_part):
             qi, qj = q[i], q[j]
             zi, zj = z[i], z[j]
 
-            # Sum over infinite image sequences defined in the paper
-            # Lower dielectric sequences (Eq. 2.3 & 2.4)
             for n in range(max_gen):
-                # Image at -(2*n*box_l + zj) with charge qj * (delta^n * db)
-                pos_down1 = -(2 * n * box_l + zj)
+                # --- Lower Interface Reflections ---
+                # Eq 2.3: Image at -(2*n*Lz + zj)
+                pos_down1 = -(2 * n * lz + zj)
                 energy += (
                     0.5 * prefactor * qi * (qj * (delta**n * db)) / abs(zi - pos_down1)
                 )
 
-                # Image at -(2*(n+1)*box_l - zj) with charge qj * delta^(n+1)
-                if n < max_gen - 1:  # Avoid double counting or out of range
-                    pos_down2 = -(2 * (n + 1) * box_l - zj)
+                # Eq 2.4: Image at -(2*(n+1)*Lz - zj)
+                if n < max_gen - 1:
+                    pos_down2 = -(2 * (n + 1) * lz - zj)
                     energy += (
                         0.5
                         * prefactor
@@ -48,16 +54,15 @@ def calculate_elcic_energy(params):
                         / abs(zi - pos_down2)
                     )
 
-            # Upper dielectric sequences (Eq. 2.5 & 2.6)
-            for n in range(max_gen):
-                # Image at (2*(n+1)*box_l - zj) with charge qj * (delta^n * dt)
-                pos_up1 = 2 * (n + 1) * box_l - zj
+                # --- Upper Interface Reflections ---
+                # Eq 2.5: Image at (2*(n+1)*Lz - zj)
+                pos_up1 = 2 * (n + 1) * lz - zj
                 energy += (
                     0.5 * prefactor * qi * (qj * (delta**n * dt)) / abs(zi - pos_up1)
                 )
 
-                # Image at (2*(n+1)*box_l + zj) with charge qj * delta^(n+1)
-                pos_up2 = 2 * (n + 1) * box_l + zj
+                # Eq 2.6: Image at (2*(n+1)*Lz + zj)
+                pos_up2 = 2 * (n + 1) * lz + zj
                 energy += (
                     0.5 * prefactor * qi * (qj * delta ** (n + 1)) / abs(zi - pos_up2)
                 )
