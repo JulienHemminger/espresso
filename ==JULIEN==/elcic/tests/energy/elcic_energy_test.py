@@ -3,6 +3,7 @@ import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from elcic.src.energy.get_analytical_energy import calculate_elcic_energy
 
 
 @pytest.fixture(scope="module")
@@ -26,81 +27,6 @@ def setup_system(system, box_l, gap_size, p1_pos_z, r_p1_p2, charges=[+1, -1]):
     return system
 
 
-def calculate_analytic_alex(z, dist, prefactor, delta_mid_bot):
-    """Calculates analytic energy for q=1 at a specific z."""
-    return prefactor * (  # elc_vs_analytic.py
-        -1 / dist
-        + delta_mid_bot * (1 / (4 * z) - 1 / (2 * z + dist) + 1 / (4 * (z + dist)))
-    )
-
-
-def calculate_elcic_energy(params):
-    """
-    Computes the total electrostatic energy for a 2D+h system
-    with two dielectric interfaces based on Tyagi et al. (2008).
-    """
-    box_l = params["box_l"]
-    prefactor = params["prefactor"]
-    dt = params["delta_mid_top"]
-    db = params["delta_mid_bot"]
-    delta = dt * db
-
-    # Particle properties
-    q = params["charges"]
-    z = [params["p1_pos_z"], params["p1_pos_z"] + params["r_p1_p2"]]
-
-    energy = 0.0
-    # Interaction between the two real charges
-    r_12 = abs(z[0] - z[1])
-    energy += prefactor * q[0] * q[1] / r_12
-
-    # Interaction with image charges (direct summation)
-    # We sum over 'n' generations of reflections.
-    # For delta < 1, this converges quickly.
-    max_gen = 100
-
-    for i in range(2):
-        for j in range(2):
-            qi, qj = q[i], q[j]
-            zi, zj = z[i], z[j]
-
-            # Sum over infinite image sequences defined in the paper
-            # Lower dielectric sequences (Eq. 2.3 & 2.4)
-            for n in range(max_gen):
-                # Image at -(2*n*box_l + zj) with charge qj * (delta^n * db)
-                pos_down1 = -(2 * n * box_l + zj)
-                energy += (
-                    0.5 * prefactor * qi * (qj * (delta**n * db)) / abs(zi - pos_down1)
-                )
-
-                # Image at -(2*(n+1)*box_l - zj) with charge qj * delta^(n+1)
-                if n < max_gen - 1:  # Avoid double counting or out of range
-                    pos_down2 = -(2 * (n + 1) * box_l - zj)
-                    energy += (
-                        0.5
-                        * prefactor
-                        * qi
-                        * (qj * delta ** (n + 1))
-                        / abs(zi - pos_down2)
-                    )
-
-            # Upper dielectric sequences (Eq. 2.5 & 2.6)
-            for n in range(max_gen):
-                # Image at (2*(n+1)*box_l - zj) with charge qj * (delta^n * dt)
-                pos_up1 = 2 * (n + 1) * box_l - zj
-                energy += (
-                    0.5 * prefactor * qi * (qj * (delta**n * dt)) / abs(zi - pos_up1)
-                )
-
-                # Image at (2*(n+1)*box_l + zj) with charge qj * delta^(n+1)
-                pos_up2 = 2 * (n + 1) * box_l + zj
-                energy += (
-                    0.5 * prefactor * qi * (qj * delta ** (n + 1)) / abs(zi - pos_up2)
-                )
-
-    return energy
-
-
 def run(
     system,
     box_l,
@@ -121,7 +47,6 @@ def run(
 
     # Set up the base system geometry
     setup_system(system, box_l, gap_size, p1_pos_z, r_p1_p2, charges)
-    # ana_energy = calculate_analytic_alex(p1_pos_z, r_p1_p2, prefactor, delta_mid_bot)
     ana_energy = calculate_elcic_energy(params)
 
     for acc in accuracies:
@@ -137,8 +62,8 @@ def run(
             neutralize=False,
         )
         system.electrostatics.solver = elc
-        elc_total = system.analysis.energy()["total"]
-        errors.append(abs(elc_total - ana_energy))
+        legacy_energy = system.analysis.energy()["total"]
+        errors.append(abs(legacy_energy - ana_energy))
 
     # --- Plotting ---
     fig, ax1 = plt.subplots(figsize=(12, 7))  # Slightly wider for long labels
@@ -178,6 +103,8 @@ def test_all(system):
         "charges": [+1, -1],
     }
     run(system, **params, params=params)
+
+    """
     # SINGLE PLATE
     # run(system, **params)  # neutral, metallic, PASS
 
@@ -203,7 +130,6 @@ def test_all(system):
     params["delta_mid_bot"] = -1.0
     # run(system, **params)  # neutral, mixed metallic + non-metallic, PASS
 
-    """
     params["charges"] = [+1.2, -0.7]
     params["delta_mid_top"] = -1.0
     params["delta_mid_bot"] = -1.0
