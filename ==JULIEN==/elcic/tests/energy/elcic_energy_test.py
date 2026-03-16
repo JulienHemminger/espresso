@@ -159,15 +159,16 @@ def run(
 
 def test_all(system):
     params = {
-        "box_l": 200.0,
-        "gap_size": 75.0,
+        "box_l": 20.0,  # default=200, PASS=[], FAIL=[]
+        "gap_size": 15.0,  # default=75, PASS=[15, 20], FAIL=[5, 10]
         "prefactor": 2.0,
-        "p1_pos_z": 10.0,
+        "p1_pos_z": 1.0,  # default=10, PASS=[], FAIL=[]
         "r_p1_p2": 1.0,
         "delta_mid_top": 0.0,
-        "delta_mid_bot": 39.0 / 41.0,
+        "delta_mid_bot": 0.95,
         "charges": [+1, -1],
     }
+
     run(system, **params, params=params)
 
     """
