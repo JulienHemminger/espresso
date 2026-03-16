@@ -28,11 +28,12 @@ def setup_system(system, box_l, gap_size, p1_pos_z, r_p1_p2, charges=[+1, -1]):
 
 def calculate_analytic(z, dist, prefactor, delta_mid_bot):
     """Calculates analytic energy for q=1 at a specific z."""
-    energy = prefactor * (
+    energy_alexs_script = prefactor * (  # elc_vs_analytic.py
         -1 / dist
         + delta_mid_bot * (1 / (4 * z) - 1 / (2 * z + dist) + 1 / (4 * (z + dist)))
     )
-    return energy
+
+    return energy_alexs_script
 
 
 def run(
@@ -47,7 +48,7 @@ def run(
     charges=[+1, -1],
 ):
     """Executes the simulation for multiple accuracies and plots results."""
-    accuracies = [1e-3, 1e-4, 1e-5, 1e-6]
+    accuracies = [1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
     errors = []
 
     # Storage for stacked bar chart
@@ -98,14 +99,15 @@ def run(
 
 
 def test_all(system):
+
     params = {
-        "box_l": 10.0,
-        "gap_size": 2.0,
-        "prefactor": 1.0,
-        "p1_pos_z": 1.0,
-        "r_p1_p2": 4.0,
-        "delta_mid_top": -0.4,
-        "delta_mid_bot": -1.0,
+        "box_l": 200.0,
+        "gap_size": 75.0,
+        "prefactor": 2.0,
+        "p1_pos_z": 10.0,
+        "r_p1_p2": 1.0,
+        "delta_mid_top": 0.0,
+        "delta_mid_bot": 39.0 / 41.0,
         "charges": [+1, -1],
     }
     run(system, **params)
