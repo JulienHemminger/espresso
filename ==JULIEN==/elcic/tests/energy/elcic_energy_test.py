@@ -26,14 +26,12 @@ def setup_system(system, box_l, gap_size, p1_pos_z, r_p1_p2, charges=[+1, -1]):
     return system
 
 
-def calculate_analytic(z, dist, prefactor, delta_mid_bot):
+def calculate_analytic_alex(z, dist, prefactor, delta_mid_bot):
     """Calculates analytic energy for q=1 at a specific z."""
-    energy_alexs_script = prefactor * (  # elc_vs_analytic.py
+    return prefactor * (  # elc_vs_analytic.py
         -1 / dist
         + delta_mid_bot * (1 / (4 * z) - 1 / (2 * z + dist) + 1 / (4 * (z + dist)))
     )
-
-    return energy_alexs_script
 
 
 def run(
@@ -55,7 +53,7 @@ def run(
 
     # Set up the base system geometry
     setup_system(system, box_l, gap_size, p1_pos_z, r_p1_p2, charges)
-    ana_energy = calculate_analytic(p1_pos_z, r_p1_p2, prefactor, delta_mid_bot)
+    ana_energy = calculate_analytic_alex(p1_pos_z, r_p1_p2, prefactor, delta_mid_bot)
 
     for acc in accuracies:
         p3m = espressomd.electrostatics.P3M(
