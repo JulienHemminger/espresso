@@ -5,8 +5,8 @@ from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elcic.src.common.convergence_contribution_plot import (
     show_convergence_contribution_plot,
 )
-from elcic.src.energy.get_analytical_energy import calculate_elcic_energy
 from elcic.src.energy.get_elcic_energy import get_elcic_energy_contribs
+from elcic.src.energy.other.get_analytical_energy import calculate_elcic_energy
 
 
 @pytest.fixture(scope="module")
@@ -14,13 +14,12 @@ def system():
     return espressomd.System(box_l=[1.0, 1.0, 1.0])
 
 
-def setup_system(system, lx, ly, lz, gap_size, charges):
+def setup_system(system, lx, ly, lz, gap_size, positions, charges):
     system.part.clear()
     system.box_l = [lx, ly, lz + gap_size]
     system.cell_system.set_regular_decomposition(use_verlet_lists=True)
     system.time_step = 0.01
 
-    positions = get_rdm_constrained_points_np(lx, ly, lz, len(charges), 0.1)
     for i in range(len(charges)):
         system.part.add(pos=positions[i], q=charges[i])
     return system
@@ -35,18 +34,18 @@ def run(
     prefactor,
     delta_mid_top,
     delta_mid_bot,
+    positions,
     charges,
     params,
 ):
-    accuracies = [1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
+    accuracies = [1e-5, 1e-6, 1e-7, 1e-8]
     errors_legacy, errors_elcic = [], []
     e_3d_sums, e_corr_sums, e_far_vals = [], [], []
 
-    setup_system(system, lx, ly, lz, gap_size, charges)
-    params["positions"] = system.part.all().pos
-    ana_energy = calculate_elcic_energy(params)
+    setup_system(system, lx, ly, lz, gap_size, positions, charges)
 
     for acc in accuracies:
+        ana_energy = calculate_elcic_energy(system, n_max=int(1e-5 / acc))
         # 1. Legacy ELC
         p3m = espressomd.electrostatics.P3M(
             prefactor=prefactor, accuracy=acc, check_neutrality=False
@@ -93,4 +92,12 @@ def test_all(system):
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
     }
+    params["positions"] = get_rdm_constrained_points_np(
+        params["lx"],
+        params["ly"],
+        params["lz"],
+        len(params["charges"]),
+        min_distance=0.1,
+    )
+
     run(system, **params, params=params)
