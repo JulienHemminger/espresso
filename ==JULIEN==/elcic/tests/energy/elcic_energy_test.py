@@ -1,7 +1,7 @@
 import espressomd
 import espressomd.electrostatics
-import numpy as np
 import pytest
+from elc.src.common.get_positions import get_rdm_constrained_points_np
 from elcic.src.common.convergence_contribution_plot import (
     show_convergence_contribution_plot,
 )
@@ -20,17 +20,9 @@ def setup_system(system, lx, ly, lz, gap_size, charges):
     system.cell_system.set_regular_decomposition(use_verlet_lists=True)
     system.time_step = 0.01
 
-    for q in charges:
-        # Generate random position within [0, lx], [0, ly], [0, lz]
-        # Ensuring 0.1 minimum distance between particles
-        while True:
-            pos = np.random.rand(3) * [lx, ly, lz]
-            if len(system.part) == 0:
-                break
-            dist = np.linalg.norm(system.part.all().pos - pos, axis=1)
-            if np.all(dist > 0.1):
-                break
-        system.part.add(pos=pos, q=q)
+    positions = get_rdm_constrained_points_np(lx, ly, lz, len(charges), 0.1)
+    for i in range(len(charges)):
+        system.part.add(pos=positions[i], q=charges[i])
     return system
 
 
@@ -97,47 +89,8 @@ def test_all(system):
         "lz": 20.0,
         "gap_size": 15.0,
         "prefactor": 2.0,
-        "delta_mid_top": 0.95,  # for significant e_far: 0.95
-        "delta_mid_bot": 0.95,
-        "charges": [+1, -1, +1, -1],  # Supports arbitrary charge lists
+        "delta_mid_top": 0.0,
+        "delta_mid_bot": -1.0,
+        "charges": [+1, -1],
     }
     run(system, **params, params=params)
-
-    """
-    # SINGLE PLATE
-    # run(system, **params)  # neutral, metallic, PASS
-
-    params["delta_mid_bot"] = 0.9
-    # run(system, **params)  # neutral, non-metallic, PASS
-
-    params["charges"] = [+1.2, -0.7]
-    # run(system, **params)  # non-neutral, non-metallic, FAIL - legacy elc doesnt work
-
-    params["delta_mid_bot"] = -1.0
-    # run_test(system, **params)  # non-neutral, metallic, FAIL - legacy elc doesnt work
-
-    # DOUBLE PLATES
-    params["charges"] = [+1, -1]
-    params["delta_mid_top"] = -1.0
-    params["delta_mid_bot"] = -1.0
-    # run(system, **params)  # neutral, both metallic, PASS
-
-    params["delta_mid_top"] = 0.7
-    params["delta_mid_bot"] = 0.7
-    # run(system, **params)  # neutral, both non-metallic, PASS
-
-    params["delta_mid_bot"] = -1.0
-    # run(system, **params)  # neutral, mixed metallic + non-metallic, PASS
-
-    params["charges"] = [+1.2, -0.7]
-    params["delta_mid_top"] = -1.0
-    params["delta_mid_bot"] = -1.0
-    # run(system, **params)  # non-neutral, both metallic, FAIL - legacy elc doesnt work
-
-    params["delta_mid_top"] = 0.7
-    params["delta_mid_bot"] = 0.7
-    # run(system, **params)  # non-neutral, both non-metallic, FAIL - legacy elc doesnt work
-
-    params["delta_mid_bot"] = -1.0
-    # run_test(system, **params)  # non-neutral, mixed metallic + non-metallic, FAIL - legacy elc doesnt work
-    """

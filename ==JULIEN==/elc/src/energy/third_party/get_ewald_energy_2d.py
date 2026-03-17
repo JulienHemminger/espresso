@@ -15,7 +15,6 @@ def get_ewald_energy_2d(system, n_max=100, prefactor=1.0):
     n_recip = n_max
     pos = np.asarray(positions, dtype=np.float64)
     q = np.asarray(charges, dtype=np.float64)
-    N = len(q)
     A = lx * ly
 
     if eta is None:
