@@ -39,13 +39,15 @@ def run(
     params,
 ):
     accuracies = [1e-5, 1e-6, 1e-7, 1e-8]
-    errors_legacy, errors_elcic = [], []
+    energy_analytical, energy_legacy, energy_elcic = [], [], []
     e_3d_sums, e_corr_sums, e_far_vals = [], [], []
 
     setup_system(system, lx, ly, lz, gap_size, positions, charges)
 
     for acc in accuracies:
         ana_energy = calculate_elcic_energy(system, n_max=int(1e-5 / acc))
+        energy_analytical.append(ana_energy)
+
         # 1. Legacy ELC
         p3m = espressomd.electrostatics.P3M(
             prefactor=prefactor, accuracy=acc, check_neutrality=False
@@ -59,7 +61,7 @@ def run(
             neutralize=False,
         )
         system.electrostatics.solver = elc
-        errors_legacy.append(abs(system.analysis.energy()["total"] - ana_energy))
+        energy_legacy.append(system.analysis.energy()["total"])
 
         # 2. ELCIC Decomposition
         contribs = get_elcic_energy_contribs(
@@ -68,15 +70,16 @@ def run(
         e_3d_sums.append(sum(contribs[k]["e_3d"] for k in ["l0", "pm1", "lt"]))
         e_corr_sums.append(sum(contribs[k]["e_corr"] for k in ["l0", "pm1", "lt"]))
         e_far_vals.append(contribs["e_far"])
-        errors_elcic.append(abs((contribs["e_near"] + contribs["e_far"]) - ana_energy))
+        energy_elcic.append(contribs["e_near"] + contribs["e_far"])
 
     show_convergence_contribution_plot(
         accuracies,
         e_3d_sums,
         e_corr_sums,
         e_far_vals,
-        errors_legacy,
-        errors_elcic,
+        energy_analytical,
+        energy_legacy,
+        energy_elcic,
         params,
     )
 
