@@ -1,85 +1,52 @@
 import numpy as np
-from scipy.special import erf, erfc
 
 
-def calculate_elcic_energy(system, n_max=100, prefactor=1.0):
-    positions = system.part.all().pos  # Shape (N, 3)
-    charges = system.part.all().q  # Shape (N,)
+def calculate_elcic_energy(system, n_max=100, prefactor=1.0, eps=1.0, eps0=1.0):
+    """
+    Brute-force Coulomb energy for 2D periodic systems with non-neutral correction.
 
-    # 2. Get box dimensions (assuming a rectangular box)
+    Includes the Delta E term to handle systems where sum(q) != 0.
+    """
+    positions = system.part.all().pos
+    charges = system.part.all().q
     lx = system.box_l[0]
     ly = system.box_l[1]
+    lz = system.box_l[2]  # Often used as 'h' in ELC context
 
-    eta = None
-    n_real = n_max
-    n_recip = n_max
     pos = np.asarray(positions, dtype=np.float64)
     q = np.asarray(charges, dtype=np.float64)
-    A = lx * ly
+    N = len(q)
+    Q_tot = np.sum(q)
 
-    if eta is None:
-        # Balance real/reciprocal convergence
-        eta = np.sqrt(np.pi) / min(lx, ly)
+    # 1. Standard Brute Force Sum
+    nx = np.arange(-n_max, n_max + 1)
+    ny = np.arange(-n_max, n_max + 1)
+    NX, NY = np.meshgrid(nx, ny, indexing="ij")
+    Rx = (NX.ravel() * lx).astype(np.float64)
+    Ry = (NY.ravel() * ly).astype(np.float64)
 
-    # Pair separation vectors: dr[a, b] = pos[a] - pos[b]
-    dr = pos[:, None, :] - pos[None, :, :]  # (N, N, 3)
-    qq = q[:, None] * q[None, :]  # (N, N)
+    idx_origin = n_max * (2 * n_max + 1) + n_max
 
-    # ---- Real-space sum ----
-    E_real = 0.0
-    for nx in range(-n_real, n_real + 1):
-        for ny in range(-n_real, n_real + 1):
-            R = np.array([nx * lx, ny * ly, 0.0])
-            rvec = dr + R  # (N, N, 3)
-            dist = np.linalg.norm(rvec, axis=2)  # (N, N)
+    E_sum = 0.0
+    for a in range(N):
+        # Vectorized over all images M for every pair (a, b)
+        for b in range(N):
+            dx_ab = pos[a, 0] - pos[b, 0] + Rx
+            dy_ab = pos[a, 1] - pos[b, 1] + Ry
+            dz_ab = pos[a, 2] - pos[b, 2]
 
-            if nx == 0 and ny == 0:
-                np.fill_diagonal(dist, np.inf)  # exclude self
+            dist = np.sqrt(dx_ab**2 + dy_ab**2 + dz_ab**2)
 
-            contrib = qq * erfc(eta * dist) / dist
-            E_real += np.sum(contrib)
-    E_real *= 0.5
+            if a == b:
+                dist[idx_origin] = np.inf  # Exclude self-interaction in the (0,0) cell
 
-    # ---- Reciprocal-space sum (G != 0) ----
-    gx0 = 2.0 * np.pi / lx
-    gy0 = 2.0 * np.pi / ly
-    drho = dr[:, :, :2]  # in-plane (N, N, 2)
-    dz = dr[:, :, 2]  # z-separation (N, N)
+            E_sum += q[a] * q[b] * np.sum(1.0 / dist)
 
-    E_recip = 0.0
-    for mx in range(-n_recip, n_recip + 1):
-        for my in range(-n_recip, n_recip + 1):
-            if mx == 0 and my == 0:
-                continue
-            Gx = mx * gx0
-            Gy = my * gy0
-            G = np.sqrt(Gx**2 + Gy**2)
+            E_sum -= (Q_tot**2 / (2 * lx * ly * eps0 * eps)) * lz
 
-            phase = drho[:, :, 0] * Gx + drho[:, :, 1] * Gy  # (N, N)
+    # Apply 0.5 factor for pair counting
+    # Note: In MD units, 1/(4*pi*eps0) is usually the 'prefactor'
 
-            # h(G, dz) = exp(G*dz)*erfc(G/(2*eta) + eta*dz)
-            #           + exp(-G*dz)*erfc(G/(2*eta) - eta*dz)
-            arg_p = G / (2.0 * eta) + eta * dz
-            arg_m = G / (2.0 * eta) - eta * dz
-            h = np.exp(G * dz) * erfc(arg_p) + np.exp(-G * dz) * erfc(arg_m)
+    E_direct = 0.5 * E_sum
 
-            E_recip += np.sum(qq * (np.pi / G) * h * np.cos(phase))
-
-    E_recip /= 2.0 * A
-
-    # ---- Self-energy correction ----
-    E_self = -(eta / np.sqrt(np.pi)) * np.sum(q**2)
-
-    # ---- G = 0 term ----
-    # Limit for |dz| -> 0:  |dz|*erf(eta*|dz|) + exp(-(eta*dz)^2)/(eta*sqrt(pi))
-    #                      -> 1/(eta*sqrt(pi))
-    adz = np.abs(dz)
-    g0_terms = np.where(
-        adz < 1e-15,
-        1.0 / (eta * np.sqrt(np.pi)),
-        adz * erf(eta * adz) + np.exp(-((eta * adz) ** 2)) / (eta * np.sqrt(np.pi)),
-    )
-    E_G0 = -np.pi / A * np.sum(qq * g0_terms)
-
-    E_total = E_real + E_recip + E_self + E_G0
-    return E_total * prefactor
+    return prefactor * E_direct
