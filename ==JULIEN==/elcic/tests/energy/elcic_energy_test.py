@@ -80,7 +80,13 @@ def run(
         errors_elcic.append(abs((contribs["e_near"] + contribs["e_far"]) - ana_energy))
 
     show_convergence_contribution_plot(
-        accuracies, e_3d_sums, e_corr_sums, e_far_vals, errors_legacy, errors_elcic
+        accuracies,
+        e_3d_sums,
+        e_corr_sums,
+        e_far_vals,
+        errors_legacy,
+        errors_elcic,
+        params,
     )
 
 
@@ -91,7 +97,7 @@ def test_all(system):
         "lz": 20.0,
         "gap_size": 15.0,
         "prefactor": 2.0,
-        "delta_mid_top": 0.0,
+        "delta_mid_top": 0.95,  # for significant e_far: 0.95
         "delta_mid_bot": 0.95,
         "charges": [+1, -1, +1, -1],  # Supports arbitrary charge lists
     }

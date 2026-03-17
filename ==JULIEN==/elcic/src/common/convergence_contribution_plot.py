@@ -3,32 +3,56 @@ import numpy as np
 
 
 def show_convergence_contribution_plot(
-    accuracies, e_3d_sums, e_corr_sums, e_far_vals, errors_legacy, errors_elcic
+    accuracies,
+    e_3d_sums,
+    e_corr_sums,
+    e_far_vals,
+    errors_legacy,
+    errors_elcic,
+    params={"test": True},
 ):
-    # --- Plotting ---
-    fig, ax1 = plt.subplots(figsize=(12, 7))
+    # Convert to absolute values for magnitude-based stacking
+    a_3d = np.abs(e_3d_sums)
+    a_corr = np.abs(e_corr_sums)
+    a_far = np.abs(e_far_vals)
+
+    fig, ax1 = plt.subplots(figsize=(14, 7))
+    plt.subplots_adjust(left=0.2)
+
     x_pos = np.arange(len(accuracies))
 
-    # Stacked Bar Chart (behind the points)
-    ax1.bar(x_pos, e_3d_sums, label="Sum E_3D", alpha=0.3, color="blue")
+    # Stacked Bar Chart (Absolute Magnitudes)
+    ax1.bar(x_pos, a_3d, label="|Sum E_3D|", alpha=0.3, color="blue")
     ax1.bar(
         x_pos,
-        e_corr_sums,
-        bottom=e_3d_sums,
-        label="Sum E_Corr",
+        a_corr,
+        bottom=a_3d,
+        label="|Sum E_Corr|",
         alpha=0.3,
         color="green",
     )
     ax1.bar(
         x_pos,
-        e_far_vals,
-        bottom=np.array(e_3d_sums) + np.array(e_corr_sums),
-        label="E_Far",
+        a_far,
+        bottom=a_3d + a_corr,
+        label="|E_Far|",
         alpha=0.3,
         color="orange",
     )
 
-    ax1.set_ylabel("Energy Components (Sum of Sets)", fontsize=12)
+    # Parameter Text Box
+    param_str = "\n".join([f"{k}: {v}" for k, v in params.items()])
+    ax1.text(
+        -0.22,
+        0.5,
+        f"Parameters:\n{param_str}",
+        transform=ax1.transAxes,
+        fontsize=10,
+        verticalalignment="center",
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.5),
+    )
+
+    ax1.set_ylabel("Energy Component Magnitude", fontsize=12)
     ax1.set_xticks(x_pos)
     ax1.set_xticklabels([f"{a:.0e}" for a in accuracies])
     ax1.legend(loc="upper left")
@@ -58,11 +82,11 @@ def show_convergence_contribution_plot(
     ax2.set_yscale("log")
     ax2.legend(loc="upper right")
 
-    plt.title("ELCIC Convergence & Energy Breakdown)")
+    plt.title("ELCIC Convergence & Magnitude Breakdown")
     plt.grid(True, which="both", ls="-", alpha=0.2)
     plt.show()
 
-    # --- Print Bar Values ---
+    # Print original signed values
     print("\n" + "=" * 50)
     print(f"{'Accuracy':<10} | {'Sum E_3D':<12} | {'Sum E_Corr':<12} | {'E_Far':<12}")
     print("-" * 50)
