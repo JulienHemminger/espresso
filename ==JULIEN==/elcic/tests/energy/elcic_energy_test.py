@@ -93,7 +93,7 @@ def test_all(system):
         "prefactor": 2.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
-        "charges": [+1, -1],
+        "charges": [+1, -1, +1, -1],
     }
     params["positions"] = get_rdm_constrained_points_np(
         params["lx"],
