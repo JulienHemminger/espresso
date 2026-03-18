@@ -76,3 +76,13 @@ def show_convergence_contribution_plot(
             f"{acc:<10.0e} | {e_3d_sums[i]:<12.6f} | {e_corr_sums[i]:<12.6f} | {e_far_vals[i]:<12.6f}"
         )
     print("=" * 50 + "\n")
+
+    # Print energy differences
+    print("=" * 50)
+    print(f"{'Accuracy':<10} | {'E_Analyt - E_Leg':<18} | {'E_Analyt - E_ELCIC':<18}")
+    print("-" * 50)
+    for i, acc in enumerate(accuracies):
+        diff_legacy = energy_analytical[i] - energy_legacy[i]
+        diff_elcic = energy_analytical[i] - energy_elcic[i]
+        print(f"{acc:<10.0e} | {diff_legacy:<18.6e} | {diff_elcic:<18.6e}")
+    print("=" * 50 + "\n")

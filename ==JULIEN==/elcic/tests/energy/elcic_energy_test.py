@@ -38,14 +38,14 @@ def run(
     charges,
     params,
 ):
-    accuracies = [1e-5, 1e-6, 1e-7, 1e-8]
+    accuracies = [1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
     energy_analytical, energy_legacy, energy_elcic = [], [], []
     e_3d_sums, e_corr_sums, e_far_vals = [], [], []
 
     setup_system(system, lx, ly, lz, gap_size, positions, charges)
 
     for acc in accuracies:
-        ana_energy = calculate_elcic_energy(system, n_max=int(1e-5 / acc))
+        ana_energy = calculate_elcic_energy(system, params, n_max=int(1e-5 / acc))
         energy_analytical.append(ana_energy)
 
         # 1. Legacy ELC
