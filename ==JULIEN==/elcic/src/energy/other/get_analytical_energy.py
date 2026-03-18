@@ -1,10 +1,9 @@
 import numpy as np
 
 
-def calculate_elcic_energy(system, params, n_max=10):
+def calculate_elcic_energy(system, params, image_charge_reflection_count=10):
     """
     Calculates ELCIC energy for a slab between two dielectric interfaces.
-    n_max here refers to the number of image charge reflections (convergence is usually fast).
     """
     pos = np.asarray(system.part.all().pos, dtype=np.float64)
     q = np.asarray(system.part.all().q, dtype=np.float64)
@@ -19,11 +18,13 @@ def calculate_elcic_energy(system, params, n_max=10):
     E_total = 0.0
 
     # 2D Periodic image vectors (reduced n_max for brute force efficiency)
-    nx = np.arange(-n_max, n_max + 1)
-    ny = np.arange(-n_max, n_max + 1)
+    nx = np.arange(-image_charge_reflection_count, image_charge_reflection_count + 1)
+    ny = np.arange(-image_charge_reflection_count, image_charge_reflection_count + 1)
     NX, NY = np.meshgrid(nx, ny)
     Rx, Ry = (NX.ravel() * lx), (NY.ravel() * ly)
-    origin_idx = (2 * n_max + 1) * n_max + n_max
+    origin_idx = (
+        2 * image_charge_reflection_count + 1
+    ) * image_charge_reflection_count + image_charge_reflection_count
 
     for i in range(N):
         for j in range(N):
