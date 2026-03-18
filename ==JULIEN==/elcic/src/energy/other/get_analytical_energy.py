@@ -37,17 +37,12 @@ def calculate_elcic_energy(system, params, n_max=10):
                 dist0[origin_idx] = np.inf
             E_total += q[i] * q[j] * np.sum(1.0 / dist0)
 
-            # 2. Image Charge Summation
-            # Only 1st order reflections shown for brevity;
-            # for full ELCIC, you iterate through reflections k
+            # 2. Image Charge Summation (only 1st order reflections for now)
             for k in range(1, 4):
-                # Reflections depend on gap size and relative positions
-                # Example: Bottom reflection
                 dz_bot = pos[i, 2] + pos[j, 2] + 2 * (k - 1) * gap
                 dist_bot = np.sqrt(dx**2 + dy**2 + dz_bot**2)
                 E_total += q[i] * q[j] * (d_bot**k) * np.sum(1.0 / dist_bot)
 
-                # Example: Top reflection
                 dz_top = 2 * gap - (pos[i, 2] + pos[j, 2]) + 2 * (k - 1) * gap
                 dist_top = np.sqrt(dx**2 + dy**2 + dz_top**2)
                 E_total += q[i] * q[j] * (d_top**k) * np.sum(1.0 / dist_top)
