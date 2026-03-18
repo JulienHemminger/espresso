@@ -86,9 +86,9 @@ def run(
 
 def test_all(system):
     params = {
-        "lx": 20.0,
-        "ly": 20.0,
-        "lz": 20.0,
+        "lx": 9.0,
+        "ly": 12.0,
+        "lz": 19.0,  # > gap_size
         "gap_size": 15.0,
         "prefactor": 2.0,
         "delta_mid_top": 0.0,
