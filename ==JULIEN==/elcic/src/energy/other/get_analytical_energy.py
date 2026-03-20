@@ -1,51 +1,75 @@
 import numpy as np
 
 
-def calculate_elcic_energy(system, params, image_charge_reflection_count=10):
-    """
-    Calculates ELCIC energy for a slab between two dielectric interfaces.
-    """
-    pos = np.asarray(system.part.all().pos, dtype=np.float64)
-    q = np.asarray(system.part.all().q, dtype=np.float64)
+def calculate_elcic_energy(system, params, k_max=10, n_max=2**8):
+    positions = np.array([p.pos for p in system.part])
+    charges = np.array([p.q for p in system.part])
+    N = len(charges)
+    lz, lx, ly = params["lz"], params["lx"], params["ly"]
+    prefactor = params["prefactor"]
+    delta_b, delta_t = params["delta_mid_bot"], params["delta_mid_top"]
+    delta = delta_b * delta_t
 
-    lx, ly = params["lx"], params["ly"]
-    gap = params["gap_size"]
-    d_top = params["delta_mid_top"]
-    d_bot = params["delta_mid_bot"]
-    pref = params["prefactor"]
+    total_energy = 0.0
 
-    N = len(q)
-    E_total = 0.0
-
-    # 2D Periodic image vectors (reduced n_max for brute force efficiency)
-    nx = np.arange(-image_charge_reflection_count, image_charge_reflection_count + 1)
-    ny = np.arange(-image_charge_reflection_count, image_charge_reflection_count + 1)
-    NX, NY = np.meshgrid(nx, ny)
-    Rx, Ry = (NX.ravel() * lx), (NY.ravel() * ly)
-    origin_idx = (
-        2 * image_charge_reflection_count + 1
-    ) * image_charge_reflection_count + image_charge_reflection_count
+    # Define the range of periodic replicas in x and y
+    pbc_range = range(-n_max, n_max + 1)
 
     for i in range(N):
+        pos_i = positions[i]
+        qi = charges[i]
+
         for j in range(N):
-            dx = pos[i, 0] - pos[j, 0] + Rx
-            dy = pos[i, 1] - pos[j, 1] + Ry
+            pos_j = positions[j]
+            qj = charges[j]
 
-            # 1. Real-Real interaction (Standard 2D)
-            dz0 = pos[i, 2] - pos[j, 2]
-            dist0 = np.sqrt(dx**2 + dy**2 + dz0**2)
-            if i == j:
-                dist0[origin_idx] = np.inf
-            E_total += q[i] * q[j] * np.sum(1.0 / dist0)
+            for nx in pbc_range:
+                for ny in pbc_range:
+                    # Shift j-th particle by periodic box vectors
+                    dx = pos_i[0] - (pos_j[0] + nx * lx)
+                    dy = pos_i[1] - (pos_j[1] + ny * ly)
+                    xy_dist_sq = dx**2 + dy**2
 
-            # 2. Image Charge Summation (only 1st order reflections for now)
-            for k in range(1, 4):
-                dz_bot = pos[i, 2] + pos[j, 2] + 2 * (k - 1) * gap
-                dist_bot = np.sqrt(dx**2 + dy**2 + dz_bot**2)
-                E_total += q[i] * q[j] * (d_bot**k) * np.sum(1.0 / dist_bot)
+                    # 1. Real-Real Interactions (Exclude self-interaction in central cell)
+                    if not (i == j and nx == 0 and ny == 0):
+                        r = np.sqrt(xy_dist_sq + (pos_i[2] - pos_j[2]) ** 2)
+                        total_energy += 0.5 * prefactor * (qi * qj) / r
 
-                dz_top = 2 * gap - (pos[i, 2] + pos[j, 2]) + 2 * (k - 1) * gap
-                dist_top = np.sqrt(dx**2 + dy**2 + dz_top**2)
-                E_total += q[i] * q[j] * (d_top**k) * np.sum(1.0 / dist_top)
+                    # 2. Image Charge Sequences (All replicas)
+                    zi, zj = pos_i[2], pos_j[2]
+                    for n in range(k_max + 1):
+                        # Eq 2.2 & 2.4 (Single delta_b/t factor)
+                        z_img_22 = -(2 * n * lz + zj)
+                        z_img_24 = 2 * (n + 1) * lz - zj
 
-    return 0.5 * pref * E_total
+                        total_energy += (
+                            0.5
+                            * prefactor
+                            * (qi * qj * (delta**n) * delta_b)
+                            / np.sqrt(xy_dist_sq + (zi - z_img_22) ** 2)
+                        )
+                        total_energy += (
+                            0.5
+                            * prefactor
+                            * (qi * qj * (delta**n) * delta_t)
+                            / np.sqrt(xy_dist_sq + (zi - z_img_24) ** 2)
+                        )
+
+                        # Eq 2.3 & 2.5 (Pure delta^n factors)
+                        if n > 0:
+                            z_img_23 = -(2 * n * lz - zj)
+                            z_img_25 = 2 * n * lz + zj
+                            total_energy += (
+                                0.5
+                                * prefactor
+                                * (qi * qj * (delta**n))
+                                / np.sqrt(xy_dist_sq + (zi - z_img_23) ** 2)
+                            )
+                            total_energy += (
+                                0.5
+                                * prefactor
+                                * (qi * qj * (delta**n))
+                                / np.sqrt(xy_dist_sq + (zi - z_img_25) ** 2)
+                            )
+
+    return total_energy

@@ -116,6 +116,7 @@ def get_elcic_energy_contribs(
             prefactor=prefactor, accuracy=pw_error, check_neutrality=False
         )
         system.electrostatics.solver = p3m
+        system.integrator.run(0)
         e_3d = system.analysis.energy()["total"]
         e_corr = prefactor * _get_e_non_neutral_corr(lx, ly, lz, p_set[:, 2], q_set)
         return {"e_3d": e_3d, "e_corr": e_corr, "total": e_3d + e_corr}

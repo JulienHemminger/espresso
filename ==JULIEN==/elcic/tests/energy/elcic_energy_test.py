@@ -44,8 +44,10 @@ def run(
 
     setup_system(system, lx, ly, lz, gap_size, positions, charges)
 
+    ana_energy = calculate_elcic_energy(system, params, n_max=2**9, k_max=2)
+
     for acc in accuracies:
-        ana_energy = calculate_elcic_energy(system, params, n_max=int(1e-5 / acc))
+        print(f"working on {acc=}")
         energy_analytical.append(ana_energy)
 
         # 1. Legacy ELC
@@ -61,6 +63,7 @@ def run(
             neutralize=False,
         )
         system.electrostatics.solver = elc
+        system.integrator.run(0)
         energy_legacy.append(system.analysis.energy()["total"])
 
         # 2. ELCIC Decomposition
@@ -84,16 +87,19 @@ def run(
     )
 
 
+import numpy as np
+
+
 def test_all(system):
     params = {
         "lx": 9.0,
         "ly": 12.0,
-        "lz": 19.0,  # > gap_size
+        "lz": 19.0,
         "gap_size": 15.0,
-        "prefactor": 2.0,
+        "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
-        "charges": [+1, -1, +1, -1],
+        "charges": [+1, -1],
     }
     params["positions"] = get_rdm_constrained_points_np(
         params["lx"],
@@ -102,5 +108,6 @@ def test_all(system):
         len(params["charges"]),
         min_distance=0.1,
     )
+    params["positions"] = [np.array([7, 1, 3]), np.array([4, 5, 2])]
 
     run(system, **params, params=params)
