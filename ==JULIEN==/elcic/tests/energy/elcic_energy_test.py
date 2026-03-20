@@ -40,7 +40,7 @@ def run(
     charges,
     params,
 ):
-    accuracies = [1e-5]
+    accuracies = [1e-10, 1e-11, 1e-12, 1e-13, 1e-14]
     energy_analytical, energy_legacy, energy_elcic = [], [], []
     e_3d_sums, e_corr_sums, e_far_vals = [], [], []
 
@@ -52,7 +52,9 @@ def run(
         print(f"working on {acc=}")
         energy_analytical.append(ana_energy)
 
-        energy_legacy.append(get_legacy_elc_energy(system, gap_size, acc))
+        energy_legacy.append(
+            get_legacy_elc_energy(system, gap_size, acc, delta_mid_top, delta_mid_bot)
+        )
 
         contribs = get_elcic_energy_contribs(
             system, gap_size, acc, prefactor, delta_mid_bot, delta_mid_top
@@ -92,6 +94,6 @@ def test_all(system):
         len(params["charges"]),
         min_distance=0.1,
     )
-    params["positions"] = [np.array([7, 1, 3]), np.array([4, 5, 2])]
+    params["positions"] = [np.array([7, 1, 0.1]), np.array([4, 5, 0.2])]
 
     run(system, **params, params=params)

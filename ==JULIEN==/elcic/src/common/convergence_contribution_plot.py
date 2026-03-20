@@ -49,7 +49,7 @@ def show_convergence_contribution_plot(
     ax2.plot(
         x_pos,
         energy_analytical,
-        color="gray",
+        color="green",
         linestyle="--",
         alpha=0.5,
         label="Analytical",
