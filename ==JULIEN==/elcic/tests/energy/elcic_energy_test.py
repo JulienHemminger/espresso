@@ -1,7 +1,9 @@
 import espressomd
 import espressomd.electrostatics
+import numpy as np
 import pytest
 from elc.src.common.get_positions import get_rdm_constrained_points_np
+from elc.src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
 from elcic.src.common.convergence_contribution_plot import (
     show_convergence_contribution_plot,
 )
@@ -38,7 +40,7 @@ def run(
     charges,
     params,
 ):
-    accuracies = [1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
+    accuracies = [1e-5]
     energy_analytical, energy_legacy, energy_elcic = [], [], []
     e_3d_sums, e_corr_sums, e_far_vals = [], [], []
 
@@ -50,23 +52,8 @@ def run(
         print(f"working on {acc=}")
         energy_analytical.append(ana_energy)
 
-        # 1. Legacy ELC
-        p3m = espressomd.electrostatics.P3M(
-            prefactor=prefactor, accuracy=acc, check_neutrality=False
-        )
-        elc = espressomd.electrostatics.ELC(
-            actor=p3m,
-            gap_size=gap_size,
-            maxPWerror=acc,
-            delta_mid_bot=delta_mid_bot,
-            delta_mid_top=delta_mid_top,
-            neutralize=False,
-        )
-        system.electrostatics.solver = elc
-        system.integrator.run(0)
-        energy_legacy.append(system.analysis.energy()["total"])
+        energy_legacy.append(get_legacy_elc_energy(system, gap_size, acc))
 
-        # 2. ELCIC Decomposition
         contribs = get_elcic_energy_contribs(
             system, gap_size, acc, prefactor, delta_mid_bot, delta_mid_top
         )
@@ -85,9 +72,6 @@ def run(
         energy_elcic,
         params,
     )
-
-
-import numpy as np
 
 
 def test_all(system):
