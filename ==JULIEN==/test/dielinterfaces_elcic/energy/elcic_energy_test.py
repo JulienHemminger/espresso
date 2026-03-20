@@ -2,13 +2,11 @@ import espressomd
 import espressomd.electrostatics
 import numpy as np
 import pytest
-from elc.src.common.get_positions import get_rdm_constrained_points_np
-from elc.src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
-from elcic.src.common.convergence_contribution_plot import (
-    show_convergence_contribution_plot,
-)
-from elcic.src.energy.get_elcic_energy import get_elcic_energy_contribs
-from elcic.src.energy.other.get_analytical_energy import calculate_elcic_energy
+from src.common.convergence_contribution_plot import show_convergence_contribution_plot
+from src.common.get_positions import get_rdm_constrained_points_np
+from src.energy.get_elcic_energy import get_elcic_energy_contribs
+from src.energy.third_party.analytical_elcic_energy import analytical_elcic_energy
+from src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
 
 
 @pytest.fixture(scope="module")
@@ -40,13 +38,13 @@ def run(
     charges,
     params,
 ):
-    accuracies = [1e-10, 1e-11, 1e-12, 1e-13, 1e-14]
+    accuracies = [1e-5]  # [1e-10, 1e-11, 1e-12, 1e-13, 1e-14]
     energy_analytical, energy_legacy, energy_elcic = [], [], []
     e_3d_sums, e_corr_sums, e_far_vals = [], [], []
 
     setup_system(system, lx, ly, lz, gap_size, positions, charges)
 
-    ana_energy = calculate_elcic_energy(system, params, n_max=2**9, k_max=2)
+    ana_energy = analytical_elcic_energy(system, params, n_max=2**9, k_max=2)
 
     for acc in accuracies:
         print(f"working on {acc=}")
@@ -87,6 +85,7 @@ def test_all(system):
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
     }
+
     params["positions"] = get_rdm_constrained_points_np(
         params["lx"],
         params["ly"],

@@ -4,8 +4,8 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elc.src.common.get_positions import get_rdm_constrained_points_np
-from elcic.src.energy.other.get_analytical_energy import calculate_elcic_energy
+from src.common.get_positions import get_rdm_constrained_points_np
+from src.energy.third_party.analytical_elcic_energy import analytical_elcic_energy
 
 
 def setup_system(system, lx, ly, lz, gap_size, positions, charges):
@@ -35,13 +35,13 @@ def run(
     # 1. Convergence over PBC Images (keeping reflections constant)
     image_counts = [2**i for i in range(2)]  # Reduced range for faster calculation
     energies_pbc = [
-        calculate_elcic_energy(system, params, n_max=n) for n in image_counts
+        analytical_elcic_energy(system, params, n_max=n) for n in image_counts
     ]
 
     # 2. Convergence over Reflection Steps (keeping PBC images constant)
     reflection_counts = [2, 4]
     energies_refl = [
-        calculate_elcic_energy(system, params, k_max=k) for k in reflection_counts
+        analytical_elcic_energy(system, params, k_max=k) for k in reflection_counts
     ]
 
     # Plotting

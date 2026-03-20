@@ -5,7 +5,7 @@
 
 import unittest as ut
 
-import importlib_wrapper
+import importlib_wrapper  # pyright: ignore[reportMissingImports]
 
 
 def disable_GUI(code):

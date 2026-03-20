@@ -1,6 +1,6 @@
 import numpy as np
-from elc.src.forces.get_elc_forces import get_elc_forces
-from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
+from src.forces.get_elc_forces import get_elc_forces
+from src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
 
 
 def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):

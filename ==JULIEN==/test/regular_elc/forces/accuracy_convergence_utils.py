@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from elc.src.common.get_positions import get_rdm_constrained_points_np
-from elc.src.common.has_downward_trend import has_downward_trend
-from elc.src.forces.get_elc_forces import get_elc_forces_contribs
-from elc.src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
+from src.common.get_positions import get_rdm_constrained_points_np
+from src.common.has_downward_trend import has_downward_trend
+from src.forces.get_elc_forces import get_elc_forces_contribs
+from src.forces.third_party.get_ewald_forces_2d import get_ewald_forces_2d
 
 
 def run_accuracy_convergence(

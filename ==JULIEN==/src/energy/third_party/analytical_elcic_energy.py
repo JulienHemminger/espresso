@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def calculate_elcic_energy(system, params, k_max=10, n_max=2**8):
+def analytical_elcic_energy(system, params, k_max=10, n_max=2**8):
     positions = np.array([p.pos for p in system.part])
     charges = np.array([p.q for p in system.part])
     N = len(charges)
