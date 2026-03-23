@@ -30,19 +30,24 @@ def test_energy_convergence(system):
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
     }
-    positions = [np.array([7, 1, 3]), np.array([4, 5, 2])]
+    positions = [np.array([7, 1, 0.1]), np.array([4, 5, 0.2])]
 
     # Setup System
     system.box_l = [params["lx"], params["ly"], params["lz"] + params["gap_size"]]
     for i, q in enumerate(params["charges"]):
         system.part.add(pos=positions[i], q=q)
 
-    print(f">>> {analytical_elcic_energy(system, params, n_max=2**12)}")
+    print(f">>> {analytical_elcic_energy(system, params, n_max=2**10)}")
     return
 
     """
+    # PARAMS 1
     n_max=2^4: ana_energy=-0.2707087931671765, in 8 sec
     n_max=2^10: ana_energy=-0.2704042280997297, in 8:30min
+    
+    # PARAMS 2
+    n_max=2^10: ana_energy=-3.750305061482468, in 8:30min
+   
     """
     energies_pbc = []
     energies_refl = []

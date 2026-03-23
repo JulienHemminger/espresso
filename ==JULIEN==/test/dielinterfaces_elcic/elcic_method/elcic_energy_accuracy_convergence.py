@@ -51,9 +51,7 @@ def run(
     elc_errors = []
     contrib_data = {"e_3d": [], "e_corr": [], "e_far": []}
 
-    ana_energy = (
-        -0.2704042280997297
-    )  # n_max=2^10: ana_energy=-0.2704042280997297, in 8:30min
+    ana_energy = -3.750305061482468
 
     for acc in accuracies:
         contribs = get_elcic_energy_contribs(
@@ -140,6 +138,6 @@ def test_all(system):
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
     }
-    params["positions"] = [np.array([7, 1, 3]), np.array([4, 5, 2])]
+    params["positions"] = [np.array([7, 1, 0.1]), np.array([4, 5, 0.2])]
 
     run(system, **params, params=params)
