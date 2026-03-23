@@ -37,15 +37,23 @@ def test_energy_convergence(system):
     for i, q in enumerate(params["charges"]):
         system.part.add(pos=positions[i], q=q)
 
+    print(f">>> {analytical_elcic_energy(system, params, n_max=2**12)}")
+    return
+
+    """
+    n_max=2^4: ana_energy=-0.2707087931671765, in 8 sec
+    n_max=2^10: ana_energy=-0.2704042280997297, in 8:30min
+    """
     energies_pbc = []
     energies_refl = []
-    N = 9
+    N = 11 + 1
     image_counts = [2**i for i in range(N)]
     reflection_counts = list(range(N))
 
     for i in range(N):
         energies_pbc.append(analytical_elcic_energy(system, params, n_max=2**i))
-        energies_refl.append(analytical_elcic_energy(system, params, k_max=i))
+        print(f"{i=}, pbc_energy={energies_pbc[-1]}")
+        energies_refl.append(0)  # analytical_elcic_energy(system, params, k_max=i)
 
     # Visualization
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))

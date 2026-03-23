@@ -14,8 +14,7 @@ def run_accuracy_convergence(
     show_convergence_plot=True,
 ):
     # Setup parameters based on system type
-    pw_errors = np.logspace(-4, -8, num=5)
-    title = "Force Accuracy Convergence"
+    accuracies = np.logspace(-4, -8, num=5)
 
     lx, ly, lz = system.box_l
     particle_count = len(charges)
@@ -26,7 +25,7 @@ def run_accuracy_convergence(
     elc_errors = []
     contrib_data = {"P3M (3D)": [], "Yeh-Berkowitz": [], "ELC Reciprocal": []}
 
-    for pw_err in pw_errors:
+    for acc in accuracies:
         system.part.clear()
         for i in range(particle_count):
             system.part.add(pos=positions[i], q=charges[i])
@@ -34,7 +33,7 @@ def run_accuracy_convergence(
         ana_forces = get_ewald_forces_2d(system, n_max=100, prefactor=prefactor)
 
         pref, f_3d, f_elc_recip, f_corr_moments = get_elc_forces_contribs(
-            system, gap_size, pw_err, prefactor
+            system, gap_size, acc, prefactor
         )
 
         f_final = list(f_3d + pref * (f_elc_recip + f_corr_moments))
@@ -59,13 +58,13 @@ def run_accuracy_convergence(
         ax2 = ax1.twinx()
 
         colors = ["#1abc9c", "#f1c40f", "#9b59b6"]
-        bottoms = np.zeros(len(pw_errors))
-        bar_width = 0.2 * np.array(pw_errors)
+        bottoms = np.zeros(len(accuracies))
+        bar_width = 0.2 * np.array(accuracies)
 
         # 1. Secondary Axis: Energy Contributions (Stacked Bars)
         for i, (label, vals) in enumerate(contrib_data.items()):
             ax2.bar(
-                pw_errors,
+                accuracies,
                 vals,
                 bottom=bottoms,
                 width=bar_width,
@@ -78,7 +77,7 @@ def run_accuracy_convergence(
 
         # 2. Primary Axis: Errors (Lines)
         ax1.loglog(
-            pw_errors,
+            accuracies,
             elc_errors,
             "o-",
             label="ELC Error",
@@ -87,13 +86,15 @@ def run_accuracy_convergence(
             zorder=5,
         )
 
-        ax1.loglog(pw_errors, pw_errors, "k:", alpha=0.5, label="Target Accuracy (1:1)")
+        ax1.loglog(
+            accuracies, accuracies, "k:", alpha=0.5, label="Target Accuracy (1:1)"
+        )
 
         # Formatting
         ax1.set_xlabel("Requested Accuracy (pw_error)")
         ax1.set_ylabel("Measured Error (Log Scale)", color="#2980b9")
         ax2.set_ylabel("Force Component Value (Linear Scale)", color="#7f8c8d")
-        plt.title(title)
+        plt.title("Force Accuracy Convergence")
 
         lines, labels = ax1.get_legend_handles_labels()
         bars, bar_labels = ax2.get_legend_handles_labels()
