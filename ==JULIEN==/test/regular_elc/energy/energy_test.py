@@ -3,6 +3,8 @@ import espressomd.electrostatics
 from src.common.get_positions import get_rdm_constrained_points_np
 from src.energy.get_elc_energy import get_elc_energy
 from src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
+from test.regular_elc.energy.accuracy_convergence_utils import run_accuracy_convergence
+from test.regular_elc.energy.madelung_utils import run_madelung
 
 
 def run_basic(
@@ -35,26 +37,32 @@ def test_all():
     # pytest -vv -s ==JULIEN==/elc/tests/energy/energy_test.py
     system = espressomd.System(box_l=[10, 10, 3])
     system.time_step = 0.01
+    run_accuracy_convergence(
+        system, prefactor=1.7, gap_size=1.0, charges=[+1, -1]
+    )  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=1.0, charges=[+1, -1])  # PASSED
+    run_accuracy_convergence(
+        system, prefactor=1.7, gap_size=2.1, charges=[+1, -1]
+    )  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1]) # PASSED
+    run_accuracy_convergence(
+        system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1]
+    )  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1]) # PASSED
+    run_accuracy_convergence(
+        system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9]
+    )  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9])  # PASSED
+    run_accuracy_convergence(
+        system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3]
+    )  # PASSED
 
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])  # PASSED
-
-    """
     system.part.clear()
     system.box_l = [7, 12, 2]
     run_accuracy_convergence(
         system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3]
     )  # PASS
-    """
 
-    """
     # varying prefactor
     run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=1.7)
     run_basic(system, 10, 7, 3, 1, [+1, -1], prefactor=2.3)
@@ -76,10 +84,5 @@ def test_all():
 
     run_madelung(system, ions_per_axis=8)
 
-    # accuracy convergence plots
-    run_accuracy_convergence(system, is_neutral=True)
-    run_accuracy_convergence(system, is_neutral=False)
-
     # huge_box_neutral
     run_basic(system, 200, 200, 10, 1, [+1, -1])
-    """

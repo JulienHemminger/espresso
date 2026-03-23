@@ -38,7 +38,7 @@ def run(
     charges,
     params,
 ):
-    accuracies = [1e-5]  # [1e-10, 1e-11, 1e-12, 1e-13, 1e-14]
+    accuracies = [1e-12]  # crashes for 1e-15
     energy_analytical, energy_legacy, energy_elcic = [], [], []
     e_3d_sums, e_corr_sums, e_far_vals = [], [], []
 
