@@ -37,17 +37,14 @@ def test_energy_convergence(system):
     for i, q in enumerate(params["charges"]):
         system.part.add(pos=positions[i], q=q)
 
-    print(f">>> {analytical_elcic_energy(system, params, n_max=2**10)}")
+    print(f">>> {analytical_elcic_energy(system, params, n_max=2**8)}")
     return
 
     """
     # PARAMS 1
-    n_max=2^4: ana_energy=-0.2707087931671765, in 8 sec
-    n_max=2^10: ana_energy=-0.2704042280997297, in 8:30min
-    
-    # PARAMS 2
+    n_max=2^8:  ana_energy=-3.750305211816521, in 0:30min
+    n_max=2^9:  ana_energy=-3.75030511164234, in 2:00min
     n_max=2^10: ana_energy=-3.750305061482468, in 8:30min
-   
     """
     energies_pbc = []
     energies_refl = []
