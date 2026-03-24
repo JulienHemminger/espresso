@@ -40,12 +40,6 @@ def test_energy_convergence(system):
     print(f">>> {analytical_elcic_energy(system, params, n_max=2**8)}")
     return
 
-    """
-    # PARAMS 1
-    n_max=2^8:  ana_energy=-3.750305211816521, in 0:30min
-    n_max=2^9:  ana_energy=-3.75030511164234, in 2:00min
-    n_max=2^10: ana_energy=-3.750305061482468, in 8:30min
-    """
     energies_pbc = []
     energies_refl = []
     N = 11 + 1
