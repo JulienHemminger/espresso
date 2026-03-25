@@ -1,6 +1,6 @@
 import espressomd
 import espressomd.electrostatics
-from src.common.get_positions import get_rdm_constrained_points_np
+from src.common.position_generator import get_rdm_constrained_points_np
 from src.energy.get_elc_energy import get_elc_energy
 from src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 from test.regular_elc.energy.accuracy_convergence_utils import run_accuracy_convergence

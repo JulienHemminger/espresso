@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from src.common.get_positions import get_rdm_constrained_points_np
 from src.common.has_downward_trend import has_downward_trend
+from src.common.position_generator import get_rdm_constrained_points_np
 from src.energy.get_elc_energy import get_elc_energy_contribs
 from src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
 
