@@ -43,7 +43,7 @@ def run(
 
     setup_system(system, lx, ly, lz, gap_size, positions, charges)
 
-    ana_energy = analytical_elcic_energy(system, params, n_max=2**9, k_max=2)
+    ana_energy = analytical_elcic_energy(system, params, k_max=2)
 
     for acc in accuracies:
         print(f"working on {acc=}")

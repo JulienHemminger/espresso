@@ -37,9 +37,6 @@ def test_energy_convergence(system):
     for i, q in enumerate(params["charges"]):
         system.part.add(pos=positions[i], q=q)
 
-    print(f">>> {analytical_elcic_energy(system, params, n_max=2**8)}")
-    return
-
     energies_pbc = []
     energies_refl = []
     N = 11 + 1
@@ -47,7 +44,7 @@ def test_energy_convergence(system):
     reflection_counts = list(range(N))
 
     for i in range(N):
-        energies_pbc.append(analytical_elcic_energy(system, params, n_max=2**i))
+        energies_pbc.append(analytical_elcic_energy(system, params))
         print(f"{i=}, pbc_energy={energies_pbc[-1]}")
         energies_refl.append(0)  # analytical_elcic_energy(system, params, k_max=i)
 
