@@ -9,7 +9,7 @@ from src.energy.third_party.analytical_elcic_energy import analytical_elcic_ener
 from src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
 
 
-def plot_convergence(accuracies, elc_errors, contrib_data, params):
+def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, params):
     """Handles the visualization of error convergence and energy components."""
     fig, ax1 = plt.subplots(figsize=(12, 8))
     ax2 = ax1.twinx()
@@ -32,7 +32,16 @@ def plot_convergence(accuracies, elc_errors, contrib_data, params):
         bottoms += np.array(vals)
 
     ax1.loglog(
-        accuracies, elc_errors, "o-", label="ELC Error", color="blue", lw=2, zorder=5
+        accuracies,
+        legacy_errors,
+        "o-",
+        label="Legacy Error",
+        color="blue",
+        lw=2,
+        zorder=5,
+    )
+    ax1.loglog(
+        accuracies, elcic_errors, "o-", label="ELCIC Error", color="red", lw=2, zorder=5
     )
     ax1.loglog(accuracies, accuracies, "k:", alpha=0.5, label="Target Accuracy (1:1)")
 
@@ -69,15 +78,15 @@ def plot_convergence(accuracies, elc_errors, contrib_data, params):
 def run_analysis():
     # Configuration
     params = {
-        "lx": 50.0,
-        "ly": 50.0,
-        "lz": 50.0,
-        "gap_size": 10.0,
+        "lx": 10.0,
+        "ly": 10.0,
+        "lz": 10.0,
+        "gap_size": 5.0,
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
-        "positions": [np.array([0, 0, 0.01]), np.array([1, 1, 0.02])],
+        "positions": [np.array([1, 2, 0.01]), np.array([3, 4, 0.02])],
     }
 
     system = espressomd.System(box_l=[params["lx"], params["ly"], params["lz"]])
@@ -85,11 +94,12 @@ def run_analysis():
     for pos, q in zip(params["positions"], params["charges"]):
         system.part.add(pos=pos, q=q)
 
-    accuracies = [10**-i for i in range(4, 12)]
-    elc_errors = []
+    accuracies = [10**-i for i in range(1, 4)]
+    legacy_errors = []
+    elcic_errors = []
     contrib_data = {"e_3d": [], "e_corr": [], "e_far": []}
 
-    ana_energy = analytical_elcic_energy(system, params, tol=1e-12)
+    ana_energy = analytical_elcic_energy(system, params, tol=accuracies[-1])
     print(f"Analytical Energy: {ana_energy:.10f}")
 
     for acc in accuracies:
@@ -115,9 +125,12 @@ def run_analysis():
             params["delta_mid_top"],
             params["delta_mid_bot"],
         )
-        elc_errors.append(np.abs(energy_legacy - ana_energy))
+        legacy_errors.append(np.abs(energy_legacy - ana_energy))
 
-    plot_convergence(accuracies, elc_errors, contrib_data, params)
+        elcic_energy = contribs["e_near"] + contribs["e_far"]
+        elcic_errors.append(np.abs(elcic_energy - ana_energy))
+
+    plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, params)
 
 
 if __name__ == "__main__":
