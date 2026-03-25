@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from src.common.has_downward_trend import has_downward_trend
-from src.energy.third_party.analytical_elcic_energy import analytical_elcic_energy
+from elcic.analytical_elcic_energy import analytical_elcic_energy
 
 
 @pytest.fixture

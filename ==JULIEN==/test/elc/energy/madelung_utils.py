@@ -1,5 +1,5 @@
 import numpy as np
-from src.energy.get_elc_energy import get_elc_energy
+from elc.energy.custom_energy import get_elc_energy
 
 
 def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):

@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Assuming these modules are in your python path
-from src.energy.get_elcic_energy import get_elcic_energy_contribs
-from src.energy.third_party.analytical_elcic_energy import analytical_elcic_energy
-from src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
+from elcic.get_elcic_energy import get_elcic_energy_contribs
+from elcic.analytical_elcic_energy import analytical_elcic_energy
+from src.elc.third_party.legacy_energy import get_legacy_elc_energy
 
 
 def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, params):

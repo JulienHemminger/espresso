@@ -2,10 +2,10 @@ import espressomd
 import espressomd.electrostatics
 import numpy as np
 import pytest
-from src.common.convergence_contribution_plot import show_convergence_contribution_plot
-from src.energy.get_elcic_energy import get_elcic_energy_contribs
-from src.energy.third_party.analytical_elcic_energy import analytical_elcic_energy
-from src.energy.third_party.get_legacy_elc import get_legacy_elc_energy
+from common.plotting.convergence_contribution_plot import show_convergence_contribution_plot
+from elcic.get_elcic_energy import get_elcic_energy_contribs
+from elcic.analytical_elcic_energy import analytical_elcic_energy
+from src.elc.third_party.legacy_energy import get_legacy_elc_energy
 
 
 @pytest.fixture(scope="module")

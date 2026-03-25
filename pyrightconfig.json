@@ -24,6 +24,11 @@
     "ignore": [
         "**/data"
     ],
+    "extraPaths": [
+        "./==JULIEN==",
+        "./==JULIEN==/src",
+        "./src/python"
+    ],
     "venvPath": ".",
     "venv": "espresso_env",
     

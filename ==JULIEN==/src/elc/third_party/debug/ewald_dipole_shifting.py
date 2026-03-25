@@ -2,7 +2,7 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from src.energy.third_party.get_ewald_energy_2d import get_ewald_energy_2d
+from src.elc.third_party.analytical_energy import get_ewald_energy_2d
 
 l_xy = 10.0
 l_z = 3.0
