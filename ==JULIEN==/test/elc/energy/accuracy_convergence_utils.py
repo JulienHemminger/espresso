@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from src.common.has_downward_trend import has_downward_trend
 from common.generators.position_generator import get_rdm_constrained_points_np
-from elc.energy.custom_energy import get_elc_energy_contribs
-from src.elc.third_party.analytical_energy import get_ewald_energy_2d
+from elc.energy.custom_elc_energy import get_elc_energy_contribs
+from elc.energy.analytical_elc_energy import get_ewald_energy_2d
 
 
 def run_accuracy_convergence(

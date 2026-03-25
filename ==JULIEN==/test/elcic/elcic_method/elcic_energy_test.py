@@ -3,9 +3,9 @@ import espressomd.electrostatics
 import numpy as np
 import pytest
 from common.plotting.convergence_contribution_plot import show_convergence_contribution_plot
-from elcic.get_elcic_energy import get_elcic_energy_contribs
-from elcic.analytical_elcic_energy import analytical_elcic_energy
-from src.elc.third_party.legacy_energy import get_legacy_elc_energy
+from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs
+from elcic.energy.analytical_elcic_energy import analytical_elcic_energy
+from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
 
 @pytest.fixture(scope="module")

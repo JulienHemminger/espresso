@@ -2,7 +2,7 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from src.elc.third_party.analytical_energy import (
+from elc.energy.analytical_elc_energy import (
     direct_sum_energy,
     get_ewald_energy_2d,
 )

@@ -1,8 +1,8 @@
 import espressomd
 import espressomd.electrostatics
 from common.generators.position_generator import get_rdm_constrained_points_np
-from elc.energy.custom_energy import get_elc_energy
-from src.elc.third_party.analytical_energy import get_ewald_energy_2d
+from elc.energy.custom_elc_energy import get_elc_energy
+from elc.energy.analytical_elc_energy import get_ewald_energy_2d
 from test.elc.energy.accuracy_convergence_utils import run_accuracy_convergence
 from test.elc.energy.madelung_utils import run_madelung
 
