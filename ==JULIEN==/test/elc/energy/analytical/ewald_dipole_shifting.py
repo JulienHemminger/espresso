@@ -4,11 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from elc.energy.analytical_elc_energy import get_ewald_energy_2d
 
-def run(lx, ly, lz, gap_size, charges, positions, z_pos_count):
-    system = espressomd.System(box_l=[lx, ly, lz])
-    system.time_step = 0.01
-    system.cell_system.skin = 0.4
-
+def run(system, lx, ly, lz, gap_size, charges, positions, z_pos_count):
+    system.part.clear()
+    system.box_l = [lx, ly, lz]
     z_range = np.linspace(0, lz - gap_size - 1e-3, num=z_pos_count)
     ewald_energies = []
 
@@ -45,4 +43,8 @@ def run(lx, ly, lz, gap_size, charges, positions, z_pos_count):
     plt.show()
 
 
-run(10, 10, 3, 1, np.array([+2, -1]), np.array([[3.0, 5.0, 0], [7.0, 5.0, 0]]), 10)
+
+system = espressomd.System(box_l=[1, 1, 1])
+system.time_step = 0.01
+system.cell_system.skin = 0.4
+run(system, 10, 10, 3, 1, np.array([+2, -1]), np.array([[3.0, 5.0, 0], [7.0, 5.0, 0]]), 10)
