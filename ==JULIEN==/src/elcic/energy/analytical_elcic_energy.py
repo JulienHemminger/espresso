@@ -1,5 +1,5 @@
 import numpy as np
-
+from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs, get_elcic_energy
 
 def analytical_elcic_energy(system, params, k_max=10, tol=1e-8):
     positions = np.array([p.pos for p in system.part])
@@ -9,12 +9,18 @@ def analytical_elcic_energy(system, params, k_max=10, tol=1e-8):
     prefactor = params["prefactor"]
     delta_b, delta_t = params["delta_mid_bot"], params["delta_mid_top"]
     delta = delta_b * delta_t
+    gap_size = params["gap_size"]
 
     # Pre-calculate charge products and z-distances for all pairs
     qi_qj = charges[:, np.newaxis] * charges[np.newaxis, :]
     zi, zj = positions[:, 2][:, np.newaxis], positions[:, 2][np.newaxis, :]
     dx_base = positions[:, 0][:, np.newaxis] - positions[:, 0][np.newaxis, :]
     dy_base = positions[:, 1][:, np.newaxis] - positions[:, 1][np.newaxis, :]
+    # DEBUG:
+    if any([pos[2] <= 1.0 for pos in positions]):
+        return get_elcic_energy(
+            system, gap_size, tol, prefactor, delta_b, delta_t
+        )
 
     # Pre-calculate image charge z-offsets (k_max is small, so we keep this loop)
     k_range = np.arange(k_max + 1)

@@ -27,14 +27,11 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
             system.part.add(pos=pos, q=charges[i])
         
 
-        legacy_energy = get_legacy_elc_energy(system, gap_size, pw_error, delta_mid_top, delta_mid_bot)
-        analytical_energy = analytical_elcic_energy(system, params)
-        custom_energy = get_elcic_energy(
+        legacy_energies.append(get_legacy_elc_energy(system, gap_size, pw_error, delta_mid_top, delta_mid_bot))
+        analytical_energies.append(analytical_elcic_energy(system, params))
+        custom_energies.append(get_elcic_energy(
             system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
-        )
-        legacy_energies.append(legacy_energy)
-        analytical_energies.append(analytical_energy)
-        custom_energies.append(custom_energy)
+        ))
     print([float(f) for f in analytical_energies])
 
     plt.figure(figsize=(8, 5))
@@ -70,4 +67,4 @@ params = {
     }
 params["positions"] = [np.array([7, 1, 3]), np.array([4, 5, 2])]
 
-run(system, **params, z_pos_count=3)
+run(system, **params, z_pos_count=8)
