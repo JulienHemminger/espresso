@@ -65,6 +65,6 @@ params = {
         "charges": [+1, -1],
         'pw_error': 1e-8,
     }
-params["positions"] = [np.array([7, 1, 3]), np.array([4, 5, 2])]
+params["positions"] = [np.array([7, 1, 4]), np.array([4, 5, 1])]
 
-run(system, **params, z_pos_count=8)
+run(system, **params, z_pos_count=32)
