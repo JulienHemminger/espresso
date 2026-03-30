@@ -11,9 +11,10 @@ from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 from elcic.energy.analytical_elcic_energy import analytical_elcic_energy
 
 def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, delta_mid_top, delta_mid_bot, z_pos_count):
+    eps = 1e-3
     system.part.clear()
     system.box_l = [lx, ly, lz]
-    z_range = np.linspace(0, lz - gap_size - 1e-3, num=z_pos_count)
+    z_range = np.linspace(eps, lz - gap_size - eps, num=z_pos_count)
 
     legacy_energies = []
     analytical_energies = []
