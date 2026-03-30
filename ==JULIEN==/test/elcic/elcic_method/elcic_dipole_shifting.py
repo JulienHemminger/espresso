@@ -31,22 +31,42 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
         custom_energies.append(get_elcic_energy(
             system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
         ))
+        print(f"finished computing energies for {z=}")
 
-    plt.figure(figsize=(8, 5))
-    plt.plot(z_range, legacy_energies, label='Legacy ELC', marker='x', linestyle='--')
-    plt.plot(z_range, analytical_energies, label='Analytical ELCIC', linestyle='-')
-    plt.plot(z_range, custom_energies, label='Custom ELCIC', marker='x', linestyle=':')
+    # Create figure with two subplots sharing the x-axis
+    # Convert your lists to numpy arrays
+    legacy_energies = np.array(legacy_energies)
+    analytical_energies = np.array(analytical_energies)
+    custom_energies = np.array(custom_energies)
 
-    plt.text(0.95, 0.95, "\n".join([f"{k}: {v}" for k, v in params.items()]), transform=plt.gca().transAxes, 
-             verticalalignment='top', horizontalalignment='right',
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), sharex=True, 
+                                   gridspec_kw={'height_ratios': [2, 1]})
+
+    # Top Plot: Absolute Energy
+    ax1.plot(z_range, legacy_energies, label='Legacy ELC', marker='x', linestyle='--')
+    ax1.plot(z_range, analytical_energies, label='Analytical ELCIC', linestyle='-')
+    ax1.plot(z_range, custom_energies, label='Custom ELCIC', marker='x', linestyle=':')
+
+    ax1.text(0.95, 0.95, "\n".join([f"{k}: {v}" for k, v in params.items()]), 
+             transform=ax1.transAxes, verticalalignment='top', horizontalalignment='right',
              bbox=dict(boxstyle='round', facecolor='white', alpha=0.5),
              fontsize=9, family='monospace')
     
-    plt.xlabel('z-position')
-    plt.ylabel('Energy')
-    plt.title('Energy Comparison vs Particle Position')
-    plt.legend()
-    plt.grid(True)
+    ax1.set_ylabel('Energy')
+    ax1.set_title('Energy Comparison vs Particle Position')
+    ax1.legend()
+    ax1.grid(True)
+
+    # Bottom Plot: Differences (Residuals)
+    ax2.plot(z_range, legacy_energies - analytical_energies, label='Legacy - Analytical', marker='o', markersize=3)
+    ax2.plot(z_range, custom_energies - analytical_energies, label='Custom - Analytical', marker='s', markersize=3)
+    
+    ax2.set_xlabel('z-position')
+    ax2.set_ylabel('Difference')
+    ax2.legend()
+    ax2.grid(True)
+
+    plt.tight_layout()
     plt.show()
 
    
@@ -56,7 +76,7 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
-z = 1
+z = 0
 params = {
         "lx": 9.0,
         "ly": 12.0,
@@ -64,27 +84,10 @@ params = {
         "gap_size": 15.0,
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
-        "delta_mid_bot": -0.6,
+        "delta_mid_bot": -1.0,
         "charges": [+1, -1],
         'pw_error': 1e-8,
-        "positions": [np.array([6, 5, z]), np.array([1, 3, z])]
+        "positions": [np.array([2, 5, z]), np.array([8, 3, z])]
     }
 
 run(system, **params, z_pos_count=32, params=params)
-
-
-"""
-* fix the problem
-    * if i change "[np.array([7, 1, z]), np.array([4, 5, z])]": NO CHANGE
-    * if i change delta_bot != -1: NO CHANGE (tried "delta_mid_bot": -0.6)
-
-* own for-loop for every method: NO CHANGE
-
-            
-
-
-* hide the problem
-    * can i cap-out using by "hiding" the 0<=z<=1 error?
-        * alex digs into things, he may find out
-
-"""
