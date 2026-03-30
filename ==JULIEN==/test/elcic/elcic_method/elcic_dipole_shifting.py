@@ -11,7 +11,7 @@ from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 from elcic.energy.analytical_elcic_energy import analytical_elcic_energy
 
 def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, delta_mid_top, delta_mid_bot, z_pos_count, params):
-    eps = 1e-3
+    eps = 0.5
     system.part.clear()
     system.box_l = [lx, ly, lz]
 
@@ -31,7 +31,6 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
         custom_energies.append(get_elcic_energy(
             system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
         ))
-    print([float(f) for f in analytical_energies])
 
     plt.figure(figsize=(8, 5))
     plt.plot(z_range, legacy_energies, label='Legacy ELC', marker='x', linestyle='--')
@@ -71,7 +70,7 @@ params = {
         "positions": [np.array([6, 5, z]), np.array([1, 3, z])]
     }
 
-run(system, **params, z_pos_count=8, params=params)
+run(system, **params, z_pos_count=32, params=params)
 
 
 """
