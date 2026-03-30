@@ -53,7 +53,7 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
-
+z = 1
 params = {
         "lx": 9.0,
         "ly": 12.0,
@@ -64,7 +64,7 @@ params = {
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
         'pw_error': 1e-8,
+        "positions": [np.array([7, 1, z]), np.array([4, 5, z])]
     }
-params["positions"] = [np.array([7, 1, 4]), np.array([4, 5, 1])]
 
-run(system, **params, z_pos_count=32)
+run(system, **params, z_pos_count=8)

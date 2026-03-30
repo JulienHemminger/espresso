@@ -16,11 +16,7 @@ def analytical_elcic_energy(system, params, k_max=10, tol=1e-8):
     zi, zj = positions[:, 2][:, np.newaxis], positions[:, 2][np.newaxis, :]
     dx_base = positions[:, 0][:, np.newaxis] - positions[:, 0][np.newaxis, :]
     dy_base = positions[:, 1][:, np.newaxis] - positions[:, 1][np.newaxis, :]
-    # DEBUG:
-    if any([pos[2] <= 1.0 for pos in positions]):
-        return get_elcic_energy(
-            system, gap_size, tol, prefactor, delta_b, delta_t
-        )
+    
 
     # Pre-calculate image charge z-offsets (k_max is small, so we keep this loop)
     k_range = np.arange(k_max + 1)
