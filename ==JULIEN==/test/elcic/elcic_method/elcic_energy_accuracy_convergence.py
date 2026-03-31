@@ -5,9 +5,10 @@ import numpy as np
 
 # Assuming these modules are in your python path
 from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs
-from elcic.energy.analytical_elcic_energy import analytical_elcic_energy
+from elcic.energy.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
+from elcic.energy.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, params):
     """Handles the visualization of error convergence and energy components."""
@@ -95,18 +96,19 @@ def run_analysis():
         system.part.add(pos=pos, q=q)
 
     accuracies = [10**-i for i in range(1, 4)]
+    custom_errors = []
     legacy_errors = []
-    elcic_errors = []
-    contrib_data = {"e_3d": [], "e_corr": [], "e_far": []}
+    bar_plot_data = {"e_3d": [], "e_corr": [], "e_far": []}
 
-    ana_energy = analytical_elcic_energy(system, params, tol=accuracies[-1])
+    ana_energy = analytical_single_plate_2d_ewald_elcic_energy(params["positions"], params["charges"], system.box_l, params["prefactor"], params["delta_mid_bot"], k_max=10, n_real=10) # -37.5000171306
+    #ana_energy = analytical_two_plate_elcic_energy(system, params, tol=accuracies[-1])
     print(f"Analytical Energy: {ana_energy:.10f}")
 
     for acc in accuracies:
         contribs = get_elcic_energy_contribs(
             system,
             params["gap_size"],
-            acc,
+            1e-2,
             params["prefactor"],
             params["delta_mid_bot"],
             params["delta_mid_top"],
@@ -114,23 +116,19 @@ def run_analysis():
 
         # Aggregate contributions
         keys = ["l0", "pm1", "lt"]
-        contrib_data["e_3d"].append(sum(contribs[k]["e_3d"] for k in keys))
-        contrib_data["e_corr"].append(sum(contribs[k]["e_corr"] for k in keys))
-        contrib_data["e_far"].append(contribs["e_far"])
+        bar_plot_data["e_3d"].append(sum(contribs[k]["e_3d"] for k in keys))
+        bar_plot_data["e_corr"].append(sum(contribs[k]["e_corr"] for k in keys))
+        bar_plot_data["e_far"].append(contribs["e_far"])
 
-        energy_legacy = get_legacy_elc_energy(
-            system,
-            params["gap_size"],
-            acc,
-            params["delta_mid_top"],
-            params["delta_mid_bot"],
-        )
-        legacy_errors.append(np.abs(energy_legacy - ana_energy))
+        custom_energy = contribs["e_far"] + contribs["e_near"]
+        custom_errors.append(np.abs(custom_energy - ana_energy))
 
-        elcic_energy = contribs["e_near"] + contribs["e_far"]
-        elcic_errors.append(np.abs(elcic_energy - ana_energy))
+        legacy_energy = get_legacy_elc_energy(system, params["gap_size"], acc, params["delta_mid_top"], params["delta_mid_bot"])
 
-    plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, params)
+        legacy_errors.append(np.abs(legacy_energy - ana_energy))
+        print(f"Done Accuracy={acc}")
+
+    plot_convergence(accuracies, legacy_errors, custom_errors, bar_plot_data, params)
 
 
 if __name__ == "__main__":

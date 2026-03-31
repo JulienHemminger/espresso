@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from common.plotting.convergence_contribution_plot import show_convergence_contribution_plot
 from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs
-from elcic.energy.analytical_elcic_energy import analytical_elcic_energy
+from elcic.energy.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
 
@@ -43,7 +43,7 @@ def run(
 
     setup_system(system, lx, ly, lz, gap_size, positions, charges)
 
-    ana_energy = analytical_elcic_energy(system, params, k_max=2)
+    ana_energy = analytical_two_plate_elcic_energy(system, params, k_max=2)
 
     for acc in accuracies:
         print(f"working on {acc=}")

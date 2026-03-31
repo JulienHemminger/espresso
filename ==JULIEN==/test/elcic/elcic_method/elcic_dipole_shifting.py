@@ -5,10 +5,10 @@ import numpy as np
 from elc.energy.analytical_elc_energy import get_ewald_energy_2d
 from common.plotting.convergence_contribution_plot import show_convergence_contribution_plot
 from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs, get_elcic_energy
-from elcic.energy.analytical_elcic_energy import analytical_elcic_energy
+from elcic.energy.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
-from elcic.energy.analytical_elcic_energy import analytical_elcic_energy
+from elcic.energy.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, delta_mid_top, delta_mid_bot, z_pos_count, params):
     eps = 0.5
@@ -27,7 +27,8 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
             system.part.add(pos=[pos[0], pos[1], z], q=charges[i])
 
         legacy_energies.append(get_legacy_elc_energy(system, gap_size, pw_error, delta_mid_top, delta_mid_bot))  
-        analytical_energies.append(analytical_elcic_energy(system, params))
+        analytical_energies.append(analytical_single_plate_2d_ewald_elcic_energy([p.pos for p in system.part.all()], charges, system.box_l, prefactor, delta_mid_bot, k_max=10, n_real=10))
+        #analytical_energies.append(analytical_two_plate_elcic_energy(system, params))
         custom_energies.append(get_elcic_energy(
             system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
         ))

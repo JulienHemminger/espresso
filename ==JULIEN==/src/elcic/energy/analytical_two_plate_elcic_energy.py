@@ -1,6 +1,6 @@
 import numpy as np
 
-def analytical_elcic_energy(system, params, k_max=10, tol=1e-8):
+def analytical_two_plate_elcic_energy(system, params, k_max=10, tol=1e-8):
     positions = np.array([p.pos for p in system.part])
     charges = np.array([p.q for p in system.part])
     lz, lx, ly = params["lz"], params["lx"], params["ly"]
