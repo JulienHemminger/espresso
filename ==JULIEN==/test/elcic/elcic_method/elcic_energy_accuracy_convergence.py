@@ -79,23 +79,24 @@ def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, para
 def run_analysis():
     # Configuration
     params = {
-        "lx": 10.0,
-        "ly": 10.0,
-        "lz": 10.0,
-        "gap_size": 5.0,
+        "lx": 9.0,
+        "ly": 12.0,
+        "lz": 19.0,
+        "gap_size": 15.0,
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
-        "positions": [np.array([1, 2, 0.01]), np.array([3, 4, 0.02])],
+        'pw_error': 1e-8,
+        "positions": [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
     }
-
+    
     system = espressomd.System(box_l=[params["lx"], params["ly"], params["lz"]])
     system.time_step = 0.01
     for pos, q in zip(params["positions"], params["charges"]):
         system.part.add(pos=pos, q=q)
 
-    accuracies = [10**-i for i in range(1, 4)]
+    accuracies = [10**-i for i in range(1, 9+1)] # < somewhere between 1e-5, 1e-9 - idk changes randomly
     custom_errors = []
     legacy_errors = []
     bar_plot_data = {"e_3d": [], "e_corr": [], "e_far": []}
@@ -108,7 +109,7 @@ def run_analysis():
         contribs = get_elcic_energy_contribs(
             system,
             params["gap_size"],
-            1e-2,
+            acc,
             params["prefactor"],
             params["delta_mid_bot"],
             params["delta_mid_top"],
