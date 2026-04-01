@@ -86,8 +86,7 @@ def run(system, params):
     legacy_errors = []
     bar_plot_data = {"e_3d": [], "e_corr": [], "e_far": []}
 
-    ana_energy = analytical_single_plate_2d_ewald_elcic_energy(params["positions"], params["charges"], system.box_l, params["prefactor"], params["delta_mid_bot"], k_max=10, n_real=10) # -37.5000171306
-    #ana_energy = analytical_two_plate_elcic_energy(system, params, tol=accuracies[-1])
+    ana_energy = analytical_single_plate_2d_ewald_elcic_energy(params["positions"], params["charges"], system.box_l, params["prefactor"], params["delta_mid_bot"], k_max=10, n_real=10)
     print(f"Analytical Energy: {ana_energy:.10f}")
 
     for acc in accuracies:
@@ -109,9 +108,8 @@ def run(system, params):
         custom_energy = contribs["e_far"] + contribs["e_near"]
         custom_errors.append(np.abs(custom_energy - ana_energy))
 
-        legacy_energy = get_legacy_elc_energy(system, params["gap_size"], acc, params["delta_mid_top"], params["delta_mid_bot"])
+        legacy_energy = custom_energy #get_legacy_elc_energy(system, params["gap_size"], acc, params["delta_mid_top"], params["delta_mid_bot"])
 
         legacy_errors.append(np.abs(legacy_energy - ana_energy))
-        print(f"Done Accuracy={acc}")
 
     plot_convergence(accuracies, legacy_errors, custom_errors, bar_plot_data, params)

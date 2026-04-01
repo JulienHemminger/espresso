@@ -15,14 +15,22 @@ params = {
         "gap_size": 15.0,
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
-        "delta_mid_bot": 0.1, # non metallic: −1 < Δ < 1
+        "delta_mid_bot": -1, # metallic: Δ = -1
         "charges": [+1.3, -0.5],
         'pw_error': 1e-8,
         "positions": [np.array([2, 5, 0]), np.array([8, 3, 0])],
-        "title": "Single Plate, Non-Metallic, Non-Neutral",
+        "title": "Single Plate, Metallic, Non-Neutral",
     }
 
 params["positions"] = [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
 run_elcic_energy_accuracy_convergence(system, params)
 
 run_elcic_dipole_shifting(system, z_pos_count=32, params=params)
+
+
+"""
+Für "Single Plate, Metallic, Non-Neutral" ...
+
+
+Hier konnte ich aber Espressos "legacy" ELC Methode nicht verwenden weil es den Fehler "RuntimeError: ELC does not work for non-neutral systems and non-metallic dielectric contrast." gibt. Auch wenn die Platte metallisch ist. Aber ich denke das liegt daran dass die andere Plate "weg" ist (delta_top=0)
+"""

@@ -27,15 +27,14 @@ def run(system, z_pos_count, params):
             system.part.add(pos=[pos[0], pos[1], z], q=params["charges"][i])
 
         analytical_energies.append(analytical_single_plate_2d_ewald_elcic_energy([p.pos for p in system.part.all()], params["charges"], system.box_l, prefactor, delta_mid_bot, k_max=10, n_real=10))
-        legacy_energies.append(get_legacy_elc_energy(system, params["gap_size"], pw_error, delta_mid_top, delta_mid_bot))
+        #legacy_energies.append(get_legacy_elc_energy(system, params["gap_size"], pw_error, delta_mid_top, delta_mid_bot))
         custom_energies.append(get_elcic_energy(
             system, params["gap_size"], pw_error, prefactor, delta_mid_bot, delta_mid_top
         ))
-        print(f"finished computing energies for {z=}")
 
     # Create figure with two subplots sharing the x-axis
     # Convert your lists to numpy arrays
-    legacy_energies = np.array(legacy_energies)
+    legacy_energies = np.array(analytical_energies)
     analytical_energies = np.array(analytical_energies)
     custom_energies = np.array(custom_energies)
 
