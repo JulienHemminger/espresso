@@ -5,10 +5,10 @@ import numpy as np
 from elc.energy.analytical_elc_energy import get_ewald_energy_2d
 from common.plotting.convergence_contribution_plot import show_convergence_contribution_plot
 from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs, get_elcic_energy
-from elcic.energy.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
+from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
-from elcic.energy.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
+from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, delta_mid_top, delta_mid_bot, z_pos_count, params):
     eps = 0.5

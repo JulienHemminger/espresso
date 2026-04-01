@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from src.common.has_downward_trend import has_downward_trend
-from elcic.energy.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
-from elcic.energy.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
+from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
+from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 
 @pytest.fixture
@@ -49,8 +49,6 @@ def test_energy_convergence(system):
 
         energies_refl.append(analytical_single_plate_2d_ewald_elcic_energy(positions, params["charges"], system.box_l, params["prefactor"], params["delta_mid_bot"], k_max=reflection_counts[i], n_real=10))
         print(i)
-        #energies_pbc.append(analytical_two_plate_elcic_energy(system, params))
-        #energies_refl.append(analytical_two_plate_elcic_energy(system, params, k_max=i))
 
     # Visualization
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))

@@ -5,10 +5,10 @@ import numpy as np
 
 # Assuming these modules are in your python path
 from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs
-from elcic.energy.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
+from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
-from elcic.energy.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
+from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, params):
     """Handles the visualization of error convergence and energy components."""
@@ -76,21 +76,7 @@ def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, para
     plt.show()
 
 
-def run_analysis():
-    # Configuration
-    params = {
-        "lx": 9.0,
-        "ly": 12.0,
-        "lz": 19.0,
-        "gap_size": 15.0,
-        "prefactor": 1.0,
-        "delta_mid_top": 0.0,
-        "delta_mid_bot": -1.0,
-        "charges": [+1, -1],
-        'pw_error': 1e-8,
-        "positions": [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
-    }
-    
+def analyze_convergence(params):
     system = espressomd.System(box_l=[params["lx"], params["ly"], params["lz"]])
     system.time_step = 0.01
     for pos, q in zip(params["positions"], params["charges"]):
@@ -132,5 +118,18 @@ def run_analysis():
     plot_convergence(accuracies, legacy_errors, custom_errors, bar_plot_data, params)
 
 
-if __name__ == "__main__":
-    run_analysis()
+
+params = {
+        "lx": 9.0,
+        "ly": 12.0,
+        "lz": 19.0,
+        "gap_size": 15.0,
+        "prefactor": 1.0,
+        "delta_mid_top": 0.0,
+        "delta_mid_bot": -1.0,
+        "charges": [+1, -1],
+        'pw_error': 1e-8,
+        "positions": [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
+    }
+
+analyze_convergence(params)
