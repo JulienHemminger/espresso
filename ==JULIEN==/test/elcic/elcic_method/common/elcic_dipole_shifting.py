@@ -1,36 +1,35 @@
-import espressomd
-import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elc.energy.analytical_elc_energy import get_ewald_energy_2d
-from common.plotting.convergence_contribution_plot import show_convergence_contribution_plot
-from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs, get_elcic_energy
-from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
+from elcic.energy.custom_elcic_energy import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
 from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
-def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, delta_mid_top, delta_mid_bot, z_pos_count, params):
+def run(system, z_pos_count, params):
+    prefactor = params["prefactor"]
+    pw_error = params["pw_error"]
+    delta_mid_top = params["delta_mid_top"]
+    delta_mid_bot = params["delta_mid_bot"]
+    
     eps = 0.5
     system.part.clear()
-    system.box_l = [lx, ly, lz]
-
+    system.box_l = [params["lx"], params["ly"], params["lz"]]
+    
     legacy_energies = []
     analytical_energies = []
     custom_energies = []
-
-    z_range = np.linspace(eps, lz - gap_size - eps, num=z_pos_count)
+    
+    z_range = np.linspace(eps, params["lz"] - params["gap_size"] - eps, num=z_pos_count)
     for z in z_range:
         system.part.clear()
-        for i in range(min(len(charges), len(positions))):
-            pos = positions[i]
-            system.part.add(pos=[pos[0], pos[1], z], q=charges[i])
+        for i in range(min(len(params["charges"]), len(params["positions"]))):
+            pos = params["positions"][i]
+            system.part.add(pos=[pos[0], pos[1], z], q=params["charges"][i])
 
-        legacy_energies.append(get_legacy_elc_energy(system, gap_size, pw_error, delta_mid_top, delta_mid_bot))  
-        analytical_energies.append(analytical_single_plate_2d_ewald_elcic_energy([p.pos for p in system.part.all()], charges, system.box_l, prefactor, delta_mid_bot, k_max=10, n_real=10))
-        #analytical_energies.append(analytical_two_plate_elcic_energy(system, params))
+        analytical_energies.append(analytical_single_plate_2d_ewald_elcic_energy([p.pos for p in system.part.all()], params["charges"], system.box_l, prefactor, delta_mid_bot, k_max=10, n_real=10))
+        legacy_energies.append(get_legacy_elc_energy(system, params["gap_size"], pw_error, delta_mid_top, delta_mid_bot))
         custom_energies.append(get_elcic_energy(
-            system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
+            system, params["gap_size"], pw_error, prefactor, delta_mid_bot, delta_mid_top
         ))
         print(f"finished computing energies for {z=}")
 
@@ -45,7 +44,7 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
 
     # Top Plot: Absolute Energy
     ax1.plot(z_range, legacy_energies, label='Legacy ELC', marker='x', linestyle='--')
-    ax1.plot(z_range, analytical_energies, label='Analytical ELCIC', linestyle='-')
+    ax1.plot(z_range, analytical_energies, label='Analytical', linestyle='-')
     ax1.plot(z_range, custom_energies, label='Custom ELCIC', marker='x', linestyle=':')
 
     ax1.text(0.95, 0.95, "\n".join([f"{k}: {v}" for k, v in params.items()]), 
@@ -74,21 +73,4 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
 
 
 
-system = espressomd.System(box_l=[1, 1, 1])
-system.time_step = 0.01
-system.cell_system.skin = 0.4
-z = 0
-params = {
-        "lx": 9.0,
-        "ly": 12.0,
-        "lz": 19.0,
-        "gap_size": 15.0,
-        "prefactor": 1.0,
-        "delta_mid_top": 0.0,
-        "delta_mid_bot": -1.0,
-        "charges": [+1, -1],
-        'pw_error': 1e-8,
-        "positions": [np.array([2, 5, 0]), np.array([8, 3, 0])]
-    }
 
-run(system, **params, z_pos_count=32, params=params)
