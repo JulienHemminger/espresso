@@ -22,6 +22,10 @@ def get_legacy_elc_energy(
     if delta_mid_bot is not None:
         args["delta_mid_bot"] = delta_mid_bot
 
+    cond = delta_mid_top == -1 and delta_mid_bot == -1
+    if cond: # ValueError: ELC with two parallel metallic boundaries requires the const_pot option
+        args["const_pot"] = True
+
     elc_legacy = espressomd.electrostatics.ELC(**args)
 
     system.electrostatics.solver = elc_legacy
