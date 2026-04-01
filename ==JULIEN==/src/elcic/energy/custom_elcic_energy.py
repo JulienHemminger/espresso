@@ -1,7 +1,7 @@
 import espressomd
 import espressomd.electrostatics
 import numpy as np
-
+from scipy.optimize import brentq
 
 def _get_e_non_neutral_corr(lx, ly, lz, zs, qs):
     """Equation 3.10: Dipole and non-neutrality energy correction."""
@@ -23,9 +23,34 @@ def _get_chi(fx, fy, f, xs, ys, zs, qs, sign=1):
 
 
 def _get_e_far_field(lx, ly, lz, gap_size, pw_error, qs, xs, ys, zs, db, dt):
-    """Calculates the analytic Far-Field energy (L-2 and L+2 image sets)."""
+    """Calculates the analytic Far-Field energy using Equation 18 for f_max."""
     delta = db * dt
-    f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
+    h = np.max(zs) - np.min(zs)
+    
+    # Equation 18 as a root-finding problem: f(R) - pw_error = 0
+    # Note: R in the paper corresponds to (f_max * lx) or similar; 
+    # Here we solve for R and then define f_max = R / lx (assuming lx=ly).
+    def error_bound_root(R):
+        exp_fac = np.exp(2.0 * np.pi * R * lz / lx)
+        term1 = (2.0 * np.pi * R + 4.0) / lx
+        
+        # Upper bound formula for force error (Equation 18)
+        val = (1.0 / (2.0 * (exp_fac - 1.0))) * (
+            (term1 + 1.0 / (lz - h)) * (np.exp(2.0 * np.pi * R * h / lx) / (lz - h)) +
+            (term1 + 1.0 / (lz + h)) * (np.exp(-2.0 * np.pi * R * h / lx) / (lz + h))
+        )
+        return val - pw_error
+
+    # Solve for R in a reasonable range [0.1, 100]
+    # (Brentq is preferred for its robustness)
+    try:
+        r_best = brentq(error_bound_root, 0.1, 100)
+    except ValueError:
+        # Fallback if the range is insufficient or error is too high
+        r_best = -np.log(pw_error) * lx / (2.0 * np.pi * gap_size)
+
+    f_max = r_best / lx
+    
     p_max, q_max = int(np.ceil(f_max * lx)), int(np.ceil(f_max * ly))
     p = np.arange(-p_max, p_max + 1)
     q = np.arange(-q_max, q_max + 1)
