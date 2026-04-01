@@ -7,7 +7,6 @@ from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
 from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
-from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, params):
     """Handles the visualization of error convergence and energy components."""
@@ -86,7 +85,7 @@ def run(system, params):
     legacy_errors = []
     bar_plot_data = {"e_3d": [], "e_corr": [], "e_far": []}
 
-    ana_energy = analytical_single_plate_2d_ewald_elcic_energy(params["positions"], params["charges"], system.box_l, params["prefactor"], params["delta_mid_bot"], k_max=10, n_real=10)
+    ana_energy = analytical_two_plate_elcic_energy(system, params, k_max=100, tol=1e-8)
     print(f"Analytical Energy: {ana_energy:.10f}")
 
     for acc in accuracies:

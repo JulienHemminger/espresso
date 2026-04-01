@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from elcic.energy.custom_elcic_energy import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
-
-from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
+from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 
 def run(system, z_pos_count, params):
     prefactor = params["prefactor"]
@@ -26,7 +25,8 @@ def run(system, z_pos_count, params):
             pos = params["positions"][i]
             system.part.add(pos=[pos[0], pos[1], z], q=params["charges"][i])
 
-        analytical_energies.append(analytical_single_plate_2d_ewald_elcic_energy([p.pos for p in system.part.all()], params["charges"], system.box_l, prefactor, delta_mid_bot, k_max=10, n_real=10))
+        
+        analytical_energies.append(analytical_two_plate_elcic_energy(system, params, k_max=100, tol=1e-8))
         legacy_energies.append(get_legacy_elc_energy(system, params["gap_size"], pw_error, delta_mid_top, delta_mid_bot))
         custom_energies.append(get_elcic_energy(
             system, params["gap_size"], pw_error, prefactor, delta_mid_bot, delta_mid_top
