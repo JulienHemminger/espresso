@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs
-from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
+from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, params):
@@ -108,7 +108,7 @@ def run(system, params):
         custom_energy = contribs["e_far"] + contribs["e_near"]
         custom_errors.append(np.abs(custom_energy - ana_energy))
 
-        legacy_energy = custom_energy #get_legacy_elc_energy(system, params["gap_size"], acc, params["delta_mid_top"], params["delta_mid_bot"])
+        legacy_energy = get_legacy_elc_energy(system, params["gap_size"], acc, params["delta_mid_top"], params["delta_mid_bot"])
 
         legacy_errors.append(np.abs(legacy_energy - ana_energy))
 
