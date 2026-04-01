@@ -88,7 +88,7 @@ params = {
         "delta_mid_bot": -1.0,
         "charges": [+1, -1],
         'pw_error': 1e-8,
-        "positions": [np.array([2, 5, z]), np.array([8, 3, z])]
+        "positions": [np.array([2, 5, 0]), np.array([8, 3, 0])]
     }
 
 run(system, **params, z_pos_count=32, params=params)

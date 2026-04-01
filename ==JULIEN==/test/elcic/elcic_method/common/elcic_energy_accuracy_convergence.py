@@ -3,7 +3,6 @@ import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Assuming these modules are in your python path
 from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs
 from elcic.energy.analytical.analytical_two_plate_elcic_energy import analytical_two_plate_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
@@ -76,9 +75,9 @@ def plot_convergence(accuracies, legacy_errors, elcic_errors, contrib_data, para
     plt.show()
 
 
-def analyze_convergence(params):
-    system = espressomd.System(box_l=[params["lx"], params["ly"], params["lz"]])
-    system.time_step = 0.01
+def run(system, params):
+    system.part.clear()
+    system.box_l = [params["lx"], params["ly"], params["lz"]]
     for pos, q in zip(params["positions"], params["charges"]):
         system.part.add(pos=pos, q=q)
 
@@ -116,20 +115,3 @@ def analyze_convergence(params):
         print(f"Done Accuracy={acc}")
 
     plot_convergence(accuracies, legacy_errors, custom_errors, bar_plot_data, params)
-
-
-
-params = {
-        "lx": 9.0,
-        "ly": 12.0,
-        "lz": 19.0,
-        "gap_size": 15.0,
-        "prefactor": 1.0,
-        "delta_mid_top": 0.0,
-        "delta_mid_bot": -1.0,
-        "charges": [+1, -1],
-        'pw_error': 1e-8,
-        "positions": [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
-    }
-
-analyze_convergence(params)
