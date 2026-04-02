@@ -27,5 +27,3 @@ run_elcic_energy_accuracy_convergence(system, params)
 
 run_elcic_dipole_shifting(system, z_pos_count=32, params=params)
 
-# TODO check ana solution convergence, how do i set k_max, and tol=?
-
