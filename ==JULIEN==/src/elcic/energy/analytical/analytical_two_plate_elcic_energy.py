@@ -4,6 +4,9 @@ import espressomd.electrostatics
 
 def analytical_two_plate_elcic_energy(system, params, k_max=10, n_max=10):
     """
+    Computes the total electrostatic energy of a 2d+h slab system by "brute force" summing a set amount of slabs (n_max) and reflections (k_max).
+    Converges towards the true total electrostatic energy as n_max and k_max increase.
+
     n_max: the cutoff number of periodic boundary condition (PBC) "clones" of the central slab system in x and y direction
         * the total number of slabs per direction is n_max(left) + 1(center) + n_max(right)
         * in total theres (n_max + 1 + n_max)^2 slabs

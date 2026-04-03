@@ -27,7 +27,6 @@ run_elcic_dipole_shifting(system, z_pos_count=8, params=params)
 
 #run_elcic_energy_accuracy_convergence(system, params)
 
-# !! es sieht so aus als würde es für k-max=120 konvergieren, aber für ca. z>4 genen den falschen wert
 """
 * Brute-Force method
 * zusätzliche Summe über die Spiegelladungen in z-Richtung die bei einer Platte eben nur ein einzelner Wert waren (siehe auch mein 2D Ewald Code)
