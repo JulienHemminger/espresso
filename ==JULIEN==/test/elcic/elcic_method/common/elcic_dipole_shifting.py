@@ -26,7 +26,7 @@ def run(system, z_pos_count, params):
             system.part.add(pos=[pos[0], pos[1], z], q=params["charges"][i])
 
         
-        analytical_energies.append(analytical_two_plate_elcic_energy(system, params, k_max=100, tol=1e-8))
+        analytical_energies.append(analytical_two_plate_elcic_energy(system, params, k_max=120, tol=1e-8))
         legacy_energies.append(get_legacy_elc_energy(system, params["gap_size"], pw_error, delta_mid_top, delta_mid_bot))
         custom_energies.append(get_elcic_energy(
             system, params["gap_size"], pw_error, prefactor, delta_mid_bot, delta_mid_top
