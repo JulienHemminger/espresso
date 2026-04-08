@@ -1,74 +1,61 @@
 import numpy as np
 
-def analytical_two_plate_elcic_energy(system, params, k_max=10, n_max=2**8):
+def analytical_two_plate_elcic_energy(system, params, k_max=10, n_max=50):
     positions = np.array([p.pos for p in system.part])
     charges = np.array([p.q for p in system.part])
     N = len(charges)
     lz, lx, ly = params["lz"], params["lx"], params["ly"]
     prefactor = params["prefactor"]
     delta_b, delta_t = params["delta_mid_bot"], params["delta_mid_top"]
-    delta = delta_b * delta_t
-
+    
     total_energy = 0.0
-
-    # Define the range of periodic replicas in x and y
     pbc_range = range(-n_max, n_max + 1)
 
     for i in range(N):
         pos_i = positions[i]
         qi = charges[i]
-
         for j in range(N):
             pos_j = positions[j]
             qj = charges[j]
+            zi, zj = pos_i[2], pos_j[2]
 
             for nx in pbc_range:
                 for ny in pbc_range:
-                    # Shift j-th particle by periodic box vectors
                     dx = pos_i[0] - (pos_j[0] + nx * lx)
                     dy = pos_i[1] - (pos_j[1] + ny * ly)
-                    xy_dist_sq = dx**2 + dy**2
+                    r_xy_sq = dx**2 + dy**2
 
-                    # 1. Real-Real Interactions (Exclude self-interaction in central cell)
+                    # 1. Direct Interaction (Real charges)
                     if not (i == j and nx == 0 and ny == 0):
-                        r = np.sqrt(xy_dist_sq + (pos_i[2] - pos_j[2]) ** 2)
+                        r = np.sqrt(r_xy_sq + (zi - zj)**2)
                         total_energy += 0.5 * prefactor * (qi * qj) / r
 
-                    # 2. Image Charge Sequences (All replicas)
-                    zi, zj = pos_i[2], pos_j[2]
-                    for n in range(k_max + 1):
-                        # Eq 2.2 & 2.4 (Single delta_b/t factor)
-                        z_img_22 = -(2 * n * lz + zj)
-                        z_img_24 = 2 * (n + 1) * lz - zj
+                    # 2. Image Charge Series
+                    # k represents the number of round-trips/reflections
+                    for k in range(k_max + 1):
+                        # Factor common to reflections: (delta_b * delta_t)^k
+                        amp_k = (delta_b * delta_t)**k
+                        
+                        # Type A: Image of qj reflected across bottom then k pairs
+                        # Position: z = -2*k*Lz - zj
+                        if not (k == 0 and delta_b == 0):
+                            z_a = -2 * k * lz - zj
+                            total_energy += 0.5 * prefactor * (qi * qj * amp_k * delta_b) / np.sqrt(r_xy_sq + (zi - z_a)**2)
 
-                        total_energy += (
-                            0.5
-                            * prefactor
-                            * (qi * qj * (delta**n) * delta_b)
-                            / np.sqrt(xy_dist_sq + (zi - z_img_22) ** 2)
-                        )
-                        total_energy += (
-                            0.5
-                            * prefactor
-                            * (qi * qj * (delta**n) * delta_t)
-                            / np.sqrt(xy_dist_sq + (zi - z_img_24) ** 2)
-                        )
+                        # Type B: Image of qj reflected across top then k pairs
+                        # Position: z = 2*(k+1)*Lz - zj
+                        if not (k == 0 and delta_t == 0):
+                            z_b = 2 * (k + 1) * lz - zj
+                            total_energy += 0.5 * prefactor * (qi * qj * amp_k * delta_t) / np.sqrt(r_xy_sq + (zi - z_b)**2)
 
-                        # Eq 2.3 & 2.5 (Pure delta^n factors)
-                        if n > 0:
-                            z_img_23 = -(2 * n * lz - zj)
-                            z_img_25 = 2 * n * lz + zj
-                            total_energy += (
-                                0.5
-                                * prefactor
-                                * (qi * qj * (delta**n))
-                                / np.sqrt(xy_dist_sq + (zi - z_img_23) ** 2)
-                            )
-                            total_energy += (
-                                0.5
-                                * prefactor
-                                * (qi * qj * (delta**n))
-                                / np.sqrt(xy_dist_sq + (zi - z_img_25) ** 2)
-                            )
+                        # Type C & D: Higher order reflections (k > 0)
+                        if k > 0:
+                            # Position: z = 2*k*Lz + zj
+                            z_c = 2 * k * lz + zj
+                            total_energy += 0.5 * prefactor * (qi * qj * amp_k) / np.sqrt(r_xy_sq + (zi - z_c)**2)
+                            
+                            # Position: z = -2*k*Lz + zj
+                            z_d = -2 * k * lz + zj
+                            total_energy += 0.5 * prefactor * (qi * qj * amp_k) / np.sqrt(r_xy_sq + (zi - z_d)**2)
 
     return total_energy

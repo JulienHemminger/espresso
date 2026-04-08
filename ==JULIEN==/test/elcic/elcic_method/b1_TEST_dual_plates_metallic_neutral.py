@@ -23,9 +23,9 @@ params = {
     }
 
 params["positions"] = [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
-run_elcic_dipole_shifting(system, z_pos_count=8, params=params)
+#run_elcic_dipole_shifting(system, z_pos_count=8, params=params)
 
-#run_elcic_energy_accuracy_convergence(system, params)
+run_elcic_energy_accuracy_convergence(system, params)
 
 """
 * Brute-Force method
@@ -33,4 +33,6 @@ run_elcic_dipole_shifting(system, z_pos_count=8, params=params)
 * sind bei zwei Platten jetzt halt unendlich viele Spiegelladungen in z-Richtung
 
 mal schauen, ob die brute-force Lösung überhaupt zum konvergieren bekommst (wird sehr lange dauern)
+
+
 """

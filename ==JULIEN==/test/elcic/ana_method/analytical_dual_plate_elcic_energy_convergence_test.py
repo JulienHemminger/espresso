@@ -34,9 +34,9 @@ for i, q in enumerate(params["charges"]):
 
 energies_pbc = []
 energies_refl = []
-N = 8 + 1
-k_maxes = list([50*i for i in range(N)])
-n_maxes = list([10*i for i in range(N)])
+N = 16 + 1
+k_maxes = list([2**i for i in range(N)])
+n_maxes = list([5*i for i in range(N)])
 
 for i in range(N):
     print(f"Start for {i=}")
