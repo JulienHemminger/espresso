@@ -34,22 +34,21 @@ for i, q in enumerate(params["charges"]):
 
 energies_pbc = []
 energies_refl = []
-N = 128 + 1
-image_counts = list(range(N)) #[2**i for i in range(N)]
-reflection_counts = list(range(N))
+N = 8 + 1
+k_maxes = list([50*i for i in range(N)])
+n_maxes = list([10*i for i in range(N)])
 
 for i in range(N):
+    print(f"Start for {i=}")
+    energies_pbc.append(analytical_two_plate_elcic_energy(system, params, k_max=10*1, n_max=n_maxes[i]))
+    energies_refl.append(analytical_two_plate_elcic_energy(system, params, k_max=k_maxes[i], n_max=10*1))
     
-    energies_pbc.append(0)
-
-    energies_refl.append(analytical_two_plate_elcic_energy(system, params, k_max=reflection_counts[i], tol=1e-8))
-    print(i)
 
 # Visualization
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
 ax1.plot(
-    image_counts, energies_pbc, "o-", color="tab:blue", label="PBC Convergence"
+    k_maxes, energies_pbc, "o-", color="tab:blue", label="PBC Convergence"
 )
 ax1.set_xscale("log", base=2)
 ax1.set_xlabel(r"Number of PBC Images ($n_{max}$)")
@@ -58,7 +57,7 @@ ax1.grid(True, linestyle="--", alpha=0.5)
 ax1.legend()
 
 ax2.plot(
-    reflection_counts,
+    n_maxes,
     energies_refl,
     "s-",
     color="tab:red",

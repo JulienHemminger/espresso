@@ -40,7 +40,10 @@ note: for single plate, there may not be a correct "correction term"
 
 #### Analytical:
 
-anaSolution in Tyagi et al. *JCP* 129, 2008: <https://doi.org/10.1063/1.3021064>:
+anaSolution in Tyagi et al. *JCP* 129, 2008: <https://doi.org/10.1063/1.3021064>
+
+* make it converge
+* make it fit legacy ELC in dipole shifting
 
 #### Neutral
 
