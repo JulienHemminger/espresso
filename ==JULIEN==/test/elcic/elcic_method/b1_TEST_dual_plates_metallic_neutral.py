@@ -22,9 +22,9 @@ params = {
     "title": "Dual Plates, Both Metallic, Neutral"
 }# ANA: Iteration 10: energy(k_val=1024, n_val=100) = -0.35079175141122165
 
+#params["positions"] = [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
 #run_elcic_energy_accuracy_convergence(system, params)
 
 
-params["positions"] = [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
 run_elcic_dipole_shifting(system, z_pos_count=4, params=params)
 
