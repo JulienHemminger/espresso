@@ -13,24 +13,23 @@ system.time_step = 0.01
 
 # Parameters
 params = {
-    "lx": 9.0,
-    "ly": 12.0,
-    "lz": 19.0,
+    "lx": 100.0,
+    "ly": 100.0,
+    "lz": 20.0,
     "gap_size": 15.0,
     "prefactor": 1.0,
     "delta_mid_top": -1.0,
     "delta_mid_bot": -1.0, # for metallic it must: Δ = −1
     "charges": [+1, -1],
     'pw_error': 1e-8,
-    "positions": [np.array([2, 5, 0]), np.array([8, 3, 0])],
+    "positions": [np.array([2, 5, 3]), np.array([8, 3, 1])],
     "title": "Dual Plates, Both Metallic, Neutral"
     }
-positions = [np.array([7, 1, 0.1]), np.array([4, 5, 0.2])]
 
 # Setup System
 system.box_l = [params["lx"], params["ly"], params["lz"] + params["gap_size"]]
 for i, q in enumerate(params["charges"]):
-    system.part.add(pos=positions[i], q=q)
+    system.part.add(pos=params["positions"][i], q=q)
 
 energies_pbc = []
 energies_refl = []

@@ -26,13 +26,3 @@ params["positions"] = [np.array([2, 5, 0.01]), np.array([8, 3, 0.02])]
 #run_elcic_dipole_shifting(system, z_pos_count=8, params=params)
 
 run_elcic_energy_accuracy_convergence(system, params)
-
-"""
-* Brute-Force method
-* zusätzliche Summe über die Spiegelladungen in z-Richtung die bei einer Platte eben nur ein einzelner Wert waren (siehe auch mein 2D Ewald Code)
-* sind bei zwei Platten jetzt halt unendlich viele Spiegelladungen in z-Richtung
-
-mal schauen, ob die brute-force Lösung überhaupt zum konvergieren bekommst (wird sehr lange dauern)
-
-
-"""

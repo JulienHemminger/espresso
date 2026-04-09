@@ -40,10 +40,23 @@ note: for single plate, there may not be a correct "correction term"
 
 #### Analytical:
 
-anaSolution in Tyagi et al. *JCP* 129, 2008: <https://doi.org/10.1063/1.3021064>
+impl anaSolution in Tyagi et al. *JCP* 129, 2008: <https://doi.org/10.1063/1.3021064>: NO - doesnt converge
 
-* make it converge
-* make it fit legacy ELC in dipole shifting
+* Brute-Force method
+
+- zusätzliche Summe über die Spiegelladungen in z-Richtung die bei einer Platte eben nur ein einzelner Wert waren (siehe auch mein 2D Ewald Code)
+- sind bei zwei Platten jetzt halt unendlich viele Spiegelladungen in z-Richtung
+
+
+
+impl "Point charge in a three‐dielectric medium with planar
+interfaces 
+R. G. Barrera; O. Guzmán; B. Balaguer"
+
+* with: large box.x and box.y, metallic, no pbc images
+
+- make it converge
+- make it fit legacy ELC in dipole shifting
 
 #### Neutral
 
