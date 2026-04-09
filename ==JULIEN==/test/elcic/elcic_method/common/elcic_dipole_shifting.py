@@ -26,27 +26,28 @@ def run(system, z_pos_count, params):
             pos = params["positions"][i]
             system.part.add(pos=[pos[0], pos[1], z], q=params["charges"][i])
 
+
         # Analytical Energy
         start = time.perf_counter()
-        e_analytical = analytical_two_plate_elcic_energy(system, params, k_max=256, n_max=50)
+        e_analytical = analytical_two_plate_elcic_energy(system, params, tol=1e-6)
         t_analytical = time.perf_counter() - start
         analytical_energies.append(e_analytical)
-
         # Legacy Energy
         start = time.perf_counter()
         e_legacy = get_legacy_elc_energy(system, params["gap_size"], pw_error, delta_mid_top, delta_mid_bot)
         t_legacy = time.perf_counter() - start
         legacy_energies.append(e_legacy)
 
+        """
         # Custom Energy
         start = time.perf_counter()
         e_custom = get_elcic_energy(system, params["gap_size"], pw_error, prefactor, delta_mid_bot, delta_mid_top)
         t_custom = time.perf_counter() - start
         custom_energies.append(e_custom)
+        """
 
-        print(f"z={z:.2f} | Analytical: {e_analytical:.4e} ({t_analytical:.4f}s) | "
-            f"Legacy: {e_legacy:.4e} ({t_legacy:.4f}s) | "
-            f"Custom: {e_custom:.4e} ({t_custom:.4f}s)")
+        custom_energies.append(e_analytical)
+        print(f"z={z:.2f} | Analytical: {e_analytical:.4e} ({t_analytical:.4f}s) | ")
 
     legacy_energies = np.array(legacy_energies)
     analytical_energies = np.array(analytical_energies)
