@@ -9,8 +9,8 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 params = {
-    "lx": 100.0,
-    "ly": 100.0,
+    "lx": 120.0,
+    "ly": 80.0,
     "lz": 20.0,
     "gap_size": 15.0,
     "prefactor": 1.0,

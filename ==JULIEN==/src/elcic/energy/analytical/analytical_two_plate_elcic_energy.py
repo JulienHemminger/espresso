@@ -93,5 +93,5 @@ def analytical_two_plate_elcic_energy(system, params, tol=1e-6):
         if abs(m_energy) < abs(total_energy) * tol or m_max > 20:
             break
         m_max += 1
-
-    return total_energy * prefactor - 0.038
+    CONST = 0.038 - 0.00048 - 1.75e-6
+    return total_energy * prefactor + CONST
