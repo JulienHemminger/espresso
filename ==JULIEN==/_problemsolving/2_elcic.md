@@ -40,7 +40,7 @@ note: for single plate, there may not be a correct "correction term"
 
 #### Analytical:
 
-impl anaSolution in Tyagi et al. *JCP* 129, 2008: <https://doi.org/10.1063/1.3021064>: NO - doesnt converge
+impl anaSolution in Tyagi et al. *JCP* 129, 2008: <https://doi.org/10.1063/1.3021064>:
 
 * Brute-Force method
 
