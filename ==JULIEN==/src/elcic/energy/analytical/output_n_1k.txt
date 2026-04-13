@@ -1,0 +1,127 @@
+(espresso_env) main@AcerConceptD:~/Documents/Career/1_Studium/espresso$ /home/main/Documents/Career/1_Studium/espresso/espresso_env/bin/python /home/main/Documents/Career/1_Studium/espresso/==JULIEN==/test/elcic/elcic_method/b1_TEST_dual_plates_metallic_neutral.py
+--- Starting Convergence Check (Tol: 1e-06) ---
+  --> Periodic Shells converged at N=30 (Rel Change: 9.59e-07)
+
+--- Starting Image Method (M_MAX: 20) ---
+  --> M=1 Bot converged at N=17 (Rel Change: 9.15e-07)
+  --> M=1 Top converged at N=100 (Rel Change: 9.99e-07)
+Iteration M=1: Energy contribution: -7.906535e-01 | Total: -1.026673e+00
+  --> M=2 Bot converged at N=141 (Rel Change: 9.94e-07)
+  [M=2 Top N=200] Energy: -4.514184e-03 | Rel Change: 2.26e-06
+  --> M=2 Top converged at N=301 (Rel Change: 9.96e-07)
+Iteration M=2: Energy contribution: -1.256666e-02 | Total: -1.039240e+00
+  [M=3 Bot N=200] Energy: -3.011503e-03 | Rel Change: 3.38e-06
+  --> M=3 Bot converged at N=368 (Rel Change: 9.99e-07)
+  [M=3 Top N=200] Energy: -1.044864e-03 | Rel Change: 9.74e-06
+  [M=3 Top N=400] Energy: -1.043849e-03 | Rel Change: 2.44e-06
+  [M=3 Top N=600] Energy: -1.043511e-03 | Rel Change: 1.08e-06
+  --> M=3 Top converged at N=625 (Rel Change: 9.99e-07)
+Iteration M=3: Energy contribution: -2.027030e-03 | Total: -1.041267e+00
+  [M=4 Bot N=200] Energy: -7.596922e-04 | Rel Change: 1.34e-05
+  [M=4 Bot N=400] Energy: -7.586778e-04 | Rel Change: 3.36e-06
+  [M=4 Bot N=600] Energy: -7.583391e-04 | Rel Change: 1.49e-06
+  --> M=4 Bot converged at N=733 (Rel Change: 1.00e-06)
+  [M=4 Top N=200] Energy: -3.101537e-04 | Rel Change: 3.28e-05
+  [M=4 Top N=400] Energy: -3.091393e-04 | Rel Change: 8.23e-06
+  [M=4 Top N=600] Energy: -3.088006e-04 | Rel Change: 3.66e-06
+  [M=4 Top N=800] Energy: -3.086312e-04 | Rel Change: 2.06e-06
+  [M=4 Top N=1000] Energy: -3.085295e-04 | Rel Change: 1.32e-06
+  !! WARNING: M=4 Top reached N_CUTOFF (1000) without converging.
+Iteration M=4: Energy contribution: -5.333728e-04 | Total: -1.041800e+00
+  [M=5 Bot N=200] Energy: -2.334585e-04 | Rel Change: 4.36e-05
+  [M=5 Bot N=400] Energy: -2.324441e-04 | Rel Change: 1.10e-05
+  [M=5 Bot N=600] Energy: -2.321054e-04 | Rel Change: 4.87e-06
+  [M=5 Bot N=800] Energy: -2.319359e-04 | Rel Change: 2.74e-06
+  [M=5 Bot N=1000] Energy: -2.318342e-04 | Rel Change: 1.76e-06
+  !! WARNING: M=5 Bot reached N_CUTOFF (1000) without converging.
+  [M=5 Top N=200] Energy: -1.026602e-04 | Rel Change: 9.92e-05
+  [M=5 Top N=400] Energy: -1.016458e-04 | Rel Change: 2.50e-05
+  [M=5 Top N=600] Energy: -1.013071e-04 | Rel Change: 1.12e-05
+  [M=5 Top N=800] Energy: -1.011377e-04 | Rel Change: 6.29e-06
+  [M=5 Top N=1000] Energy: -1.010360e-04 | Rel Change: 4.03e-06
+  !! WARNING: M=5 Top reached N_CUTOFF (1000) without converging.
+Iteration M=5: Energy contribution: -1.664351e-04 | Total: -1.041967e+00
+  [M=6 Bot N=200] Energy: -7.875565e-05 | Rel Change: 1.29e-04
+  [M=6 Bot N=400] Energy: -7.774127e-05 | Rel Change: 3.27e-05
+  [M=6 Bot N=600] Energy: -7.740257e-05 | Rel Change: 1.46e-05
+  [M=6 Bot N=800] Energy: -7.723311e-05 | Rel Change: 8.24e-06
+  [M=6 Bot N=1000] Energy: -7.713140e-05 | Rel Change: 5.28e-06
+  !! WARNING: M=6 Bot reached N_CUTOFF (1000) without converging.
+  [M=6 Top N=200] Energy: -3.648401e-05 | Rel Change: 2.79e-04
+  [M=6 Top N=400] Energy: -3.546964e-05 | Rel Change: 7.18e-05
+  [M=6 Top N=600] Energy: -3.513094e-05 | Rel Change: 3.22e-05
+  [M=6 Top N=800] Energy: -3.496148e-05 | Rel Change: 1.82e-05
+  [M=6 Top N=1000] Energy: -3.485978e-05 | Rel Change: 1.17e-05
+  !! WARNING: M=6 Top reached N_CUTOFF (1000) without converging.
+Iteration M=6: Energy contribution: -5.599559e-05 | Total: -1.042023e+00
+  [M=7 Bot N=200] Energy: -2.850337e-05 | Rel Change: 3.57e-04
+  [M=7 Bot N=400] Energy: -2.748900e-05 | Rel Change: 9.26e-05
+  [M=7 Bot N=600] Energy: -2.715030e-05 | Rel Change: 4.17e-05
+  [M=7 Bot N=800] Energy: -2.698084e-05 | Rel Change: 2.36e-05
+  [M=7 Bot N=1000] Energy: -2.687914e-05 | Rel Change: 1.52e-05
+  !! WARNING: M=7 Bot reached N_CUTOFF (1000) without converging.
+  [M=7 Top N=200] Energy: -1.412791e-05 | Rel Change: 7.21e-04
+  [M=7 Top N=400] Energy: -1.311356e-05 | Rel Change: 1.94e-04
+  [M=7 Top N=600] Energy: -1.277486e-05 | Rel Change: 8.86e-05
+  [M=7 Top N=800] Energy: -1.260540e-05 | Rel Change: 5.05e-05
+  [M=7 Top N=1000] Energy: -1.250369e-05 | Rel Change: 3.26e-05
+  !! WARNING: M=7 Top reached N_CUTOFF (1000) without converging.
+Iteration M=7: Energy contribution: -1.969142e-05 | Total: -1.042042e+00
+  [M=8 Bot N=200] Energy: -1.136696e-05 | Rel Change: 8.96e-04
+  [M=8 Bot N=400] Energy: -1.035261e-05 | Rel Change: 2.46e-04
+  [M=8 Bot N=600] Energy: -1.001391e-05 | Rel Change: 1.13e-04
+  [M=8 Bot N=800] Energy: -9.844452e-06 | Rel Change: 6.46e-05
+  [M=8 Bot N=1000] Energy: -9.742743e-06 | Rel Change: 4.18e-05
+  !! WARNING: M=8 Bot reached N_CUTOFF (1000) without converging.
+  [M=8 Top N=200] Energy: -6.341729e-06 | Rel Change: 1.61e-03
+  [M=8 Top N=400] Energy: -5.327395e-06 | Rel Change: 4.78e-04
+  [M=8 Top N=600] Energy: -4.988699e-06 | Rel Change: 2.27e-04
+  [M=8 Top N=800] Energy: -4.819243e-06 | Rel Change: 1.32e-04
+  [M=8 Top N=1000] Energy: -4.717535e-06 | Rel Change: 8.63e-05
+  !! WARNING: M=8 Top reached N_CUTOFF (1000) without converging.
+Iteration M=8: Energy contribution: -7.230139e-06 | Total: -1.042049e+00
+  [M=9 Bot N=200] Energy: -5.366921e-06 | Rel Change: 1.90e-03
+  [M=9 Bot N=400] Energy: -4.352592e-06 | Rel Change: 5.85e-04
+  [M=9 Bot N=600] Energy: -4.013897e-06 | Rel Change: 2.82e-04
+  [M=9 Bot N=800] Energy: -3.844441e-06 | Rel Change: 1.66e-04
+  [M=9 Bot N=1000] Energy: -3.742733e-06 | Rel Change: 1.09e-04
+  !! WARNING: M=9 Bot reached N_CUTOFF (1000) without converging.
+  [M=9 Top N=200] Energy: -3.581434e-06 | Rel Change: 2.84e-03
+  [M=9 Top N=400] Energy: -2.567123e-06 | Rel Change: 9.92e-04
+  [M=9 Top N=600] Energy: -2.228430e-06 | Rel Change: 5.08e-04
+  [M=9 Top N=800] Energy: -2.058974e-06 | Rel Change: 3.09e-04
+  [M=9 Top N=1000] Energy: -1.957266e-06 | Rel Change: 2.08e-04
+  !! WARNING: M=9 Top reached N_CUTOFF (1000) without converging.
+Iteration M=9: Energy contribution: -2.850000e-06 | Total: -1.042052e+00
+  [M=10 Bot N=200] Energy: -3.232934e-06 | Rel Change: 3.15e-03
+  [M=10 Bot N=400] Energy: -2.218630e-06 | Rel Change: 1.15e-03
+  [M=10 Bot N=600] Energy: -1.879937e-06 | Rel Change: 6.02e-04
+  [M=10 Bot N=800] Energy: -1.710482e-06 | Rel Change: 3.72e-04
+  [M=10 Bot N=1000] Energy: -1.608774e-06 | Rel Change: 2.53e-04
+  !! WARNING: M=10 Bot reached N_CUTOFF (1000) without converging.
+  [M=10 Top N=200] Energy: -2.592039e-06 | Rel Change: 3.93e-03
+  [M=10 Top N=400] Energy: -1.577755e-06 | Rel Change: 1.61e-03
+  [M=10 Top N=600] Energy: -1.239064e-06 | Rel Change: 9.13e-04
+  [M=10 Top N=800] Energy: -1.069609e-06 | Rel Change: 5.95e-04
+  [M=10 Top N=1000] Energy: -9.679016e-07 | Rel Change: 4.21e-04
+  !! WARNING: M=10 Top reached N_CUTOFF (1000) without converging.
+Iteration M=10: Energy contribution: -1.288338e-06 | Total: -1.042054e+00
+  [M=11 Bot N=200] Energy: -2.466447e-06 | Rel Change: 4.13e-03
+  [M=11 Bot N=400] Energy: -1.452170e-06 | Rel Change: 1.75e-03
+  [M=11 Bot N=600] Energy: -1.113480e-06 | Rel Change: 1.02e-03
+  [M=11 Bot N=800] Energy: -9.440249e-07 | Rel Change: 6.74e-04
+  [M=11 Bot N=1000] Energy: -8.423173e-07 | Rel Change: 4.84e-04
+  !! WARNING: M=11 Bot reached N_CUTOFF (1000) without converging.
+  [M=11 Top N=200] Energy: -2.234869e-06 | Rel Change: 4.55e-03
+  [M=11 Top N=400] Energy: -1.220615e-06 | Rel Change: 2.09e-03
+  [M=11 Top N=600] Energy: -8.819269e-07 | Rel Change: 1.28e-03
+  [M=11 Top N=800] Energy: -7.124727e-07 | Rel Change: 8.93e-04
+  [M=11 Top N=1000] Energy: -6.107653e-07 | Rel Change: 6.67e-04
+  !! WARNING: M=11 Top reached N_CUTOFF (1000) without converging.
+Iteration M=11: Energy contribution: -7.265413e-07 | Total: -1.042054e+00
+--> Image method converged at M=11
+
+Final Calculated Energy: -1.04205436
+z=0.50 | Analytical: -1.0421e+00 (567.0789s) | 
+z=0.50 | Legacy: -1.0086e+00 (1.8775s) | 
+(espresso_env) main@AcerConceptD:~/Documents/Career/1_Studium/espresso$ 

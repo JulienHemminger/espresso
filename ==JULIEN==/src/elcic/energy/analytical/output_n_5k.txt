@@ -1,0 +1,88 @@
+(espresso_env) main@AcerConceptD:~/Documents/Career/1_Studium/espresso$ /home/main/Documents/Career/1_Studium/espresso/espresso_env/bin/python /home/main/Documents/Career/1_Studium/espresso/==JULIEN==/test/elcic/elcic_method/b1_TEST_dual_plates_metallic_neutral.py
+--- Starting Convergence Check (Tol: 1e-06) ---
+  --> Periodic Shells converged at N=30 (Rel Change: 9.59e-07)
+
+--- Starting Image Method (M_MAX: 20) ---
+  --> M=1 Bot converged at N=17 (Rel Change: 9.15e-07)
+  --> M=1 Top converged at N=100 (Rel Change: 9.99e-07)
+Iteration M=1: Energy contribution: -7.906535e-01 | Total: -1.026673e+00
+  --> M=2 Bot converged at N=141 (Rel Change: 9.94e-07)
+  --> M=2 Top converged at N=301 (Rel Change: 9.96e-07)
+Iteration M=2: Energy contribution: -1.256666e-02 | Total: -1.039240e+00
+  --> M=3 Bot converged at N=368 (Rel Change: 9.99e-07)
+  --> M=3 Top converged at N=625 (Rel Change: 9.99e-07)
+Iteration M=3: Energy contribution: -2.027030e-03 | Total: -1.041267e+00
+  --> M=4 Bot converged at N=733 (Rel Change: 1.00e-06)
+  [M=4 Top N=1000] Energy: -3.085295e-04 | Rel Change: 1.32e-06
+  --> M=4 Top converged at N=1150 (Rel Change: 9.98e-07)
+Iteration M=4: Energy contribution: -5.333462e-04 | Total: -1.041800e+00
+  [M=5 Bot N=1000] Energy: -2.318342e-04 | Rel Change: 1.76e-06
+  --> M=5 Bot converged at N=1326 (Rel Change: 1.00e-06)
+  [M=5 Top N=1000] Energy: -1.010360e-04 | Rel Change: 4.03e-06
+  [M=5 Top N=2000] Energy: -1.008325e-04 | Rel Change: 1.01e-06
+  --> M=5 Top converged at N=2010 (Rel Change: 1.00e-06)
+Iteration M=5: Energy contribution: -1.662828e-04 | Total: -1.041966e+00
+  [M=6 Bot N=1000] Energy: -7.713140e-05 | Rel Change: 5.28e-06
+  [M=6 Bot N=2000] Energy: -7.692791e-05 | Rel Change: 1.32e-06
+  --> M=6 Bot converged at N=2302 (Rel Change: 9.99e-07)
+  [M=6 Top N=1000] Energy: -3.485978e-05 | Rel Change: 1.17e-05
+  [M=6 Top N=2000] Energy: -3.465628e-05 | Rel Change: 2.94e-06
+  [M=6 Top N=3000] Energy: -3.458843e-05 | Rel Change: 1.31e-06
+  --> M=6 Top converged at N=3433 (Rel Change: 1.00e-06)
+Iteration M=6: Energy contribution: -5.573626e-05 | Total: -1.042022e+00
+  [M=7 Bot N=1000] Energy: -2.687914e-05 | Rel Change: 1.52e-05
+  [M=7 Bot N=2000] Energy: -2.667564e-05 | Rel Change: 3.82e-06
+  [M=7 Bot N=3000] Energy: -2.660779e-05 | Rel Change: 1.70e-06
+  --> M=7 Bot converged at N=3915 (Rel Change: 1.00e-06)
+  [M=7 Top N=1000] Energy: -1.250369e-05 | Rel Change: 3.26e-05
+  [M=7 Top N=2000] Energy: -1.230020e-05 | Rel Change: 8.28e-06
+  [M=7 Top N=3000] Energy: -1.223235e-05 | Rel Change: 3.70e-06
+  [M=7 Top N=4000] Energy: -1.219842e-05 | Rel Change: 2.09e-06
+  [M=7 Top N=5000] Energy: -1.217806e-05 | Rel Change: 1.34e-06
+  !! WARNING: M=7 Top reached N_CUTOFF (5000) without converging.
+Iteration M=7: Energy contribution: -1.937706e-05 | Total: -1.042042e+00
+  [M=8 Bot N=1000] Energy: -9.742743e-06 | Rel Change: 4.18e-05
+  [M=8 Bot N=2000] Energy: -9.539250e-06 | Rel Change: 1.07e-05
+  [M=8 Bot N=3000] Energy: -9.471396e-06 | Rel Change: 4.78e-06
+  [M=8 Bot N=4000] Energy: -9.437465e-06 | Rel Change: 2.70e-06
+  [M=8 Bot N=5000] Energy: -9.417105e-06 | Rel Change: 1.73e-06
+  !! WARNING: M=8 Bot reached N_CUTOFF (5000) without converging.
+  [M=8 Top N=1000] Energy: -4.717535e-06 | Rel Change: 8.63e-05
+  [M=8 Top N=2000] Energy: -4.514041e-06 | Rel Change: 2.26e-05
+  [M=8 Top N=3000] Energy: -4.446188e-06 | Rel Change: 1.02e-05
+  [M=8 Top N=4000] Energy: -4.412256e-06 | Rel Change: 5.77e-06
+  [M=8 Top N=5000] Energy: -4.391896e-06 | Rel Change: 3.71e-06
+  !! WARNING: M=8 Top reached N_CUTOFF (5000) without converging.
+Iteration M=8: Energy contribution: -6.904500e-06 | Total: -1.042048e+00
+  [M=9 Bot N=1000] Energy: -3.742733e-06 | Rel Change: 1.09e-04
+  [M=9 Bot N=2000] Energy: -3.539240e-06 | Rel Change: 2.88e-05
+  [M=9 Bot N=3000] Energy: -3.471386e-06 | Rel Change: 1.30e-05
+  [M=9 Bot N=4000] Energy: -3.437454e-06 | Rel Change: 7.41e-06
+  [M=9 Bot N=5000] Energy: -3.417094e-06 | Rel Change: 4.77e-06
+  !! WARNING: M=9 Bot reached N_CUTOFF (5000) without converging.
+  [M=9 Top N=1000] Energy: -1.957266e-06 | Rel Change: 2.08e-04
+  [M=9 Top N=2000] Energy: -1.753773e-06 | Rel Change: 5.81e-05
+  [M=9 Top N=3000] Energy: -1.685919e-06 | Rel Change: 2.68e-05
+  [M=9 Top N=4000] Energy: -1.651988e-06 | Rel Change: 1.54e-05
+  [M=9 Top N=5000] Energy: -1.631628e-06 | Rel Change: 9.98e-06
+  !! WARNING: M=9 Top reached N_CUTOFF (5000) without converging.
+Iteration M=9: Energy contribution: -2.524361e-06 | Total: -1.042051e+00
+  [M=10 Bot N=1000] Energy: -1.608774e-06 | Rel Change: 2.53e-04
+  [M=10 Bot N=2000] Energy: -1.405281e-06 | Rel Change: 7.25e-05
+  [M=10 Bot N=3000] Energy: -1.337427e-06 | Rel Change: 3.38e-05
+  [M=10 Bot N=4000] Energy: -1.303496e-06 | Rel Change: 1.95e-05
+  [M=10 Bot N=5000] Energy: -1.283136e-06 | Rel Change: 1.27e-05
+  !! WARNING: M=10 Bot reached N_CUTOFF (5000) without converging.
+  [M=10 Top N=1000] Energy: -9.679016e-07 | Rel Change: 4.21e-04
+  [M=10 Top N=2000] Energy: -7.644087e-07 | Rel Change: 1.33e-04
+  [M=10 Top N=3000] Energy: -6.965548e-07 | Rel Change: 6.50e-05
+  [M=10 Top N=4000] Energy: -6.626236e-07 | Rel Change: 3.84e-05
+  [M=10 Top N=5000] Energy: -6.422635e-07 | Rel Change: 2.54e-05
+  !! WARNING: M=10 Top reached N_CUTOFF (5000) without converging.
+Iteration M=10: Energy contribution: -9.626995e-07 | Total: -1.042052e+00
+--> Image method converged at M=10
+
+Final Calculated Energy: -1.04205191
+z=0.50 | Analytical: -1.0421e+00 (12383.8788s // 206.4min // 3.4h) | 
+z=0.50 | Legacy: -1.0086e+00 (1.8443s) | 
+(espresso_env) main@AcerConceptD:~/Documents/Career/1_Studium/espresso$ 

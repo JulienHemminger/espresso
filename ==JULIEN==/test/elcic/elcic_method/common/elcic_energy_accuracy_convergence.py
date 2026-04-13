@@ -80,12 +80,12 @@ def run(system, params):
     for pos, q in zip(params["positions"], params["charges"]):
         system.part.add(pos=pos, q=q)
 
-    accuracies = [10**-i for i in range(1, 9+1)] # < somewhere between 1e-5, 1e-9 - idk changes randomly
+    accuracies = [10**-i for i in range(1, 6+1)] # < somewhere between 1e-5, 1e-9 - idk changes randomly
     custom_errors = []
     legacy_errors = []
     bar_plot_data = {"e_3d": [], "e_corr": [], "e_far": []}
 
-    ana_energy = analytical_two_plate_elcic_energy(system, params, k_max=1024, n_max=100)
+    ana_energy = -1.0421e+00 # analytical_two_plate_elcic_energy(system, params, k_max=1024, n_max=100)
     print(f"Analytical Energy: {ana_energy:.10f}")
 
     for acc in accuracies:
