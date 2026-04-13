@@ -1,98 +1,85 @@
 import numpy as np
 
-def analytical_two_plate_elcic_energy(system, params, tol=1e-6):
-    """
-    Brute-force calculation of electrostatic energy in a 2D+h slab system 
-    with dielectric interfaces by explicitly summing periodic and image charges.
-    """
-    tol=1e-10
+def analytical_two_plate_elcic_energy(system, params, tol=1e-10):
     positions = np.array([p.pos for p in system.part])
     charges = np.array([p.q for p in system.part])
     N = len(charges)
     lx, ly, lz = params["lx"], params["ly"], params["lz"]
     prefactor = params["prefactor"]
     delta_b, delta_t = params["delta_mid_bot"], params["delta_mid_top"]
-    
-    # slab_h is the height of the region containing charges (0 to slab_h)
-    # The gap starts at slab_h and goes to lz.
     slab_h = lz - params["gap_size"]
 
-    def pair_energy(pos1, q1, pos2, q2):
-        # Sum over 2D periodic images in x and y
-        # We increase n_max until the contribution is below tol
-        e_sum = 0.0
+    def vectorized_pair_sum(pos_target, q_target, pos_sources, q_sources, is_self=False):
+        """Calculates energy between target charges and a set of source charges including 2D images."""
+        total_e = 0.0
         n_max = 1
         
-        while True:
-            current_shell_e = 0.0
-            # Sum over a square shell of periodic replicas
-            for nx in range(-n_max, n_max + 1):
-                for ny in range(-n_max, n_max + 1):
-                    if abs(nx) < n_max and abs(ny) < n_max:
-                        continue
-                    
-                    dx = pos1[0] - (pos2[0] + nx * lx)
-                    dy = pos1[1] - (pos2[1] + ny * ly)
-                    dz = pos1[2] - pos2[2]
-                    dist = np.sqrt(dx**2 + dy**2 + dz**2)
-                    
-                    if dist > 1e-9: # Avoid self-interaction
-                        current_shell_e += (q1 * q2) / dist
+        # Pre-calculate central interaction (n=0, n=0)
+        dx = pos_target[:, 0][:, np.newaxis] - pos_sources[:, 0]
+        dy = pos_target[:, 1][:, np.newaxis] - pos_sources[:, 1]
+        dz = pos_target[:, 2][:, np.newaxis] - pos_sources[:, 2]
+        dist_sq = dx**2 + dy**2 + dz**2
+        
+        # Mask self-interaction if target and sources are the same set
+        if is_self:
+            np.fill_diagonal(dist_sq, np.inf)
             
-            e_sum += current_shell_e
-            if n_max > 2 and abs(current_shell_e) < abs(e_sum) * tol:
+        dist = np.sqrt(dist_sq)
+        # q_target (N,1) * q_sources (1, N) creates the (N,N) charge matrix
+        total_e += np.sum((q_target[:, np.newaxis] * q_sources) / dist)
+
+        while n_max <= 100:
+            # Generate the coordinates for the current shell only
+            r = np.arange(-n_max, n_max + 1)
+            # Create a grid of nx, ny
+            nx, ny = np.meshgrid(r, r)
+            # Filter for only the outer perimeter (the "shell")
+            mask = (np.abs(nx) == n_max) | (np.abs(ny) == n_max)
+            nx_shell = nx[mask] * lx
+            ny_shell = ny[mask] * ly
+            
+            shell_e = 0.0
+            # Broad-cast the shell offsets against the particle pairs
+            # This is memory intensive but extremely fast
+            for sx, sy in zip(nx_shell, ny_shell):
+                d_shell_sq = (dx - sx)**2 + (dy - sy)**2 + dz**2
+                shell_e += np.sum((q_target[:, np.newaxis] * q_sources) / np.sqrt(d_shell_sq))
+            
+            total_e += shell_e
+            if n_max > 2 and abs(shell_e) < abs(total_e) * tol:
                 break
             n_max += 1
-            if n_max > 100: # Safety cutoff
-                print("Safety cutoff")
-                break
-        
-        # Add the central cell (nx=0, ny=0) if not self-interaction
-        dx = pos1[0] - pos2[0]
-        dy = pos1[1] - pos2[1]
-        dz = pos1[2] - pos2[2]
-        dist = np.sqrt(dx**2 + dy**2 + dz**2)
-        if dist > 1e-9:
-            e_sum += (q1 * q2) / dist
-            
-        return e_sum
+        return total_e
 
-    total_energy = 0.0
-
-    # 1. Real-Real interactions
-    for i in range(N):
-        for j in range(i, N):
-            fac = 0.5 if i == j else 1.0
-            total_energy += fac * pair_energy(positions[i], charges[i], positions[j], charges[j])
+    # 1. Real-Real interactions (Vectorized)
+    # Using 0.5 because we calculate the full matrix (i,j and j,i)
+    total_energy = 0.5 * vectorized_pair_sum(positions, charges, positions, charges, is_self=True)
 
     # 2. Image interactions
-    # Sum over reflected generations (m) until convergence
     m_max = 1
-    while True:
+    while m_max <= 20:
         m_energy = 0.0
-        for i in range(N):
-            zi = positions[i][2]
-            for j in range(N):
-                zj = positions[j][2]
-                
-                # Image types produced by multiple reflections at z=0 and z=slab_h
-                # Sequence 1: Starts with reflection at bottom
-                # z_image = -zj - 2(m-1)slab_h, etc.
-                # Here we implement the primary reflections for simplicity:
-                
-                # Bottom-side image series
-                z_img_b = -zj - 2*(m_max-1)*slab_h
-                q_img_b = charges[j] * (delta_b**m_max) * (delta_t**(m_max-1))
-                m_energy += 0.5 * pair_energy(positions[i], charges[i], [positions[j][0], positions[j][1], z_img_b], q_img_b)
-                
-                # Top-side image series
-                z_img_t = 2*m_max*slab_h - zj
-                q_img_t = charges[j] * (delta_t**m_max) * (delta_b**(m_max-1))
-                m_energy += 0.5 * pair_energy(positions[i], charges[i], [positions[j][0], positions[j][1], z_img_t], q_img_t)
+        
+        # Bottom-side image positions
+        # q_img_b calculation
+        qb = charges * (delta_b**m_max) * (delta_t**(m_max-1))
+        zb = -positions[:, 2] - 2*(m_max-1)*slab_h
+        pos_b = positions.copy()
+        pos_b[:, 2] = zb
+        
+        # Top-side image positions
+        qt = charges * (delta_t**m_max) * (delta_b**(m_max-1))
+        zt = 2*m_max*slab_h - positions[:, 2]
+        pos_t = positions.copy()
+        pos_t[:, 2] = zt
+
+        # Sum contributions
+        m_energy += 0.5 * vectorized_pair_sum(positions, charges, pos_b, qb)
+        m_energy += 0.5 * vectorized_pair_sum(positions, charges, pos_t, qt)
 
         total_energy += m_energy
-        if abs(m_energy) < abs(total_energy) * tol or m_max > 20:
+        if abs(m_energy) < abs(total_energy) * tol:
             break
         m_max += 1
-    #CONST = 0.038 - 0.00048 - 1.75e-6
+
     return total_energy * prefactor
