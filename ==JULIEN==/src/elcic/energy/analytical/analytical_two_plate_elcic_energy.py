@@ -1,6 +1,8 @@
 import numpy as np
 
 def analytical_two_plate_elcic_energy(system, params, tol=1e-10):
+    N_MAX = 100
+    M_MAX = 20
     positions = np.array([p.pos for p in system.part])
     charges = np.array([p.q for p in system.part])
     N = len(charges)
@@ -28,7 +30,7 @@ def analytical_two_plate_elcic_energy(system, params, tol=1e-10):
         # q_target (N,1) * q_sources (1, N) creates the (N,N) charge matrix
         total_e += np.sum((q_target[:, np.newaxis] * q_sources) / dist)
 
-        while n_max <= 100:
+        while n_max <= N_MAX:
             # Generate the coordinates for the current shell only
             r = np.arange(-n_max, n_max + 1)
             # Create a grid of nx, ny
@@ -57,7 +59,7 @@ def analytical_two_plate_elcic_energy(system, params, tol=1e-10):
 
     # 2. Image interactions
     m_max = 1
-    while m_max <= 20:
+    while m_max <= M_MAX:
         m_energy = 0.0
         
         # Bottom-side image positions
