@@ -1,8 +1,18 @@
 import numpy as np
+"""
+params = {
+    "lx": 20.0,
+    "ly": 20.0,
+    ...
+}
+MULT=1, d=10s
+MULT=2, d=45s
+"""
 
 def analytical_two_plate_elcic_energy(system, params, tol=1e-10):
-    N_MAX = 100
-    M_MAX = 20
+    MULT = 1
+    N_MAX = 100 * MULT
+    M_MAX = 20 * MULT
     positions = np.array([p.pos for p in system.part])
     charges = np.array([p.q for p in system.part])
     N = len(charges)

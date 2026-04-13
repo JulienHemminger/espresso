@@ -9,8 +9,8 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 params = {
-    "lx": 200.0,
-    "ly": 200.0,
+    "lx": 20.0,
+    "ly": 20.0,
     "lz": 11.0,
     "gap_size": 7.0,
     "prefactor": 1.0,
@@ -27,3 +27,14 @@ params = {
 
 
 run_elcic_dipole_shifting(system, z_pos_count=4, params=params)
+
+"""
+l_xy=20
+    z=0.50 | Analytical: -1.0335e+00 (12.3085s) | 
+    z=0.50 | Legacy: -1.0086e+00 (0.4785s) | 
+
+    
+with l_xy=200:
+    z=0.50 | Analytical: -1.0444e+00 (11.6219s) | 
+    z=0.50 | Legacy: -1.0086e+00 (71.6567s) | 
+"""

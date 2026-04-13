@@ -48,6 +48,7 @@ def run(system, z_pos_count, params):
 
         custom_energies.append(e_analytical)
         print(f"z={z:.2f} | Analytical: {e_analytical:.4e} ({t_analytical:.4f}s) | ")
+        print(f"z={z:.2f} | Legacy: {e_legacy:.4e} ({t_legacy:.4f}s) | ")
 
     legacy_energies = np.array(legacy_energies)
     analytical_energies = np.array(analytical_energies)
