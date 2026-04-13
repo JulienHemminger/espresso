@@ -5,6 +5,7 @@ def analytical_two_plate_elcic_energy(system, params, tol=1e-6):
     Brute-force calculation of electrostatic energy in a 2D+h slab system 
     with dielectric interfaces by explicitly summing periodic and image charges.
     """
+    tol=1e-10
     positions = np.array([p.pos for p in system.part])
     charges = np.array([p.q for p in system.part])
     N = len(charges)
@@ -21,7 +22,6 @@ def analytical_two_plate_elcic_energy(system, params, tol=1e-6):
         # We increase n_max until the contribution is below tol
         e_sum = 0.0
         n_max = 1
-        prev_e = -1e20
         
         while True:
             current_shell_e = 0.0
@@ -43,7 +43,8 @@ def analytical_two_plate_elcic_energy(system, params, tol=1e-6):
             if n_max > 2 and abs(current_shell_e) < abs(e_sum) * tol:
                 break
             n_max += 1
-            if n_max > 50: # Safety cutoff
+            if n_max > 100: # Safety cutoff
+                print("Safety cutoff")
                 break
         
         # Add the central cell (nx=0, ny=0) if not self-interaction
@@ -93,5 +94,5 @@ def analytical_two_plate_elcic_energy(system, params, tol=1e-6):
         if abs(m_energy) < abs(total_energy) * tol or m_max > 20:
             break
         m_max += 1
-    CONST = 0.038 - 0.00048 - 1.75e-6
-    return total_energy * prefactor + CONST
+    #CONST = 0.038 - 0.00048 - 1.75e-6
+    return total_energy * prefactor

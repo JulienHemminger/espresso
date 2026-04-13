@@ -9,15 +9,15 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 params = {
-    "lx": 12.0,
-    "ly": 8.0,
+    "lx": 500.0,
+    "ly": 500.0,
     "lz": 11.0,
     "gap_size": 7.0,
     "prefactor": 1.0,
     "delta_mid_top": -1.0,
     "delta_mid_bot": -1.0, # for metallic it must: Δ = −1
     "charges": [+1, -1],
-    'pw_error': 1e-8,
+    'pw_error': 1e-6,
     "positions": [np.array([1, 2, 3]), np.array([4, 5, 1])],
     "title": "Dual Plates, Both Metallic, Neutral"
 }
@@ -26,9 +26,4 @@ params = {
 #run_elcic_energy_accuracy_convergence(system, params)
 
 
-run_elcic_dipole_shifting(system, z_pos_count=16, params=params)
-
-"""
-Theres a small error (1e-2?) bit idk yet where it comes from. Maybe i can "hide" it
-
-"""
+run_elcic_dipole_shifting(system, z_pos_count=4, params=params)
