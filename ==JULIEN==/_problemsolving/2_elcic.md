@@ -38,7 +38,7 @@ note: for single plate, there may not be a correct "correction term"
 
 ## Dual Plates
 
-#### Analytical:
+#### Analytical: SKIP, meh solution. its difficult to get "brute force" to work
 
 impl anaSolution in Tyagi et al. *JCP* 129, 2008: <https://doi.org/10.1063/1.3021064>:
 
@@ -46,8 +46,6 @@ impl anaSolution in Tyagi et al. *JCP* 129, 2008: <https://doi.org/10.1063/1.302
 
 - zusätzliche Summe über die Spiegelladungen in z-Richtung die bei einer Platte eben nur ein einzelner Wert waren (siehe auch mein 2D Ewald Code)
 - sind bei zwei Platten jetzt halt unendlich viele Spiegelladungen in z-Richtung
-
-
 
 impl "Point charge in a three‐dielectric medium with planar
 interfaces 
