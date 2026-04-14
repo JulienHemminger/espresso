@@ -3,10 +3,10 @@ import espressomd.electrostatics
 
 
 def get_legacy_elc_energy(
-    system, gap_size, pw_error, delta_mid_top=None, delta_mid_bot=None
+    system, gap_size, prefactor=1.0, pw_error=1e-6, delta_mid_top=None, delta_mid_bot=None
 ):
     p3m = espressomd.electrostatics.P3M(
-        prefactor=1.0, accuracy=pw_error, check_neutrality=False, verbose=False
+        prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
     )
 
     args = {

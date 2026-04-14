@@ -21,9 +21,9 @@ params = {
     "positions": [np.array([1, 2, 3]), np.array([4, 5, 1])],
     "title": "Dual Plates, Both Metallic, Neutral"
 }
-
-params["positions"] = [np.array([1, 2, 0.5]), np.array([4, 5, 0.5])]
-run_elcic_energy_accuracy_convergence(system, params)
+run_elcic_dipole_shifting(system, z_pos_count=4, params=params)
 
 
-# run_elcic_dipole_shifting(system, z_pos_count=1, params=params)
+
+#params["positions"] = [np.array([1, 2, 0.5]), np.array([4, 5, 0.5])]
+#run_elcic_energy_accuracy_convergence(system, params)

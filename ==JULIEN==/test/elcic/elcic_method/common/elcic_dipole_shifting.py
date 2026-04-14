@@ -16,7 +16,6 @@ def run(system, z_pos_count, params):
     system.box_l = [params["lx"], params["ly"], params["lz"]]
     
     legacy_energies = []
-    analytical_energies = []
     custom_energies = []
     
     z_range = np.linspace(eps, params["lz"] - params["gap_size"] - eps, num=z_pos_count)
@@ -26,32 +25,22 @@ def run(system, z_pos_count, params):
             pos = params["positions"][i]
             system.part.add(pos=[pos[0], pos[1], z], q=params["charges"][i])
 
-
-        # Analytical Energy
-        start = time.perf_counter()
-        e_analytical = analytical_two_plate_elcic_energy(system, params, tol=1e-6)
-        t_analytical = time.perf_counter() - start
-        analytical_energies.append(e_analytical)
         # Legacy Energy
         start = time.perf_counter()
-        e_legacy = get_legacy_elc_energy(system, params["gap_size"], pw_error, delta_mid_top, delta_mid_bot)
+        e_legacy = get_legacy_elc_energy(system, params["gap_size"], prefactor, pw_error, delta_mid_top, delta_mid_bot)
         t_legacy = time.perf_counter() - start
         legacy_energies.append(e_legacy)
 
-        """
         # Custom Energy
         start = time.perf_counter()
         e_custom = get_elcic_energy(system, params["gap_size"], pw_error, prefactor, delta_mid_bot, delta_mid_top)
         t_custom = time.perf_counter() - start
         custom_energies.append(e_custom)
-        """
 
-        custom_energies.append(e_analytical)
-        print(f"z={z:.2f} | Analytical: {e_analytical:.4e} ({t_analytical:.4f}s) | ")
+        print(f"z={z:.2f} | Analytical: {e_custom:.4e} ({t_custom:.4f}s) | ")
         print(f"z={z:.2f} | Legacy: {e_legacy:.4e} ({t_legacy:.4f}s) | ")
 
     legacy_energies = np.array(legacy_energies)
-    analytical_energies = np.array(analytical_energies)
     custom_energies = np.array(custom_energies)
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), sharex=True, 
@@ -59,7 +48,6 @@ def run(system, z_pos_count, params):
 
     # Top Plot: Absolute Energy
     ax1.plot(z_range, legacy_energies, label='Legacy ELC', marker='x', linestyle='--')
-    ax1.plot(z_range, analytical_energies, label='Analytical', linestyle='-')
     ax1.plot(z_range, custom_energies, label='Custom ELCIC', marker='x', linestyle=':')
 
     ax1.text(0.95, 0.95, "\n".join([f"{k}: {v}" for k, v in params.items()]), 
@@ -73,8 +61,7 @@ def run(system, z_pos_count, params):
     ax1.grid(True)
 
     # Bottom Plot: Differences (Residuals)
-    ax2.plot(z_range, legacy_energies - analytical_energies, label='Legacy - Analytical', marker='o', markersize=3)
-    ax2.plot(z_range, custom_energies - analytical_energies, label='Custom - Analytical', marker='s', markersize=3)
+    ax2.plot(z_range, legacy_energies - custom_energies, label='Legacy - Analytical', marker='o', markersize=3)
     
     ax2.set_xlabel('z-position')
     ax2.set_ylabel('Difference')
@@ -83,9 +70,3 @@ def run(system, z_pos_count, params):
 
     plt.tight_layout()
     plt.show()
-
-   
-
-
-
-
