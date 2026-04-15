@@ -59,6 +59,8 @@ R. G. Barrera; O. Guzmán; B. Balaguer"
 #### Neutral
 
 * do two metallic plates.
+  * modify custom elcic to fit
+    * symmetry check; test all components far\_fomula, get\_e\_non\_neutral\_corr, etc. if theyre symm. wrt to part.z
 * do non metallic plate (if theres an anaSolution)
 * do mixed plates (if theres an anaSolution)
 
