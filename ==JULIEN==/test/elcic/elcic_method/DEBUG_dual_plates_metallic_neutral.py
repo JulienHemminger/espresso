@@ -122,8 +122,8 @@ params = {
     "lz": 11.0,
     "gap_size": 7.0,
     "prefactor": 1.0,
-    "delta_mid_top": -1.0,
-    "delta_mid_bot": -1.0, # for metallic it must: Δ = −1
+    "delta_mid_top": 0.3,
+    "delta_mid_bot": 0.3, # for metallic it must: Δ = −1
     "charges": [+1, -1],
     'pw_error': 1e-6,
     "positions": [np.array([1, 2, 3]), np.array([4, 5, 1])],
