@@ -65,6 +65,7 @@ R. G. Barrera; O. Guzmán; B. Balaguer"
     * build from scratch: NO, didnt work. too complex
     * start with different problem (e.g. non-metallic plates): TODO
     * build on top of elc.py: TODO
+    * fix single plate elcic first, then do dual plate
 * do non metallic plate (if theres an anaSolution)
 * do mixed plates (if theres an anaSolution)
 
