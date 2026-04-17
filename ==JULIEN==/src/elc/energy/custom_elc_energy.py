@@ -3,7 +3,7 @@ import espressomd.electrostatics
 import numpy as np
 
 
-def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
+def get_elc_energy_contribs(system, gap_size, pw_error, prefactor=1.0):
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
     )
@@ -70,6 +70,6 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
 
 def get_elc_energy(system, gap_size, pw_error, prefactor=1.0):
     _, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
-        gap_size, pw_error, system, prefactor
+        system, gap_size, pw_error, prefactor
     )
     return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)
