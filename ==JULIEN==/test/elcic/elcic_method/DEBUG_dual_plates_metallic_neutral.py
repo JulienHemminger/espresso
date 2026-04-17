@@ -73,7 +73,7 @@ def run_elcic_diagnostic(system, z_pos_count, params):
         data["lt"].append(contribs["lt"]["total"])
 
     # --- Plotting ---
-    fig, axes = plt.subplots(3, 1, figsize=(10, 15), sharex=True)
+    fig, axes = plt.subplots(3, 1, figsize=(12, 15), sharex=True)
     z_vals = np.array(data["z"])
 
     # Top Plot: High-level Comparison
@@ -110,7 +110,13 @@ def run_elcic_diagnostic(system, z_pos_count, params):
     axes[2].legend()
     axes[2].grid(True)
 
-    plt.tight_layout()
+    params_str = "\n".join([f"{k}: {v}" for k, v in params.items() if k != 'positions'])
+    fig.text(0.82, 0.5, f"Parameters:\n{'-'*15}\n{params_str}", 
+             fontsize=10, 
+             verticalalignment='center', 
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    plt.subplots_adjust(right=0.8)
     plt.show()
 
 
@@ -119,8 +125,8 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 params = {
-    "lx": 50.0,
-    "ly": 50.0,
+    "lx": 200.0,
+    "ly": 200.0,
     "lz": 11.0,
     "gap_size": 7.0,
     "prefactor": 1.0,
@@ -129,6 +135,12 @@ params = {
     "charges": [+1, -1],
     'pw_error': 1e-6,
     "positions": [np.array([1, 2, 3]), np.array([4, 5, 1])],
-    "title": "Single Plates, Both Metallic, Neutral"
+    "title": "Single Plate, Both Metallic, Neutral"
 }
-run_elcic_diagnostic(system, z_pos_count=4, params=params)
+run_elcic_diagnostic(system, z_pos_count=16, params=params)
+
+
+
+"""
+parameter sweep
+"""
