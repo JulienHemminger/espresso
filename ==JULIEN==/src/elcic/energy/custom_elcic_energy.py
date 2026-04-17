@@ -3,36 +3,16 @@ import espressomd.electrostatics
 import numpy as np
 
 
-# ---------------------------------------------------------------------------
-# Low-level helpers
-# ---------------------------------------------------------------------------
-
 def _elc_kernel(qs_L, xs_L, ys_L, zs_L,
                 qs_R, xs_R, ys_R, zs_R,
                 lx, ly, lz_box, gap_size, pw_error,
                 prefactor):
-    """
-    Compute the ELC correction term  E_{2D+h} - E_{3D}  for a neutral (or
-    non-neutral) system whose real-space box has height lz_box and whose
-    gap is gap_size.
-
-    The combined charge set is split into L< (lower half) and L> (upper
-    half) as defined by the far formula.  Here we pass the two halves
-    directly as (qs_L, ...) = L< and (qs_R, ...) = L>.
-
-    Returns the scalar ELC correction energy (already multiplied by
-    prefactor).
-
-    NOTE: this is a *standalone* far-formula evaluation; it does NOT call
-    P3M.  It implements Eq. (3.5) / (3.10) of Arnold et al. 2002.
-    """
+  
     ux = 1.0 / lx
     uy = 1.0 / ly
     uz = 1.0 / lz_box
 
-    # ------------------------------------------------------------------
-    # Build reciprocal-space grid
-    # ------------------------------------------------------------------
+    
     f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
     p_max = int(np.ceil(f_max * lx))
     q_max = int(np.ceil(f_max * ly))
@@ -54,10 +34,7 @@ def _elc_kernel(qs_L, xs_L, ys_L, zs_L,
     omega_q = 2.0 * np.pi * fy    # 2π q/ly
     two_pi_f = 2.0 * np.pi * f    # 2π f_{pq}
 
-    # ------------------------------------------------------------------
-    # Chi factors  χ^{±, s/c, s/c}_{L}(p,q)  =  Σ_i q_i exp(±2π f z_i)
-    #              × sin/cos(ω_p x_i) × sin/cos(ω_q y_i)
-    # ------------------------------------------------------------------
+   
     def chi_factors(qs, xs, ys, zs):
         """Returns dict with keys (+cc, +sc, +cs, +ss, -cc, -sc, -cs, -ss)
         each an array of shape (n_modes,)."""
@@ -80,13 +57,7 @@ def _elc_kernel(qs_L, xs_L, ys_L, zs_L,
     chiL = chi_factors(qs_L, xs_L, ys_L, zs_L)
     chiR = chi_factors(qs_R, xs_R, ys_R, zs_R)
 
-    # ------------------------------------------------------------------
-    # X-factors  X^{+, s/c, s/c}_{L<}(p,q)  and  X^{-, s/c, s/c}_{L>}
-    # using Eq. (3.6) / (3.7):
-    #   L'_{p,q}(z) = exp(-2π f z) / (1 - exp(-4 L_z f))
-    # X^{+}_{L<} uses  L'(z_i)   (lower set, upper replica direction)
-    # X^{-}_{L>} uses  L'(L_z - z_i) (upper set, lower replica direction)
-    # ------------------------------------------------------------------
+   
     denom = 1.0 - np.exp(-4.0 * np.pi * f * lz_box)   # (n_modes,)
 
     def Lpq(z_scalar):
@@ -128,12 +99,7 @@ def _elc_kernel(qs_L, xs_L, ys_L, zs_L,
 
     inv_f = 1.0 / f    # (n_modes,)
 
-    # ------------------------------------------------------------------
-    # ELC reciprocal correction  (Eq. 3.5, neutral case)
-    # E_{2D+h} - E_{3D} |_{recip} =
-    #   -½ ux uy Σ_{p,q} (1/f_{pq}) [χ^{-}_{L<} X^{+}_{L<}  cross-terms]
-    #   -½ ux uy Σ_{p,q} (1/f_{pq}) [X^{-}_{L>} χ^{+}_{L>}  cross-terms]
-    # ------------------------------------------------------------------
+   
     def dot4(A, B, tags):
         return np.sum(inv_f * sum(A[t1] * B[t2] for t1, t2 in tags))
 
@@ -146,11 +112,7 @@ def _elc_kernel(qs_L, xs_L, ys_L, zs_L,
 
     e_recip = -0.5 * ux * uy * t1 - 0.5 * ux * uy * t2
 
-    # ------------------------------------------------------------------
-    # Dipole / non-neutral correction  (Eq. 3.8 / 3.9 / 3.10)
-    # For a neutral system the xi0 terms vanish but we keep them general.
-    # We operate on the FULL charge set (L ∪ R).
-    # ------------------------------------------------------------------
+   
     all_qs = np.concatenate([qs_L, qs_R])
     all_zs = np.concatenate([zs_L, zs_R])
 
@@ -158,20 +120,12 @@ def _elc_kernel(qs_L, xs_L, ys_L, zs_L,
     xi1 = np.sum(all_qs * all_zs)
     xi2 = np.sum(all_qs * all_zs**2)
 
-    # Eq. (3.8): replace standard dipole term with background-corrected one
-    # Standard 3D dipole would be  2π u_x u_y u_z (xi1)^2
-    # ELCIC/ELC replaces it with   2π u_x u_y u_z (xi1 - lz/2 · xi0)^2
-    # The net change (what ELC *adds* relative to P3M's own dipole term) is:
-    #   +2 ux uy uz (xi1)^2              ← subtract P3M's dipole contribution
-    #   → actual correction keeps track only of difference
-    # Following the ELC paper directly:
+    
     e_dipole = 2.0 * ux * uy * uz * (xi1 - 0.5 * lz_box * xi0)**2
-    # subtract the P3M dipole (which was  2π ux uy uz xi1^2  with tinfoil BC)
     e_dipole_correction = (
         2.0 * ux * uy * uz * ((xi1 - 0.5 * lz_box * xi0)**2 - xi1**2)
     )
 
-    # Eq. (3.9): interaction of neutralizing background with charges
     e_bg = (
         -2.0 * ux * uy * uz * xi0 * xi2
         + 2.0 * ux * uy        * xi0 * xi1
@@ -183,18 +137,9 @@ def _elc_kernel(qs_L, xs_L, ys_L, zs_L,
 
     return prefactor * (e_recip + e_nn)
 
-
-# ---------------------------------------------------------------------------
-# ELC energy for a *single* system (P3M + ELC correction)
-# ---------------------------------------------------------------------------
-
 def _p3m_energy(system, qs, xs, ys, zs, lx, ly, lz_box,
                 gap_size, pw_error, prefactor):
-    """
-    Run P3M on the particles currently in `system` and return the total
-    electrostatic energy.  The caller is responsible for setting up
-    particle positions / charges before calling this.
-    """
+   
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor,
         accuracy=pw_error,
@@ -206,30 +151,10 @@ def _p3m_energy(system, qs, xs, ys, zs, lx, ly, lz_box,
     system.electrostatics.clear()
     return float(e)
 
-
-# ---------------------------------------------------------------------------
-# Far-formula interaction between L0 and L±2
-# ---------------------------------------------------------------------------
-
 def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
                    gap_size, pw_error, prefactor,
                    delta_b, delta_t):
-    """
-    Compute the interaction energy of the real charges L0 with the
-    second-generation image charges L±2 using the far formula (Sec. IV.A).
-
-    This implements Eqs. (4.6)–(4.12) of Tyagi et al. 2008, plugged into
-    Eq. (3.4).
-
-    Parameters
-    ----------
-    qs, xs, ys, zs : real charges and positions (all N particles)
-    lx, ly, lz     : box dimensions of the *physical* slab (NOT the padded box)
-    gap_size        : ELC gap
-    pw_error        : plane-wave truncation error
-    prefactor       : Coulomb prefactor
-    delta_b, delta_t: dielectric contrast factors Δ_b, Δ_t
-    """
+ 
     Delta = delta_b * delta_t   # Δ = Δ_b Δ_t
 
     # Subdivision threshold λ = gap_size
@@ -240,9 +165,6 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
     mask_top = zs >= lz - lam          # L0,+1  : lz−λ < z ≤ lz
     mask_mid = ~mask_bot & ~mask_top   # L0,0   : λ ≤ z ≤ lz−λ
 
-    # ------------------------------------------------------------------
-    # Build reciprocal-space grid
-    # ------------------------------------------------------------------
     f_max = -np.log(pw_error) / (2.0 * np.pi * lam)
     p_max = int(np.ceil(f_max * lx))
     q_max = int(np.ceil(f_max * ly))
@@ -267,10 +189,7 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
     omega_q   = 2.0 * np.pi * fy
     two_pi_f  = 2.0 * np.pi * f_pq
 
-    # ------------------------------------------------------------------
-    # Helper: L_{p,q}(z) = Δ exp(-2π f z) / (1 - Δ exp(-4π l_z f))
-    #         (Eq. 4.4 with generic Δ)
-    # ------------------------------------------------------------------
+    
     def Lpq_func(z_arr, Delta_val):
         """
         Vectorised: z_arr shape (N,) → output shape (N, n_modes).
@@ -284,10 +203,7 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
         """shape (N,)"""
         return (1.0 / (1.0 - Delta_val)) * (z_arr + 2.0 * lz * Delta_val / (1.0 - Delta_val))
 
-    # ------------------------------------------------------------------
-    # Fourier (T) factors:  T_{p,q}(x_i, y_i) = [cc, sc, cs, ss]
-    # shape of each: (N, n_modes)
-    # ------------------------------------------------------------------
+   
     cp = np.cos(omega_p * xs[:, None])
     sp = np.sin(omega_p * xs[:, None])
     cq = np.cos(omega_q * ys[:, None])
@@ -295,10 +211,7 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
 
     T = {'cc': cp * cq, 'sc': sp * cq, 'cs': cp * sq, 'ss': sp * sq}
 
-    # ------------------------------------------------------------------
-    # χ factors for L0 (real charges) — Eq. (3.3)
-    # χ^{±}_{L0}(p,q) = Σ_i q_i exp(±2π f z_i) T_{p,q}(x_i, y_i)
-    # ------------------------------------------------------------------
+    
     def chi_pm(sign):
         ex = np.exp(sign * two_pi_f * zs[:, None])
         out = {}
@@ -313,21 +226,7 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
     xi0_L0 = float(np.sum(qs))
     xi1_L0 = float(np.sum(qs * zs))
 
-    # ------------------------------------------------------------------
-    # ---- L−2 factors  (Eqs. 4.6, 4.8, 4.9) -------------------------
-    #
-    # χ^{+}_{L−2}(p,q) =
-    #   Σ_{i ∈ L0,−1} q_i [Δ_b L_{p,q}(2lz+z_i) + Δ L_{p,q}(2lz−z_i)] T_i
-    # + Σ_{i ∈ L0,0∪L0,+1} q_i [Δ_b L_{p,q}(z_i) + Δ L_{p,q}(2lz−z_i)] T_i
-    #
-    # ξ^{(0)}_{L−2} =
-    #   Σ_{i ∈ L0,−1} q_i/(1-Δ) (Δ_b Δ + Δ)
-    # + Σ_{i ∈ L0,0∪L0,+1} q_i/(1-Δ) (Δ_b + Δ)
-    #
-    # ξ^{(1)}_{L−2} =
-    #   Σ_{i ∈ L0,−1} q_i/(1-Δ) [−Δ_b Δ I(2lz+z_i) − Δ I(2lz−z_i)]
-    # + Σ_{i ∈ L0,0∪L0,+1} q_i/(1-Δ) [−Δ_b I(z_i) − Δ I(2lz−z_i)]
-    # ------------------------------------------------------------------
+   
 
     def chi_Lm2():
         """Returns χ^{+}_{L−2} as dict of (n_modes,) arrays."""
@@ -340,40 +239,7 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
             qi   = qs[idx]
             Lm1  = Lpq_func(2.0 * lz + zi, Delta)   # L_{p,q}(2lz+z_i)  [Δ already inside]
             Lm2  = Lpq_func(2.0 * lz - zi, Delta)   # L_{p,q}(2lz−z_i)
-            # Note: Lpq_func already bakes in the Δ factor in the numerator.
-            # But the series is:
-            #   q_i Δ_b exp(-2π f z_i) + q_i Δ_b Δ exp(-2π f (2lz+z_i)) + ...
-            #   = q_i Δ_b L_{p,q}(z_i)      with L containing Δ in numerator
-            # For L0,−1 the *first* image (at -z_i) is already in L−1,
-            # so the L−2 part starts from the 2nd term: position -(2lz+z_i)
-            # → L(2lz+z_i) with numerator Δ_b Δ  (=Δ_b * Δ).
-            # We handle this by re-building:
-            #   Σ_m Δ^m exp(-2π f (2lz + z_i + 2m lz)) =
-            #       Δ exp(-2π f (2lz+z_i)) / (1 - Δ exp(-4π f lz))
-            # which is just Lpq_func(2lz+z_i, Delta) evaluated with Δ in numerator
-            # (that's what Lpq_func computes).
-            # The overall coefficient of this block is Δ_b (outer factor).
-            # Similarly the "series 2.4" block:
-            #   Σ_m Δ^{m+1} exp(-2π f (2lz + z_i + 2m lz)) starting m=0
-            #   = Δ exp(-2π f (2lz - z_i)) / (1 - Δ exp(-4π f lz))   * outer=1? no
-            # Let us re-examine from the paper carefully:
-            # Series 2.3:  positions -(z_i), -(2lz+z_i), -(4lz+z_i), ...
-            #              charges   q_i Δ_b, q_i Δ_b Δ, q_i Δ_b Δ^2, ...
-            # L−1 contains only the first element -(z_i) for L0,−1.
-            # L−2 gets the rest, starting from -(2lz+z_i):
-            #   Σ_{m=1}^∞ q_i Δ_b Δ^{m-... wait, let's index properly:
-            #   m=0: pos=−z_i, charge q_i Δ_b          → in L−1
-            #   m=1: pos=−(2lz+z_i), charge q_i Δ_b Δ  → in L−2
-            #   ...
-            # So L−2 from series 2.3 (for L0,−1):
-            #   Σ_{m=0}^∞ q_i Δ_b Δ^{m+1} exp(-2π f (2lz+z_i + 2m lz))
-            #   = q_i Δ_b · Δ exp(-2π f (2lz+z_i)) / (1 - Δ exp(-4π f lz))
-            #   = q_i Δ_b · Lpq_func(2lz+z_i, Delta)
-            # Series 2.4: positions -(2lz-z_i), -(4lz-z_i), ...
-            #             charges q_i Δ, q_i Δ^2, ...
-            # All of series 2.4 is in L−2 (first element at -(2lz-z_i)):
-            #   Σ_{m=0}^∞ q_i Δ^{m+1} exp(-2π f (2lz-z_i + 2m lz))
-            #   = q_i · Lpq_func(2lz-z_i, Delta)
+           
             coeff_bot = delta_b * Lm1 + Lm2   # shape (len(idx), n_modes)
             for tag, t in T.items():
                 out[tag] += np.sum(qi[:, None] * coeff_bot * t[idx, :], axis=0)
@@ -383,14 +249,7 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
         if len(idx2) > 0:
             zi   = zs[idx2]
             qi   = qs[idx2]
-            # For L0,0 and L0,+1: ALL of series 2.3 is in L−2
-            #   (first image is at -z_i, but since z_i ≥ λ it is already > λ from bottom)
-            # Series 2.3 (all terms):
-            #   Σ_{m=0}^∞ q_i Δ_b Δ^m exp(-2π f (z_i + 2m lz))
-            #   = q_i Δ_b Lpq_func(z_i, Delta)
-            # Series 2.4 (all terms):
-            #   Σ_{m=0}^∞ q_i Δ^{m+1} exp(-2π f (2lz-z_i + 2m lz))
-            #   = q_i Lpq_func(2lz-z_i, Delta)
+           
             Lm1  = Lpq_func(zi,           Delta)
             Lm2  = Lpq_func(2.0 * lz - zi, Delta)
             coeff_mid = delta_b * Lm1 + Lm2
@@ -430,21 +289,7 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
             s  += np.sum(qi * (-delta_b * Ip - Delta * Im) / (1.0 - Delta))
         return float(s)
 
-    # ------------------------------------------------------------------
-    # ---- L+2 factors  (Eqs. 4.10, 4.11, 4.12) ----------------------
-    #
-    # χ^{−}_{L+2}(p,q) =
-    #   Σ_{i ∈ L0,+1} q_i [Δ_t L_{p,q}(4lz−z_i) + Δ L_{p,q}(2lz+z_i)] T_i
-    # + Σ_{i ∈ L0,0∪L0,−1} q_i [Δ_t L_{p,q}(2lz−z_i) + Δ L_{p,q}(2lz+z_i)] T_i
-    #
-    # ξ^{(0)}_{L+2} =
-    #   Σ_{i ∈ L0,+1} q_i/(1-Δ) (Δ_t Δ + Δ)
-    # + Σ_{i ∈ L0,0∪L0,−1} q_i/(1-Δ) (Δ_t + Δ)
-    #
-    # ξ^{(1)}_{L+2} =
-    #   Σ_{i ∈ L0,+1} q_i/(1-Δ) [Δ_t Δ I(4lz−z_i) + Δ I(2lz+z_i)]
-    # + Σ_{i ∈ L0,0∪L0,−1} q_i/(1-Δ) [Δ_t I(2lz−z_i) + Δ I(2lz+z_i)]
-    # ------------------------------------------------------------------
+   
 
     def chi_Lp2():
         """Returns χ^{−}_{L+2} as dict of (n_modes,) arrays."""
@@ -455,26 +300,7 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
         if len(idx) > 0:
             zi = zs[idx]
             qi = qs[idx]
-            # Series 2.5: positions (2lz-z_i), (4lz-z_i), ...
-            #             charges q_i Δ_t, q_i Δ_t Δ, ...
-            # L+1 contains only the first (2lz-z_i) for L0,+1
-            # L+2 from series 2.5 (L0,+1):
-            #   Σ_{m=1}^∞ q_i Δ_t Δ^m exp(-2π f (4lz-z_i + 2m lz - 2lz))
-            # Wait, let's be careful.  Positions in series 2.5:
-            #   (2lz-z_i), (4lz-z_i), (6lz-z_i), ...
-            # For the far formula we need exp(-2π f z') for z' > lz (above the box).
-            # The L factor uses exp(-2π f (z' - lz)) to measure distance above lz.
-            # Actually looking at Eq. (4.10):
-            #   L+2 series 2.5 for L0,+1: starts at 2nd element = 4lz-z_i
-            #   → Σ_{m=0}^∞ q_i Δ_t Δ^{m+1} exp(-2π f (4lz-z_i + 2m lz - lz))
-            #   Hmm. Let's follow the paper's X^{-}_{L+2} definition directly.
-            # From (4.10):
-            #   χ^{-,s/c,s/c}_{L+2}(p,q) =
-            #     Σ_{i∈L0,+1} q_i(Δ_t Δ L_{p,q}(4lz-z_i) + Δ L_{p,q}(2lz+z_i)) T
-            #   + Σ_{i∈L0,0∪L0,-1} q_i(Δ_t L_{p,q}(2lz-z_i) + Δ L_{p,q}(2lz+z_i)) T
-            # where L_{p,q}(z) = Δ exp(-2π f z) / (1 - Δ exp(-4π f lz))
-            # Note: the coefficients Δ_t Δ and Δ_t are the outer multiplicative factors
-            # (they do NOT go inside the Lpq_func which already has its own Δ).
+            
             Lp1  = Lpq_func(4.0 * lz - zi, Delta)
             Lp2  = Lpq_func(2.0 * lz + zi, Delta)
             coeff = delta_t * Delta * Lp1 + Delta * Lp2
@@ -524,28 +350,6 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
             s += np.sum(qi * (delta_t * Ip + Delta * Im) / (1.0 - Delta))
         return float(s)
 
-    # ------------------------------------------------------------------
-    # Assemble via Eq. (3.4):
-    #   E(L0, L±2) = ½ ux uy Σ_{p,q≠0} (1/f_{p,q}) [
-    #       χ^{-}_{L0} χ^{+}_{L±2}  cross-terms ]
-    #              + (dipole cross terms between L0 and L±2)
-    #
-    # More precisely Eq. (3.4):
-    #   E = ½ ux uy Σ (1/f) [χ^{-cc}_{L>} χ^{+cc}_{L<} + ... ]
-    #             - π ux uy ξ^{(1)}_{L>} ξ^{(0)}_{L<}
-    #             - π ux uy ξ^{(0)}_{L>} ξ^{(1)}_{L<}
-    # where L< is L0 (lower half, smaller z) and L> is L±2 (upper half).
-    # But here the ">" / "<" ordering depends on which image group.
-    #
-    # For L−2 (images BELOW the box):  L> = L0, L< = L−2
-    #   E(L0, L−2) = ½ ux uy Σ (1/f) [χ^{-}_{L0} χ^{+}_{L−2} cross-terms]
-    #              - π ux uy (ξ1_{L0} ξ0_{L−2} + ξ0_{L0} ξ1_{L−2})
-    #
-    # For L+2 (images ABOVE the box):  L> = L+2, L< = L0
-    #   E(L0, L+2) = ½ ux uy Σ (1/f) [χ^{-}_{L+2} χ^{+}_{L0} cross-terms]
-    #              - π ux uy (ξ1_{L+2} ξ0_{L0} + ξ0_{L+2} ξ1_{L0})
-    # ------------------------------------------------------------------
-
     inv_f = 1.0 / f_pq
 
     chi_p_Lm2 = chi_Lm2()   # χ^{+}_{L−2}
@@ -587,21 +391,9 @@ def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
         "e_dipole_p2":  prefactor * e_dipole_p2,
     }
 
-
-# ---------------------------------------------------------------------------
-# Helper: run P3M + standalone ELC correction on an arbitrary charge set
-#         that has been loaded into `system`.
-# ---------------------------------------------------------------------------
-
 def _run_elc_on_system(system, lx, ly, lz_phys, lz_padded, gap_size,
                        pw_error, prefactor, description=""):
-    """
-    Returns E_{2D+h} for the particles currently in `system`, computed as:
-        E_{2D+h} = E_{P3M}(lz_padded) + ELC_correction(lz_padded, gap_size)
-
-    `lz_phys`   – physical slab height (height of the charge region)
-    `lz_padded` – box height used for P3M (= lz_phys + 3*gap_size)
-    """
+   
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor,
         accuracy=pw_error,
@@ -617,12 +409,6 @@ def _run_elc_on_system(system, lx, ly, lz_phys, lz_padded, gap_size,
     pos_s = parts.pos
     xs_s, ys_s, zs_s = pos_s[:, 0], pos_s[:, 1], pos_s[:, 2]
 
-    # ELC correction: we need to split the charge set into lower and upper
-    # halves for the far formula; but here we use _elc_kernel which
-    # handles it internally using the full set (neutral case).
-    # For simplicity we pass the full set as both halves and let the kernel
-    # handle the correct split internally.
-    # Actually _elc_kernel expects pre-split L< and L>, so let's split at lz/2.
     mid = lz_padded / 2.0
     mask_lo = zs_s <= mid
     mask_hi = ~mask_lo
@@ -635,39 +421,10 @@ def _run_elc_on_system(system, lx, ly, lz_phys, lz_padded, gap_size,
 
     return e_3d + e_elc, e_3d, e_elc
 
-
-# ---------------------------------------------------------------------------
-# Main ELCIC functions
-# ---------------------------------------------------------------------------
-
 def get_elcic_energy_contribs(
     system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
 ):
-    """
-    Compute ELCIC energy contributions for a 2D+h slab system with two
-    dielectric interfaces.
-
-    The method follows Tyagi, Arnold, Holm, J. Chem. Phys. 129, 204102 (2008).
-
-    Parameters
-    ----------
-    system        : ESPResSo system with particles already set up.
-    gap_size      : ELC gap size λ (must be > 0; charges must stay outside
-                    [0,λ) and (lz-λ, lz]).
-    pw_error      : plane-wave truncation error target.
-    prefactor     : Coulomb prefactor (= 1/(4πε₀ εm)).
-    delta_mid_bot : Δ_b = (ε_m − ε_b)/(ε_m + ε_b)
-    delta_mid_top : Δ_t = (ε_m − ε_t)/(ε_m + ε_t)
-
-    Returns
-    -------
-    dict with keys:
-        "e_near"   – E(L0, L0 ∪ L±1) computed via P3M + ELC on LT
-        "e_far"    – E(L0, L±2) computed via far formula
-        "l0"       – sub-dict with contributions from the L0-only ELC term
-        "pm1"      – sub-dict with contributions from the L±1 ELC term
-        "lt"       – sub-dict with contributions from the LT ELC term
-    """
+   
     lx, ly, lz = system.box_l
     parts = system.part.all()
     qs = parts.q.copy()
@@ -676,9 +433,7 @@ def get_elcic_energy_contribs(
 
     Delta     = delta_mid_bot * delta_mid_top
 
-    # ------------------------------------------------------------------
-    # 1.  E_far: interaction of L0 with L±2  (far formula, Sec. IV.A)
-    # ------------------------------------------------------------------
+   
     e_far_total, e_far_detail = _compute_e_far(
         qs, xs, ys, zs,
         lx, ly, lz,
@@ -686,14 +441,7 @@ def get_elcic_energy_contribs(
         delta_mid_bot, delta_mid_top,
     )
 
-    # ------------------------------------------------------------------
-    # 2.  Build LT = L−1 ∪ L0 ∪ L+1 and compute E(LT, LT), E(L±1, L±1),
-    #     E(L0, L0) using P3M + ELC, then obtain E(L0, LT) via Eq. (4.14).
-    #
-    # The padded box has height lz_padded = lz + 3*gap_size so that there
-    # is a gap of at least gap_size between the real charges (and their
-    # near images) and their periodic replicas.
-    # ------------------------------------------------------------------
+    
     lz_padded = lz + 3.0 * gap_size
 
     # Classify particles
@@ -715,23 +463,7 @@ def get_elcic_energy_contribs(
         ys_Lp1 = np.array([])
         zs_Lp1 = np.array([])
 
-    # ---- L−1: first image of L0,−1 through lower interface (series 2.3 m=0)
-    #     position: -z_i → inside lower dielectric, but we shift z periodically
-    #     For the P3M box of height lz_padded, images below z=0 are placed at
-    #     negative z, which we fold back: z_image = -z_i → shifted to lz_padded - z_i
-    #     Actually we keep the physical meaning: the image is at z' = -z_i.
-    #     Since lz_padded includes a gap, we need z' > 0 in the padded box.
-    #     The padded box starts at z=0 (real charges) and the gap is at the TOP.
-    #     We shift the entire system so real charges live in [gap_size, lz+gap_size]
-    #     inside the padded box, making room for images below and above.
-    #     → shift: z_shifted = z + gap_size
-    #
-    # RE-READING THE PAPER (Sec. IV.B):
-    #   LT is placed in a box of size lx × ly × (lz + 3λ) such that a gap λ
-    #   remains.  The real charges L0 are shifted to [λ, lz+λ], L−1 images go
-    #   to [0, λ], and L+1 images go to [lz+λ, lz+2λ].  The gap [lz+2λ, lz+3λ]
-    #   is empty (the ELC gap).
-    # ------------------------------------------------------------------
+   
 
     z_shift = gap_size  # shift real charges up by one gap_size
 
@@ -753,22 +485,13 @@ def get_elcic_energy_contribs(
         ys_Lm1 = np.array([])
         zs_Lm1 = np.array([])
 
-    # L+1 images (above upper interface at z=lz, i.e. at 2lz-z_i physically)
-    # In shifted coords: 2lz - z_i + z_shift = 2lz - z_i + gap_size
-    # For z_i in [lz-gap_size, lz]: 2lz-z_i in [lz, lz+gap_size]
-    # shifted: 2lz-z_i+gap_size in [lz+gap_size, lz+2*gap_size] ✓
+   
     if len(idx_top) > 0:
         zs_Lp1_shifted = 2.0 * lz - zs[idx_top] + z_shift
     else:
         zs_Lp1_shifted = np.array([])
 
-    # ------------------------------------------------------------------
-    # Build three particle sets for ESPResSo:
-    #   (a) LT = L0 ∪ L−1 ∪ L+1  (all in shifted coords, padded box)
-    #   (b) L±1 only
-    #   (c) L0 only  (shifted)
-    # For each we spin up P3M + ELC and get the 2D+h energy.
-    # ------------------------------------------------------------------
+   
 
     # Save original box and particles
     orig_box = system.box_l.copy()
@@ -786,9 +509,7 @@ def get_elcic_energy_contribs(
             ):
                 system.part.add(id=i, pos=[x_i, y_i, z_i], q=float(q_i))
 
-    # ----------------------------------------------------------------
-    # (a) E(LT, LT)
-    # ----------------------------------------------------------------
+   
     qs_LT = np.concatenate([qs_Lm1, qs,      qs_Lp1])
     xs_LT = np.concatenate([xs_Lm1, xs,      xs_Lp1 if len(xs_Lp1) > 0 else np.array([])])
     ys_LT = np.concatenate([ys_Lm1, ys,      ys_Lp1 if len(ys_Lp1) > 0 else np.array([])])
@@ -802,9 +523,7 @@ def get_elcic_energy_contribs(
         system, lx, ly, lz, lz_padded, gap_size, pw_error, prefactor, "LT"
     )
 
-    # ----------------------------------------------------------------
-    # (b) E(L±1, L±1)
-    # ----------------------------------------------------------------
+    
     qs_L1 = np.concatenate([qs_Lm1, qs_Lp1])
     xs_L1 = np.concatenate([xs_Lm1, xs_Lp1 if len(xs_Lp1) > 0 else np.array([])])
     ys_L1 = np.concatenate([ys_Lm1, ys_Lp1 if len(ys_Lp1) > 0 else np.array([])])
@@ -821,31 +540,22 @@ def get_elcic_energy_contribs(
         e_L1_3d   = 0.0
         e_L1_elc  = 0.0
 
-    # ----------------------------------------------------------------
-    # (c) E(L0, L0)  — real charges only, shifted into padded box
-    # ----------------------------------------------------------------
+   
     _setup_particles(system, lz_padded, qs, xs, ys, zs_shifted)
     e_L0_total, e_L0_3d, e_L0_elc = _run_elc_on_system(
         system, lx, ly, lz, lz_padded, gap_size, pw_error, prefactor, "L0"
     )
 
-    # ----------------------------------------------------------------
-    # Restore original system
-    # ----------------------------------------------------------------
+    
     system.part.clear()
     system.box_l = orig_box
     for i, (q_i, p_i) in enumerate(zip(orig_qs, orig_pos)):
         system.part.add(id=i, pos=p_i.tolist(), q=float(q_i))
 
-    # ----------------------------------------------------------------
-    # E(L0, LT) via Eq. (4.14):
-    #   Φ(L0, LT) = ½ [Φ(LT,LT) − Φ(L±1, L±1) + Φ(L0, L0)]
-    # ----------------------------------------------------------------
+   
     e_near = 0.5 * (e_LT_total - e_L1_total + e_L0_total)
 
-    # ------------------------------------------------------------------
-    # Assemble output dict
-    # ------------------------------------------------------------------
+   
     contribs = {
         "e_near": float(e_near),
         "e_far":  float(e_far_total),
@@ -873,13 +583,7 @@ def get_elcic_energy_contribs(
 def get_elcic_energy(
     system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
 ):
-    """
-    Compute the total ELCIC electrostatic energy of the system.
-
-    Returns
-    -------
-    float – total energy E = E_near + E_far
-    """
+    
     contribs = get_elcic_energy_contribs(
         system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
     )

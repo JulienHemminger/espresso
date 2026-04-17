@@ -125,8 +125,8 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 params = {
-    "lx": 200.0,
-    "ly": 200.0,
+    "lx": 50.0,
+    "ly": 50.0,
     "lz": 11.0,
     "gap_size": 7.0,
     "prefactor": 1.0,
@@ -139,8 +139,3 @@ params = {
 }
 run_elcic_diagnostic(system, z_pos_count=16, params=params)
 
-
-
-"""
-parameter sweep
-"""
