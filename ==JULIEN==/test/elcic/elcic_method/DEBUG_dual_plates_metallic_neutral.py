@@ -100,8 +100,9 @@ def run_elcic_diagnostic(system, z_pos_count, params):
     custom_res = np.array(data["custom_total"]) - np.flip(data["custom_total"])
     legacy_res = np.array(data["legacy_total"]) - np.flip(data["legacy_total"])
     
-    axes[2].plot(z_vals, custom_res, 'c--', label='Custom Symmetry Res.')
-    axes[2].plot(z_vals, legacy_res, 'm--', label='Legacy Symmetry Res.')
+    #axes[2].plot(z_vals, custom_res, 'c--', label='Custom Symmetry Res.')
+    #axes[2].plot(z_vals, legacy_res, 'm--', label='Legacy Symmetry Res.')
+    axes[2].plot(z_vals, legacy_res-custom_res, 'r', label='Legacy - Custom')
     axes[2].axhline(0, color='red', alpha=0.3)
     axes[2].set_title("Symmetry Check: E(z) - E(Mirror_z)")
     axes[2].set_xlabel("z-position")
@@ -111,8 +112,9 @@ def run_elcic_diagnostic(system, z_pos_count, params):
 
     plt.tight_layout()
     plt.show()
-# To use:
 
+
+# To use:
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
@@ -122,11 +124,11 @@ params = {
     "lz": 11.0,
     "gap_size": 7.0,
     "prefactor": 1.0,
-    "delta_mid_top": 0.3,
-    "delta_mid_bot": 0.3, # for metallic it must: Δ = −1
+    "delta_mid_top": 0.0,
+    "delta_mid_bot": -1.0, # for metallic it must: Δ = −1
     "charges": [+1, -1],
     'pw_error': 1e-6,
     "positions": [np.array([1, 2, 3]), np.array([4, 5, 1])],
-    "title": "Dual Plates, Both Metallic, Neutral"
+    "title": "Single Plates, Both Metallic, Neutral"
 }
 run_elcic_diagnostic(system, z_pos_count=4, params=params)

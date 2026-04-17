@@ -62,10 +62,10 @@ R. G. Barrera; O. Guzmán; B. Balaguer"
   * modify custom elcic to fit
     * symmetry check; test all components far\_fomula, get\_e\_non\_neutral\_corr, etc. if theyre symm. wrt to part.z: DONE
     * build on top of single plate elcic.py: NO, didnt work. i think single plate has an error
-    * build from scratch: NO, didnt work. too complex
-    * start with different problem (e.g. non-metallic plates): TODO
-    * build on top of elc.py: TODO
-    * fix single plate elcic first, then do dual plate
+    * build from scratch: NOx2, even worse than on top of elc.py. too complex
+    * start with different problem (e.g. non-metallic plates): DONE
+    * build on top of elc.py: NOx2
+    * fix single plate elcic first, then do dual plate: DONE
 * do non metallic plate (if theres an anaSolution)
 * do mixed plates (if theres an anaSolution)
 
