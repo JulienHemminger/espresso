@@ -147,8 +147,8 @@ def _p3m_energy(system, qs, xs, ys, zs, lx, ly, lz_box,
         verbose=False,
     )
     system.electrostatics.solver = p3m
+    system.integrator.run(0)
     e = system.analysis.energy()["total"]
-    system.electrostatics.clear()
     return float(e)
 
 def _compute_e_far(qs, xs, ys, zs, lx, ly, lz,
@@ -401,8 +401,8 @@ def _run_elc_on_system(system, lx, ly, lz_phys, lz_padded, gap_size,
         verbose=False,
     )
     system.electrostatics.solver = p3m
+    system.integrator.run(0)
     e_3d = float(system.analysis.energy()["total"])
-    system.electrostatics.clear()
 
     parts = system.part.all()
     qs_s = parts.q
