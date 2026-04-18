@@ -148,7 +148,11 @@ run_elcic_diagnostic(system, z_pos_count=16, params=params)
 
     
 DIAGNOSE 1
-* near field > Lt(Real+IMage) + maybe others > e_3d (e_elc=0)
+
+
+* is "e_3d" correct, but there should be another term to even it out?
+
+* near field > Lt(Real+Images) > e_3d (e_elc=0) > _run_elc_on_system
     * seems like only the e_3d components contribute (e_elc=0) - but thats based on p3m ???
         * do i use p3m wrong?
         * is p3m wrong?
