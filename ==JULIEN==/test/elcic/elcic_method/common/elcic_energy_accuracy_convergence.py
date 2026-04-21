@@ -12,7 +12,6 @@ def plot_convergence(accuracies, error_data, contrib_data, params):
     fig, ax1 = plt.subplots(figsize=(12, 8))
     ax2 = ax1.twinx()
 
-   
 
     # Plotting the Delta Error (Custom vs Legacy)
     ax1.loglog(
@@ -79,5 +78,7 @@ def run(system, params):
 
         # Legacy as ground truth
         custom_vs_legacy_errors.append(custom_energy - legacy_energy)
+    
+    print(f"{custom_vs_legacy_errors=}")
 
     plot_convergence(accuracies, custom_vs_legacy_errors, None, params)
