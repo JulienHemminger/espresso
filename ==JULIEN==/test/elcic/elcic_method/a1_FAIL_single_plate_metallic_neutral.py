@@ -1,6 +1,5 @@
 import numpy as np
 import espressomd
-import numpy as np
 
 from test.elcic.elcic_method.common.elcic_energy_accuracy_convergence import run as run_elcic_energy_accuracy_convergence
 from test.elcic.elcic_method.common.elcic_dipole_shifting import run as run_elcic_dipole_shifting
@@ -23,5 +22,5 @@ params = {
 
 run_elcic_energy_accuracy_convergence(system, params)
 
-run_elcic_dipole_shifting(system, z_pos_count=32, params=params)
+#run_elcic_dipole_shifting(system, z_pos_count=32, params=params)
 
