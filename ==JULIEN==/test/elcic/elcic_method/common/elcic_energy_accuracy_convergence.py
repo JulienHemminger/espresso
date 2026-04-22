@@ -86,8 +86,7 @@ def run(system, params):
     legacy_errors = []
     bar_plot_data = {"e_3d": [], "e_corr": [], "e_far": []}
 
-    ana_energy = analytical_single_plate_2d_ewald_elcic_energy(params["positions"], params["charges"], system.box_l, params["prefactor"], params["delta_mid_bot"], k_max=10, n_real=10) # -37.5000171306
-    #ana_energy = analytical_two_plate_elcic_energy(system, params, tol=accuracies[-1])
+    ana_energy = analytical_single_plate_2d_ewald_elcic_energy(params["positions"], params["charges"], system.box_l, params["prefactor"], params["delta_mid_bot"], k_max=10, n_real=10) 
     print(f"Analytical Energy: {ana_energy:.10f}")
 
     for acc in accuracies:

@@ -17,6 +17,7 @@ def run(system, z_pos_count, params):
     
     legacy_energies = []
     analytical_energies = []
+    ana_energy = analytical_single_plate_2d_ewald_elcic_energy([p.pos for p in system.part.all()], params["charges"], system.box_l, prefactor, delta_mid_bot, k_max=10, n_real=10)
     custom_energies = []
     
     z_range = np.linspace(eps, params["lz"] - params["gap_size"] - eps, num=z_pos_count)
@@ -26,7 +27,7 @@ def run(system, z_pos_count, params):
             pos = params["positions"][i]
             system.part.add(pos=[pos[0], pos[1], z], q=params["charges"][i])
 
-        analytical_energies.append(analytical_single_plate_2d_ewald_elcic_energy([p.pos for p in system.part.all()], params["charges"], system.box_l, prefactor, delta_mid_bot, k_max=10, n_real=10))
+        analytical_energies.append(ana_energy)
         legacy_energies.append(get_legacy_elc_energy(system, params["gap_size"], pw_error, delta_mid_top, delta_mid_bot))
         custom_energies.append(get_elcic_energy(
             system, params["gap_size"], pw_error, prefactor, delta_mid_bot, delta_mid_top
