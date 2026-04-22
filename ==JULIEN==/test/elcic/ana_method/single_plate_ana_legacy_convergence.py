@@ -67,6 +67,9 @@ def run_multiple_parameter_sets(system, parameter_list):
                 
     return pd.DataFrame(results)
 
+from datetime import datetime
+from pathlib import Path
+
 def plot_interactive_errors(df):
     if df.empty:
         print("No data to plot.")
@@ -121,8 +124,19 @@ def plot_interactive_errors(df):
     
     fig.show()
 
-    filename = "simulation_results.html"
-    fig.write_html(filename)
+    # 1. Get the current time and format it
+    # Format: Year-Month-Day_Hour-Min-Sec (e.g., 2024-05-20_14-30-05)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    # 2. Define the directory and the timestamped filename
+    output_dir = Path("/home/main")
+    filename = output_dir / f"simulation_{timestamp}.html"
+
+    # 3. Save the figure
+    # Ensure the directory exists to avoid FileNotFoundError
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    fig.write_html(str(filename))
     print(f"Interactive plot saved to {filename}")
 
 def generate_random_param_sets(n_sets=3):

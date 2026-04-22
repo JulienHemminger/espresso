@@ -8,8 +8,8 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 params = {
-        "lx": 8.0,
-        "ly": 12.0,
+        "lx": 50.0,
+        "ly": 50.0,
         "lz": 11.0,
         "gap_size": 9.0,
         "prefactor": 1.0,
@@ -22,5 +22,5 @@ params = {
 
 run_elcic_energy_accuracy_convergence(system, params)
 
-#run_elcic_dipole_shifting(system, z_pos_count=32, params=params)
+run_elcic_dipole_shifting(system, z_pos_count=32, params=params)
 
