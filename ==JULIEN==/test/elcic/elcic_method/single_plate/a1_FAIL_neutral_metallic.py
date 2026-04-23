@@ -18,7 +18,7 @@ for _ in range(params_count):
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
-        "pw_error": 1e-2,
+        "pw_error": 1e-6,
         "charges": [+1, -1],
     }
     params["positions"] = [
@@ -30,17 +30,18 @@ for _ in range(params_count):
         ]
     params_sets.append(params)
 
-param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 6)])
+param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 8)])
 
 
 
 """
 improve custom elcic
-* from scratch
+* from scratch: NO
 
 * based on regular_elc.py
 * based on ana method
 * based on current impl
+* go through history of file on hgithub, choose which version i use as base
 
 """
 
