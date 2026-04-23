@@ -7,7 +7,7 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 
-params_count = 1
+params_count = 100
 params_sets = []
 for _ in range(params_count):
     params = {
@@ -32,8 +32,6 @@ for _ in range(params_count):
 
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 8)])
 
-
-
 """
 * refac full method (using llms): NO
     * from scratch: NO
@@ -43,6 +41,8 @@ param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i
     * based on current impl: NO
     * based on some version(github history): NO
 
+    
+* 
 
 * refac/debug/fix/test individual contribs: YES
     * find params, where contribX is 0/constant
