@@ -4,17 +4,17 @@ import pandas as pd
 import numpy as np
 import espressomd
 import espressomd.electrostatics
-from elcic.energy.custom_elcic_energy import get_elcic_energy_contribs
+from elcic.energy.custom_elcic_energy import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
-def run_multiple_parameter_sets(system, parameter_list):
+def param_sweep_accuracy_convergence(system, parameter_list, accuracies = [10**-i for i in range(1, 6)]):
     """
     Runs simulations with error handling. Skips failed parameter sets.
     Computes both Legacy and Custom ELCIC errors.
     """
     results = []
-    accuracies = [10**-i for i in range(1, 10)]
+    
 
     for p_idx, params in enumerate(parameter_list):
         try:
@@ -39,7 +39,7 @@ def run_multiple_parameter_sets(system, parameter_list):
                 legacy_err = np.abs(legacy_energy - ana_energy)
 
                 # 2. Custom Error
-                contribs = get_elcic_energy_contribs(
+                custom_energy = get_elcic_energy(
                     system,
                     params["gap_size"],
                     acc,
@@ -47,7 +47,6 @@ def run_multiple_parameter_sets(system, parameter_list):
                     params["delta_mid_bot"],
                     params["delta_mid_top"],
                 )
-                custom_energy = contribs["e_far"] + contribs["e_near"]
                 custom_err = np.abs(custom_energy - ana_energy)
                 
                 entry = {
@@ -64,13 +63,14 @@ def run_multiple_parameter_sets(system, parameter_list):
         except Exception as e:
             print(f"Error in parameter set {p_idx+1}: {e}. Skipping...")
             continue
-                
-    return pd.DataFrame(results)
+    
+
+    _plot_interactive_errors(pd.DataFrame(results))
 
 from datetime import datetime
 from pathlib import Path
 
-def plot_interactive_errors(df):
+def _plot_interactive_errors(df):
     if df.empty:
         print("No data to plot.")
         return
@@ -166,5 +166,5 @@ if __name__ == "__main__":
     system = espressomd.System(box_l=[10, 10, 10])
     system.time_step = 0.01
     
-    df = run_multiple_parameter_sets(system, param_sets)
-    plot_interactive_errors(df)
+    df = param_sweep_accuracy_convergence(system, param_sets)
+    _plot_interactive_errors(df)
