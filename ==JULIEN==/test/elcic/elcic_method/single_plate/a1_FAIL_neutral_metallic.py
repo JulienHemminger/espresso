@@ -17,7 +17,7 @@ for _ in range(params_count):
         "gap_size": np.random.uniform(5.0, 10.0),
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
-        "delta_mid_bot": -1.0,
+        "delta_mid_bot": 0.0,
         "pw_error": 1e-6,
         "charges": [+1, -1],
     }
@@ -35,18 +35,20 @@ param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i
 
 
 """
-improve custom elcic
-* from scratch: NO
+* refac full method (using llms): NO
+    * from scratch: NO
+    * based on ana method: NO
 
-* based on regular_elc.py
-* based on ana method
-* based on current impl
-* go through history of file on hgithub, choose which version i use as base
-
-"""
+    * based on regular_elc.py: NO
+    * based on current impl: NO
+    * based on some version(github history): NO
 
 
-"""
-An Alex:
-das ist die Ewald Methode die ich als ana/brute-force Lösung benutze
+* refac/debug/fix/test individual contribs: YES
+    * find params, where contribX is 0/constant
+        * no plates at all (sanity check?): BETTER, err=1e-4
+        * large box (pbc images become irrelevant)
+
+
+
 """
