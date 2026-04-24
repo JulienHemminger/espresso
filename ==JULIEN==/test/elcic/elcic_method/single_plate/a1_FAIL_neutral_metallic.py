@@ -7,7 +7,7 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 
-params_count = 20
+params_count = 1
 params_sets = []
 for _ in range(params_count):
     params = {
@@ -32,26 +32,9 @@ for _ in range(params_count):
 
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 8)])
 
-"""
-ERROR DIAGNOSIS
-* ana energy: causes 0 errors
-* legacy energy (no fixed p3m params): 30% fail
-* custom energy (no fixed p3m params, commit=best single plate cutsom elcic, err=1e-3): 85% fail
+"""    
 
-
-* custom energy (no fixed p3m params, commit=passes a1 single plate elcic): 100% fail
-
-
-
-* refac full method (using llms): NO
-    * from scratch: NO
-    * based on ana method: NO
-
-    * based on regular_elc.py: NO
-    * based on current impl: NO
-    * based on some version(github history): NO
-
-    
+* start with blank custom_elcic, add components one after another: DONE
 
 * refac/debug/fix/test individual contribs: YES
     * component plots
