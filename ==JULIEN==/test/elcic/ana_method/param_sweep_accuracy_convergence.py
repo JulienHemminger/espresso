@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 import numpy as np
+from elc.energy.custom_elc_energy import get_elc_energy
 import espressomd
 import espressomd.electrostatics
 from elcic.energy.custom_elcic_energy import get_elcic_energy
@@ -32,6 +33,11 @@ def param_sweep_accuracy_convergence(system, parameter_list, accuracies = [10**-
 
             for acc in accuracies:
                 # 2. Custom Error
+                custom_energy = get_elc_energy(system=system,
+                    gap_size=params["gap_size"],
+                    pw_error=acc,
+                    prefactor=params["prefactor"])
+                """
                 custom_energy = get_elcic_energy(
                     system=system,
                     gap_size=params["gap_size"],
@@ -39,7 +45,7 @@ def param_sweep_accuracy_convergence(system, parameter_list, accuracies = [10**-
                     prefactor=params["prefactor"],
                     delta_mid_bot=params["delta_mid_bot"],
                     delta_mid_top=params["delta_mid_top"],
-                )
+                )"""
                 custom_err = np.abs(custom_energy - ana_energy)
                 
                 

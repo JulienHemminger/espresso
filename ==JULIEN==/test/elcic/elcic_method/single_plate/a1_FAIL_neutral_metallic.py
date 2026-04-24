@@ -11,8 +11,8 @@ params_count = 1
 params_sets = []
 for _ in range(params_count):
     params = {
-        "lx": np.random.uniform(10.0, 25.0),
-        "ly": np.random.uniform(10.0, 25.0),
+        "lx": np.random.uniform(10.0, 20.0),
+        "ly": np.random.uniform(10.0, 20.0),
         "lz": np.random.uniform(10.0, 20.0),
         "gap_size": np.random.uniform(5.0, 10.0),
         "prefactor": 1.0,
@@ -34,14 +34,18 @@ param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i
 
 """    
 
-* start with blank custom_elcic, add components one after another: DONE
+* start with blank custom_elcic: DONE
 
-* refac/debug/fix/test individual contribs: YES
-    * component plots
+* refac/debug/fix/test individual contribs one after another: TODO
 
-    * find params, where contribX is 0/constant
-        * no plates at all (no reflec) - only p3m?: 
-        * large box (no pbc images)
+    * add plots for indiv contribs
+
+    * no plates at all (no reflec contrib, only p3m?): 
+    * large box (no pbc images contrib)
+
+
+* other ideas
+    * share p3m params
 
 
 
