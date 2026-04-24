@@ -7,7 +7,7 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 
-params_count = 100
+params_count = 20
 params_sets = []
 for _ in range(params_count):
     params = {
@@ -42,12 +42,13 @@ param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i
     * based on some version(github history): NO
 
     
-* 
 
 * refac/debug/fix/test individual contribs: YES
+    * component plots
+
     * find params, where contribX is 0/constant
-        * no plates at all (sanity check?): BETTER, err=1e-4
-        * large box (pbc images become irrelevant)
+        * no plates at all (no reflec) - only p3m?: 
+        * large box (no pbc images)
 
 
 
