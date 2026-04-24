@@ -33,9 +33,13 @@ for _ in range(params_count):
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 8)])
 
 """    
+ALL-AT-ONCE DEVELOPMENT
+* start at regular elc
+* add single, diel interface
 
-* start with blank custom_elcic: DONE
 
+COMPONENT WISE DEVELOPMENT
+* start with blank custom_elcic
 * refac/debug/fix/test individual contribs one after another: TODO
 
     * add plots for indiv contribs
