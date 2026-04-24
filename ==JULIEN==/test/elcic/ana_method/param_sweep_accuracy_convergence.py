@@ -25,34 +25,31 @@ def param_sweep_accuracy_convergence(system, parameter_list, accuracies = [10**-
                 system.part.add(pos=pos, q=q)
 
             # Analytical energy calculation (Reference)
-            
             ana_energy = analytical_single_plate_2d_ewald_elcic_energy(
                 positions=params["positions"], charges=params["charges"], box_l=system.box_l, 
                 prefactor=params["prefactor"], delta_mid_bot=params["delta_mid_bot"], k_max=10, n_real=10
             )
 
             for acc in accuracies:
+                # 2. Custom Error
+                custom_energy = get_elcic_energy(
+                    system=system,
+                    gap_size=params["gap_size"],
+                    pw_error=acc,
+                    prefactor=params["prefactor"],
+                    delta_mid_bot=params["delta_mid_bot"],
+                    delta_mid_top=params["delta_mid_top"],
+                )
+                custom_err = np.abs(custom_energy - ana_energy)
+                
+                
                 # 1. Legacy Error
-                legacy_energy = 0
-                """
                 legacy_energy = get_legacy_elc_energy(
                     system=system, gap_size=params["gap_size"], pw_error=acc, prefactor=1.0,
                     delta_mid_top=params["delta_mid_top"], delta_mid_bot=params["delta_mid_bot"]
-                )"""
+                )
                 legacy_err = np.abs(legacy_energy - ana_energy)
 
-                # 2. Custom Error
-                custom_energy = 0
-                """
-                custom_energy = get_elcic_energy(
-                    system,
-                    params["gap_size"],
-                    acc,
-                    params["prefactor"],
-                    params["delta_mid_bot"],
-                    params["delta_mid_top"],
-                )"""
-                custom_err = np.abs(custom_energy - ana_energy)
                 
                 entry = {
                     "accuracy": acc,

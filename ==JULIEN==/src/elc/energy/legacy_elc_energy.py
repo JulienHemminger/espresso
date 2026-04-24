@@ -7,7 +7,7 @@ def get_legacy_elc_energy(
 ):
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False,
-        cao=7, alpha=0.48017706031733637, mesh=np.array([34, 34, 34]), r_cut=7.275585142531804
+        #cao=7, alpha=0.48017706031733637, mesh=np.array([34, 34, 34]), r_cut=7.275585142531804
 
     )
 

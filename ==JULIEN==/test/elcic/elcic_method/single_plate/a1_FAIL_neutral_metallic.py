@@ -11,14 +11,14 @@ params_count = 20
 params_sets = []
 for _ in range(params_count):
     params = {
-        "lx": np.random.uniform(8.0, 25.0),
-        "ly": np.random.uniform(8.0, 25.0),
+        "lx": np.random.uniform(10.0, 25.0),
+        "ly": np.random.uniform(10.0, 25.0),
         "lz": np.random.uniform(10.0, 20.0),
         "gap_size": np.random.uniform(5.0, 10.0),
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": 0.0,
-        "pw_error": 1e-6,
+        "pw_error": 1e-4,
         "charges": [+1, -1],
     }
     params["positions"] = [
@@ -33,6 +33,16 @@ for _ in range(params_count):
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 8)])
 
 """
+ERROR DIAGNOSIS
+* ana energy: causes 0 errors
+* legacy energy (no fixed p3m params): 30% fail
+* custom energy (no fixed p3m params, commit=best single plate cutsom elcic, err=1e-3): 85% fail
+
+
+* custom energy (no fixed p3m params, commit=passes a1 single plate elcic): 100% fail
+
+
+
 * refac full method (using llms): NO
     * from scratch: NO
     * based on ana method: NO
