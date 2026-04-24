@@ -7,7 +7,7 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 
-params_count = 1
+params_count = 5
 params_sets = []
 for _ in range(params_count):
     params = {
@@ -18,7 +18,7 @@ for _ in range(params_count):
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": 0.0,
-        "pw_error": 1e-4,
+        "pw_error": 1e-8,
         "charges": [+1, -1],
     }
     params["positions"] = [
@@ -33,12 +33,17 @@ for _ in range(params_count):
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 8)])
 
 """    
-ALL-AT-ONCE DEVELOPMENT
+ALL-AT-ONCE DEVELOPMENT (ELC -> ELCIC)
 * start at regular elc
 * add single, diel interface
 
+* other ideas
+    * try other params
+    * try two plates?
+    * p2m param sharing?
 
-COMPONENT WISE DEVELOPMENT
+
+COMPONENT WISE DEVELOPMENT (ELC -> ELC with .. term -> ...)
 * start with blank custom_elcic
 * refac/debug/fix/test individual contribs one after another: TODO
 
