@@ -28,5 +28,5 @@ def get_legacy_elc_energy(
 
     system.electrostatics.solver = elc_legacy
     system.integrator.run(0)
-    print(p3m.get_params())
+    #print(p3m.get_params())
     return system.analysis.energy()["total"]

@@ -2,6 +2,12 @@ import espressomd
 import espressomd.electrostatics
 import numpy as np
 
+
+"""
+NOTES:
+You can only have one instance of the system class at a time.
+Cannot reset the box length when particles are present.
+"""
 def get_elcic_energy_contribs(
     system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
 ):
@@ -65,15 +71,10 @@ def get_elcic_energy_contribs(
     e_L0_elc = (prefactor * e_elc_const) + (prefactor * e_L0_elc_recip)
     e_L0_total = e_L0_3d + e_L0_elc
 
-    # --- 4. Mapping to ELCIC structure ---
-    # Since this is a template based on standard ELC, 
-    # image layers (pm1, lt) and near-field (e_near) are placeholders 
-    # or zeroed unless you implement the image charge summation logic.
-    
+    # Placeholders
     e_near = 0.0 # Typically short-range/real-space if separated
     e_far_total = e_L0_total # In plain ELC, far field is the total 3D+Corr
     
-    # Placeholders for image charge layers (L=1, L=Total)
     e_L1_3d, e_L1_elc, e_L1_total = 0.0, 0.0, 0.0
     e_LT_3d, e_LT_elc, e_LT_total = 0.0, 0.0, 0.0
     e_far_detail = {} 
@@ -112,5 +113,4 @@ def get_elcic_energy(
         delta_mid_bot=delta_mid_bot, 
         delta_mid_top=delta_mid_top
     )
-    # Based on your requested return logic:
     return contribs["e_near"] + contribs["e_far"]
