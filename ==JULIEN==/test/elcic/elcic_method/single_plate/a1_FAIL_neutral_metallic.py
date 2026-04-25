@@ -7,7 +7,7 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 
-params_count = 1
+params_count = 20
 params_sets = []
 for _ in range(params_count):
     params = {
@@ -17,7 +17,7 @@ for _ in range(params_count):
         "gap_size": np.random.uniform(5.0, 10.0),
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
-        "delta_mid_bot": 0.0,
+        "delta_mid_bot": -1.0,
         "pw_error": 1e-6,
         "charges": [+1, -1],
     }
@@ -64,6 +64,9 @@ COMPONENT WISE DEVELOPMENT (ELC -> ELC with .. term -> ...)
 
 
 * other (not very promising) ideas
+    * is the tyagi paper wrong?
+        * try: llm but no paper but online search?
+    * fixed params (no no.random.uniform)
     * share p3m params
 
 
