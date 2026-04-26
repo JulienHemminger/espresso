@@ -162,12 +162,3 @@ def generate_random_param_sets(n_sets=3):
         }
         param_sets.append(p)
     return param_sets
-
-# Execution
-if __name__ == "__main__":
-    param_sets = generate_random_param_sets(n_sets=10)
-    system = espressomd.System(box_l=[10, 10, 10])
-    system.time_step = 0.01
-    
-    df = param_sweep_accuracy_convergence(system, param_sets)
-    _plot_interactive_errors(df)
