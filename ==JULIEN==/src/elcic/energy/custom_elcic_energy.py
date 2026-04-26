@@ -2,6 +2,7 @@ import espressomd
 import espressomd.electrostatics
 import numpy as np
 
+
 def get_elcic_energy_contribs(
     system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
 ):
@@ -25,7 +26,11 @@ def get_elcic_energy_contribs(
     e_elc_const_L0 = fac * (xi1**2 - xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
 
     # --- 2. Reciprocal Space Setup ---
-    f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
+    mesh_size = p3m.get_params()["mesh"]
+    fx_max = mesh_size[0] / (2.0 * lx)
+    fy_max = mesh_size[1] / (2.0 * ly)
+    f_max = max(fx_max, fy_max)
+
     p_max, q_max = int(np.ceil(f_max * lx)), int(np.ceil(f_max * ly))
     p, q = np.arange(-p_max, p_max + 1), np.arange(-q_max, q_max + 1)
     P, Q = np.meshgrid(p, q)

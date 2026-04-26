@@ -7,7 +7,7 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 
-params_count = 5
+params_count = 10
 params_sets = []
 for _ in range(params_count):
     params = {
@@ -34,10 +34,20 @@ varying a single param seems mostly okay, maybe its combs of params that are cau
 * prefactor != 1
 * delta mid top != 0
 
-
-
 * gap size > 10
     * error increases with increasing gap_size
+    * f_max = 0.05: err = 1e-2
+    * f_max = 0.25: err = 1e-5
+    * f_max = 0.5: err = 1e-10
+    
+    * f_max = -np.log(pw_error) / (2.0 * np.pi * lz): err=1e-4
+    * f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size): err = 1e-6
+
+    * f_max = max(fx_max, fy_max): err=1e-8
+        * mesh_size = p3m.get_params()["mesh"]
+        * fx_max = mesh_size[0] / (2.0 * lx)
+        * fy_max = mesh_size[1] / (2.0 * ly)
+
 * p1.z or p2.z < 4
 
 """
