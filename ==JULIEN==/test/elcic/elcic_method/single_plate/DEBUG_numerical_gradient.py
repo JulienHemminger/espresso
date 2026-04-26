@@ -70,18 +70,21 @@ def run_single_test(system, params):
 # --- Configuration ---
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
-default_params = {
-    "lx": 17,
-    "ly": 20,
-    "lz": 19,
-    "gap_size": 10,
-    "prefactor": 1.0,
-    "delta_mid_top": 0.0,
-    "delta_mid_bot": -1.0,
-    "pw_error": 1e-8,
-    "charges": [+1, -1],
-    "positions": [np.array([9, 20, 3]), np.array([1, 14, 4])],
-}
+params = {
+        "lx": 18,
+        "ly": 17,
+        "lz": 24,
+        "prefactor": 1.0,
+        "delta_mid_top": 0.0,
+        "delta_mid_bot": -1.0,
+        "pw_error": 1e-6,
+        "charges": [+1, -1],
+    }
+params["gap_size"] = 22
+params["positions"] = [
+    np.array([10, 12, 0.6]),
+    np.array([18, 11, 0.1]),
+]
 
 
 # Helper to generate 7 points centered around a default
@@ -132,7 +135,7 @@ for i, config in enumerate(plot_configs):
         legacy_errs = []
 
         for val in values:
-            test_params = copy.deepcopy(default_params)
+            test_params = copy.deepcopy(params)
 
             # Mapping string keys to the position array
             pos_map = {
@@ -184,10 +187,3 @@ for i, config in enumerate(plot_configs):
 
 
 plt.show()
-
-
-"""
-do i really never get legacy_energy = ana_energy+1 (i dont see it in the plots)
-
-* double check, paste variation_params in a1 test and see if results match
-"""
