@@ -7,21 +7,27 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 
-params_count = 10
+params_count = 1
 params_sets = []
 for _ in range(params_count):
     params = {
-        "lx": 17,
-        "ly": 20,
-        "lz": 19,
-        "gap_size": np.random.uniform(8.0, 15.0),
+        "lx": np.random.uniform(10.0, 30.0),
+        "ly": np.random.uniform(10.0, 30.0),
+        "lz": np.random.uniform(10.0, 30.0),
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
-        "pw_error": 1e-8,
+        "pw_error": 1e-6,
         "charges": [+1, -1],
-        "positions": [np.array([9, 20, 3]), np.array([1, 14, 4])],
     }
+    params["gap_size"] = np.random.uniform(10.0, params["lz"] - 1.0)
+    params["positions"] = [
+            np.array([
+                np.random.uniform(0.01, params["lx"]),
+                np.random.uniform(0.01, params["ly"]),
+                np.random.uniform(0.01, params["lz"] - params["gap_size"]),
+                ]) for _ in range(len(params["charges"]))
+        ]
     params_sets.append(params)
 
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 11)])
@@ -33,20 +39,6 @@ varying a single param seems mostly okay, maybe its combs of params that are cau
 ===params that cause errors===
 * prefactor != 1
 * delta mid top != 0
-
-* gap size > 10
-    * error increases with increasing gap_size
-    * f_max = 0.05: err = 1e-2
-    * f_max = 0.25: err = 1e-5
-    * f_max = 0.5: err = 1e-10
-    
-    * f_max = -np.log(pw_error) / (2.0 * np.pi * lz): err=1e-4
-    * f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size): err = 1e-6
-
-    * f_max = max(fx_max, fy_max): err=1e-8
-        * mesh_size = p3m.get_params()["mesh"]
-        * fx_max = mesh_size[0] / (2.0 * lx)
-        * fy_max = mesh_size[1] / (2.0 * ly)
 
 * p1.z or p2.z < 4
 
