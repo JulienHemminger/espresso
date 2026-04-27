@@ -124,4 +124,17 @@ if __name__ == "__main__":
     }
 
 
-    run_z_sweep(system, z_steps=20, params=params)
+    run_z_sweep(system, z_steps=12, params=params)
+
+
+"""
+NOTES
+* the error originates from particle1.pos.z
+    * particle1.pos.z is like used 5 times in the calculation. which components are at fault?
+
+* no error witn no plates
+    
+
+ACTION TREE
+* plot pos.z-dependent components? Charge Moments, chi, ...
+"""

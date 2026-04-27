@@ -62,22 +62,33 @@ def get_elcic_energy_contribs(
     e_L0_elc = prefactor * (e_elc_const_L0 + e_L0_elc_recip)
     e_L0_total = e_L0_3d + e_L0_elc
 
+    """=========================================================="""
     # --- 3. Image Charge Interaction (L0 <-> L_pm1) ---
     # With single bottom interface, images are at -zs with charge delta*qs 
     qs_img = delta_mid_bot * qs
     zs_img = -zs 
     
     # Dipole/Constant Correction for Image Interaction 
+    # FIXED: The ELC interaction term between L0 and an image layer L_img
+    # requires a specific sign and prefactor to account for the slab geometry.
     xi0_img, xi1_img = np.sum(qs_img), np.sum(qs_img * zs_img)
-    e_img_const = -np.pi * (1.0 / (lx * ly)) * (xi1 * xi0_img - xi0 * xi1_img)
+    
+    # This term accounts for the uniform background and the L0-Image dipole
+    e_img_const = fac * (xi1 * xi1_img) # Note: fac was defined as 2*pi/volume
 
-    # Reciprocal Interaction using Far Formula [cite: 67, 116]
+    # Reciprocal Interaction using Far Formula
     chi_img = get_chi_terms(qs_img, zs_img)
-    # For images below the primary layer, we use Chi_minus(L0) and Chi_plus(Image) [cite: 121]
+    
+    # For images below the primary layer (z_img < z_L0), the interaction 
+    # uses the Chi_minus of the top layer and Chi_plus of the bottom layer.
     chi_inter = sum(m_L0 * p_img for m_L0, p_img in zip(chi_L0["m"], chi_img["p"]))
-    e_img_recip = np.sum((0.5 / (lx * ly * f)) * chi_inter)
+    
+    # FIXED: The normalization factor for the reciprocal interaction between 
+    # two distinct layers in 2D Ewald is 2 * pi / (Lx * Ly)
+    e_img_recip = np.sum((2.0 * np.pi / (lx * ly * arg_z)) * chi_inter)
     
     e_pm1_total = prefactor * (e_img_const + e_img_recip)
+    """=========================================================="""
 
     return {
         "e_near": 0.0,
