@@ -11,16 +11,12 @@ params_count = 3
 params_sets = []
 
 for i in range(params_count):
-    lx = np.random.uniform(10.0, 50.0)
-    ly = np.random.uniform(10.0, 50.0)
-    lz = np.random.uniform(10.0, 50.0)
-    gap_size = np.random.uniform(10.0, lz-1)
-
+  
     params = {
-        "lx": lx,
-        "ly": ly,
-        "lz": lz,
-        "gap_size": gap_size,
+        "lx": 22.553239340502152,
+        "ly": 41.839080168737745,
+        "lz": 35.51793215353896,
+        "gap_size": 32.234687817568656,
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
@@ -30,10 +26,17 @@ for i in range(params_count):
 
     params["positions"] = [
         np.array([
-            np.random.uniform(0.1, params["lx"] - 0.1),
-            np.random.uniform(0.1, params["ly"] - 0.1),
-            np.random.uniform(0.1, params["lz"] - params["gap_size"] - 0.1)
-        ]) for _ in range(len(params["charges"]))
+            np.linspace(1.0, 8.1454445, params_count)[i],
+            np.linspace(1.0, 34.44014336, params_count)[i]  ,
+            np.linspace(1.0, 0.23335833, params_count)[i]  
+          
+        ]),
+        np.array([
+            np.linspace(2.0, 11.20275155, params_count)[i],
+            np.linspace(2.0, 23.29430907, params_count)[i]  ,
+            np.linspace(2.0, 0.7380634, params_count)[i]  
+          
+        ])
     ]
 
     params_sets.append(params)
@@ -42,7 +45,7 @@ param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i
 
 """
 ===params that cause errors===
-* p1.z, p2.z
+* positions, (especially p1.z, p2.z)
 
 
 increasing gap_size increases error
@@ -53,16 +56,6 @@ increasing gap_size increases error
     * fy_max = mesh_size[1] / (2.0 * ly)
 """
 
-
-"""
-varying a single param seems mostly okay, maybe its combs of params that are causing errors?
-
-
-
-* prefactor != 1
-* delta mid top != 0
-
-"""
 
 """
 ALL-AT-ONCE DEVELOPMENT (ELC -> ELCIC)
