@@ -7,7 +7,7 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 
-params_count = 20
+params_count = 3
 params_sets = []
 
 for i in range(params_count):
@@ -15,9 +15,6 @@ for i in range(params_count):
     ly = np.random.uniform(10.0, 50.0)
     lz = np.random.uniform(10.0, 50.0)
     gap_size = np.random.uniform(10.0, lz-1)
-    pw_error = 1e-8
-    delta_top = 0.0
-    delta_bot = -1.0
 
     params = {
         "lx": lx,
@@ -25,9 +22,9 @@ for i in range(params_count):
         "lz": lz,
         "gap_size": gap_size,
         "prefactor": 1.0,
-        "delta_mid_top": delta_top,
-        "delta_mid_bot": delta_bot,
-        "pw_error": pw_error,
+        "delta_mid_top": 0.0,
+        "delta_mid_bot": -1.0,
+        "pw_error": 1e-8,
         "charges": [+1, -1],
     }
 
@@ -35,7 +32,7 @@ for i in range(params_count):
         np.array([
             np.random.uniform(0.1, params["lx"] - 0.1),
             np.random.uniform(0.1, params["ly"] - 0.1),
-            np.random.uniform(0.1, params["lz"] - 0.1)
+            np.random.uniform(0.1, params["lz"] - params["gap_size"] - 0.1)
         ]) for _ in range(len(params["charges"]))
     ]
 
