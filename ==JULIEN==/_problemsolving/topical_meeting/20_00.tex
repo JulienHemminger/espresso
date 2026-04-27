@@ -1,0 +1,87 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+
+\title{Implementation of dielectric ELC in ESPResSo \\ 
+\large Bachelor's Thesis}
+
+\author{Julien Hemminger \\ 
+\small Simulation Technology B.Sc.}
+\date{April 2026}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Motivation}
+why a new elcic impl?
+there already is a elc impl, which can handle diel interfaces in espresso but:
+* has error with ELCIC, nobody understands why
+* unmaintainable code, hard to read
+so the goal is to replace the old elc impl in espresso with a new one
+
+\section{Prototyping in Python}
+in python: things are easier/faster to develop, test, prototype, visualize, validate,...
+
+\subsection{Regular ELC}
+i use iterative/test-driven developemnt (and break the problem down into smaller problems)
+* systems i look at
+    * big box(negligable pbc influence) / if we make the box sizes $l_x$, $l_y$ very large, the influence of periodic images in x and y direction diminishes
+    * small, neutral box(do non neutral correction yet)
+    * full range of parameters (madelung, random params, extreme params, etc.)
+
+
+* for each system i do
+    * compute the -usually slow, expensive, limited- analytical/brute-force/reference solution(energy, force)
+    * adjust my custom elc to fit the analytical solution
+    * do parameter sweep
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{mar3_regular_elc_done.png}
+    \caption{Enter Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+
+\subsection{Dielectric ELC}
+\subsubsection{Single Plate}
+* use "ewald sum" as reference
+* works for most params, but there are exceptions
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{apr27_single_plate_elcic_mostly_works_but_some_outliers.png}
+    \caption{Enter Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+* TODO talk about future plans, problems, etc.
+
+* CURRENTLY HERE
+
+\subsubsection{Dual Plates}
+* couldnt get anasol to converge
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{apr9_cant_get_dual_plate_ana_to_converge.png}
+    \caption{Enter Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+
+\section{Implementing in ESPResSo}
+* c++ impl: upcoming
+with kokkos support
+
+
+\section{NOTES TO SELF}
+* TODO
+    * how detailed do i really go?
+    * formulas - YES but for what?
+    * code snippets? NO, hard to look at, not fun to read
+    * what other plots do i need?
+* python plots
+    * pay attention to labels, etc
+        * e.g. my "analytical" solutions are sometimes actually analytical (U=1/r'2) and other times numerical (ewald oder so)
+
+
+\end{document}
