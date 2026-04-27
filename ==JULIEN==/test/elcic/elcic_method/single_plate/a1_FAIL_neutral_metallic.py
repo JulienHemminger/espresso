@@ -1,12 +1,10 @@
 import numpy as np
 import espressomd
-
 from test.elcic.ana_method.param_sweep_accuracy_convergence import param_sweep_accuracy_convergence
 
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-import numpy as np
 
 # Configuration
 steps_per_coord = 3
@@ -58,10 +56,6 @@ for p_idx in range(2):      # Particle 0 then Particle 1
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 11)])
 
 """
-===params that cause errors===
-* p1.z
-
-
 increasing gap_size increases error
 * f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size): max_err = 1
 * f_max = max(fx_max, fy_max): max_err=1e-3
