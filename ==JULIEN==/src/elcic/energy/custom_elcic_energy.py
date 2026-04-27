@@ -27,13 +27,12 @@ def get_elcic_energy_contribs(
 
     
     # --- 2. Reciprocal Space Setup ---
-    """
     mesh_size = p3m.get_params()["mesh"]
     fx_max = mesh_size[0] / (2.0 * lx)
     fy_max = mesh_size[1] / (2.0 * ly)
     f_max = max(fx_max, fy_max)
-    """
-    f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
+    
+    #f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
 
     p_max, q_max = int(np.ceil(f_max * lx)), int(np.ceil(f_max * ly))
     p, q = np.arange(-p_max, p_max + 1), np.arange(-q_max, q_max + 1)

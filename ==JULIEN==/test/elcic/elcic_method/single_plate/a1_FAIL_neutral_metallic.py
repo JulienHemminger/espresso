@@ -13,11 +13,11 @@ params_sets = []
 for i in range(params_count):
     lx = np.random.uniform(10.0, 50.0)
     ly = np.random.uniform(10.0, 50.0)
-    lz = np.random.uniform(10.0, 40.0)
-    gap_size = np.random.uniform(10.0, 20.0)
-    pw_error = 10**np.random.uniform(-8, -3) 
-    delta_top = 0.0 #np.random.uniform(-1.0, 1.0)
-    delta_bot = np.random.uniform(-1.0, 1.0)
+    lz = np.random.uniform(10.0, 50.0)
+    gap_size = np.random.uniform(10.0, lz-1)
+    pw_error = 1e-8
+    delta_top = 0.0
+    delta_bot = -1.0
 
     params = {
         "lx": lx,
@@ -44,11 +44,12 @@ for i in range(params_count):
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 11)])
 
 """
-* try a bunch of different f_max=... formulas
+===params that cause errors===
+* p1.z, p2.z
 
 
 increasing gap_size increases error
-* f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size): max_err = 1e0
+* f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size): max_err = 1
 * f_max = max(fx_max, fy_max): max_err=1e-3
     * mesh_size = p3m.get_params()["mesh"]
     * fx_max = mesh_size[0] / (2.0 * lx)
@@ -60,7 +61,7 @@ increasing gap_size increases error
 varying a single param seems mostly okay, maybe its combs of params that are causing errors?
 
 
-===params that cause errors===
+
 * prefactor != 1
 * delta mid top != 0
 
