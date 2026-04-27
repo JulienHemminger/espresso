@@ -1,0 +1,128 @@
+\documentclass{beamer}
+\usetheme{Madrid} % You can change this theme
+\usepackage{graphicx}
+
+\title{Implementation of Dielectric ELC in ESPResSo}
+\subtitle{Bachelor's Thesis}
+\author{Julien Hemminger}
+\institute{Simulation Technology B.Sc.}
+\date{April 2026}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Motivation}
+    There already is an ELC implementation that can handle dielectric interfaces in ESPResSo, but:
+    \begin{itemize}
+        \item It has errors that are poorly understood.
+        \item The code is unmaintainable and very difficult to read.
+    \end{itemize}
+    \textbf{Goal:} Replace the old ELC implementation with a clean, fixed, modern version.
+\end{frame}
+
+\begin{frame}{Introduction}
+\begin{figure}[htbp]
+    \centering
+    % Left Image
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{sandwich.png}
+        
+        \label{fig:sandwich}
+    \end{minipage}
+    \hfill % Adds horizontal space between the two images
+    % Right Image
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{schematic_fully_periodic_replicated_slab_system.png}
+        
+        \label{fig:schematic}
+    \end{minipage}
+\end{figure}
+
+
+    Developing in Python allows for faster iteration:
+    \begin{itemize}
+        \item Easier to develop, test, and prototype.
+        \item Simplified visualization and validation of results.
+    \end{itemize}
+\end{frame}
+
+\subsection{Regular ELC}
+
+\begin{frame}{Regular ELC: Development Strategy}
+    Iterative/test-driven development by breaking the problem down:
+    \begin{itemize}
+        \item \textbf{Workflow per system:}
+        \begin{itemize}
+            \item Compute reference solutions (analytical or brute-force).
+            \item Adjust ELC prototype to match reference solutions.
+        \end{itemize}
+        \item \textbf{Systems analyzed:}
+        \begin{itemize}
+            \item Large boxes (negligible PBC influence with $L_x, L_y >> 1$).
+            \item Smaller, neutral boxes (no non-neutral correction term yet).
+            \item Full parameter sweeps (Non-neutral, Madelung, random, and extreme parameters).
+        \end{itemize}
+    \end{itemize}
+
+    \vfill % Pushes the formula and footnote to the bottom
+
+    $$E_{2D+h} = E_{3D} + E_{\text{corr}} + E_{\text{non-neutral}} + E_{\text{dipole}} \footnote{Tyagi, S., Arnold, A., \& Holm, C. (2008). J. Chem. Phys. 129, 204102.}$$
+\end{frame}
+
+\begin{frame}{Regular ELC: Results}
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.7\linewidth]{mar3_regular_elc_done.png}
+        \caption{Validation of Regular ELC}
+    \end{figure}
+\end{frame}
+
+% First Slide: Single Plate Status & Main Results
+\begin{frame}{Dielectric ELC: Single Plate (Current Status)}
+    \begin{itemize}
+        \item Reference used: Ewald sum.
+        \item Works for most parameters, though some outliers remain.
+    \end{itemize}
+    
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\linewidth]{apr27_single_plate_elcic_mostly_works_but_some_outliers.png}
+        \caption{Single Plate ELCIC Results}
+    \end{figure}
+\end{frame}
+
+% Second Slide: Neighbourhood Scan
+\begin{frame}{Dielectric ELC: Neighbourhood Scan}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\linewidth]{neighbourhood scan.png}
+        \caption{Detailed Neighbourhood Scan Analysis}
+        \label{fig:placeholder}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Dielectric ELC: Dual Plates}
+    \begin{itemize}
+        \item Reference: Brute Force summation failed to converge.
+    \end{itemize}
+    
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.7\linewidth]{apr9_cant_get_dual_plate_ana_to_converge.png}
+    \end{figure}
+\end{frame}
+
+\section{Implementing in ESPResSo}
+\begin{frame}{Implementing in ESPResSo}
+    \begin{itemize}
+        \item Upcoming: C++ implementation.
+        \item Integration with \textbf{Kokkos} support for hardware acceleration.
+    \end{itemize}
+\end{frame}
+
+\end{document}
