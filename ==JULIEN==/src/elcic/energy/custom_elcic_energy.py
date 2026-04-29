@@ -240,11 +240,16 @@ def get_elcic_energy_contribs(
         )
     
     # Compute Φ(LT,LT) using P3M + ELC
-    p3m_LT = espressomd.electrostatics.P3M(
-        prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
-    )
-    system.electrostatics.solver = p3m_LT
-    e_LT_3d = system.analysis.energy()["total"]
+    if len(system.part) > 0:
+        p3m_LT = espressomd.electrostatics.P3M(
+            prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
+        )
+        system.electrostatics.solver = p3m_LT
+        e_LT_3d = system.analysis.energy()["total"]
+    else:
+        e_LT_LT_total = 0.0
+        e_LT_3d = 0.0
+        e_LT_elc = 0.0
     
     # ELC correction for LT (using non-neutral ELC formula from Eq 3.10)
     parts_LT = system.part.all()
@@ -308,7 +313,7 @@ def get_elcic_energy_contribs(
             q=qs_L1[i]
         )
     
-    if N_L1 > 0:
+    if len(system.part) > 0 and all(p.q != 0 for p in system.part):
         p3m_L1 = espressomd.electrostatics.P3M(
             prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
         )
@@ -336,6 +341,7 @@ def get_elcic_energy_contribs(
         e_L1_L1_total = 0.0
         e_L1_3d = 0.0
         e_L1_elc = 0.0
+
     
     # Φ(L0,L0) was already computed as e_L0_total
     
