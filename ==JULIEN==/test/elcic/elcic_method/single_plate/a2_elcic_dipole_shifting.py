@@ -24,7 +24,7 @@ def run_z_sweep(system, z_steps, params):
     
     # Define Z range for Particle 0
     # Ensuring we stay within the slab (avoiding the gap and small epsilon offset)
-    eps = 1e-2
+    eps = 5e-1
     z_min = eps
     z_max = lz - gap_size - eps
     z_values = np.linspace(z_min, z_max, num=z_steps)
@@ -39,6 +39,7 @@ def run_z_sweep(system, z_steps, params):
         # Update Particle 0's Z position
         current_pos = [p.copy() for p in base_positions]
         current_pos[0][2] = z 
+        #current_pos[1][2] = z 
         
         # 1. Update System particles
         system.part.clear()
@@ -124,17 +125,20 @@ if __name__ == "__main__":
     }
 
 
-    run_z_sweep(system, z_steps=24, params=params)
+    run_z_sweep(system, z_steps=36, params=params)
 
 
 """
 NOTES
-* the error originates from particle1.pos.z
-    * particle1.pos.z is like used 5 times in the calculation. which components are at fault?
+* the error originates from particle.pos.z (theres large errors if i move one or both particles)
+* error increases drastically the closer a particle (pos.z) is to the bottom dielectric interface
 
 * no error witn no plates
     
 
 ACTION TREE
-* plot pos.z-dependent components? Charge Moments, chi, ...
+* track down the error
+    * plot individual components
+
+* where is the L0 L1 boundary?
 """
