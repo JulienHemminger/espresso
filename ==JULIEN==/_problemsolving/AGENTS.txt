@@ -1,0 +1,11 @@
+espressomd.System is a singleton, you can only have one instance
+
+to initialize a system:
+    system = espressomd.System(box_l=[1, 2, 3])
+    system.time_step = 0.01
+
+ system.part.clear() # remove all particles
+
+ system.part.add(pos=np.array([1, 2, 3]), q=1) # to add a particle
+
+ system.box_l = [lx, ly, lz] # to resize a system, system needs to have no particles before doing this.
