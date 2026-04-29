@@ -49,9 +49,6 @@ for p_idx in range(2):      # Particle 0 then Particle 1
             params["positions"] = [p.copy() for p in current_positions]
             params_sets.append(params)
 
-# Note: The very first state (all starts) isn't in the loop. 
-# You might want to prepend it manually:
-# params_sets.insert(0, initial_params_dict)
 
 param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 11)])
 

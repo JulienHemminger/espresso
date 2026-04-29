@@ -24,7 +24,7 @@ def run_z_sweep(system, z_steps, params):
     
     # Define Z range for Particle 0
     # Ensuring we stay within the slab (avoiding the gap and small epsilon offset)
-    eps = 0.5
+    eps = 1e-2
     z_min = eps
     z_max = lz - gap_size - eps
     z_values = np.linspace(z_min, z_max, num=z_steps)
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     }
 
 
-    run_z_sweep(system, z_steps=12, params=params)
+    run_z_sweep(system, z_steps=24, params=params)
 
 
 """
