@@ -5,14 +5,18 @@ from test.elcic.ana_method.param_sweep_accuracy_convergence import param_sweep_a
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-params_count = 10
+params_count = 5
 params_sets = []
 
+d_pos = 1e-2
+min_l = 25
+max_l = 50
+
 for i in range(params_count):
-    lx = np.random.uniform(10.0, 50.0)
-    ly = np.random.uniform(10.0, 50.0)
-    lz = np.random.uniform(10.0, 40.0)
-    gap_size = np.random.uniform(1.0, lz - 1)
+    lx = np.random.uniform(min_l, max_l)
+    ly = np.random.uniform(min_l, max_l)
+    lz = np.random.uniform(min_l, max_l)
+    gap_size = np.random.uniform(10.0, 25.0)
 
     params = {
         "lx": lx,
@@ -22,22 +26,22 @@ for i in range(params_count):
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
         "delta_mid_bot": -1.0,
-        "pw_error": 1e-8,
+        "pw_error": 1e-6,
         "charges": [+1, -1],
     }
 
     params["positions"] = [
         np.array([
-            np.random.uniform(0.1, params["lx"] - 0.1),
-            np.random.uniform(0.1, params["ly"] - 0.1),
-            np.random.uniform(0.1, params["lz"] - params["gap_size"] - 0.1)
+            np.random.uniform(d_pos, params["lx"] - d_pos),
+            np.random.uniform(d_pos, params["ly"] - d_pos),
+            np.random.uniform(d_pos, params["lz"] - params["gap_size"] - d_pos)
         ]) for _ in range(len(params["charges"]))
     ]
 
     params_sets.append(params)
 
 
-param_sweep_accuracy_convergence(system, params_sets, accuracies = [10**-i for i in range(1, 11)])
+param_sweep_accuracy_convergence(system, params_sets, accuracies = np.logspace(-1, -10, num=10))
 
 """
 is it backwards compatible? on random params (single plate, neutral, metallic, dipole)
