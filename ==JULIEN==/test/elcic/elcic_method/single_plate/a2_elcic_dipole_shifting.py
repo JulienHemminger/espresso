@@ -119,7 +119,7 @@ if __name__ == "__main__":
         "gap_size": 32.234687817568656,
         "prefactor": 1.0,
         "delta_mid_top": 0.0,
-        "delta_mid_bot": 0.0,
+        "delta_mid_bot": -1.0,
         "pw_error": 1e-8,
         "charges": [+1, -1],
     }
@@ -129,7 +129,8 @@ if __name__ == "__main__":
 
 
 """
-ERROR for "delta_mid_bot": 0.0: No charged Particles - do i need some if(any_diel_interface...)
+
+* smaller 0.5 errors (sin wave shape)
 
 NOTES
 * the error originates from particle.pos.z (theres large errors if i move one or both particles)
@@ -138,9 +139,5 @@ NOTES
 * no error witn no plates
     
 
-ACTION TREE
-* track down the error
-    * plot individual components
 
-* where is the L0 L1 boundary?
 """
