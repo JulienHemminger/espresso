@@ -5,7 +5,7 @@ from test.elcic.ana_method.param_sweep_accuracy_convergence import param_sweep_a
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-params_count = 1
+params_count = 10
 params_sets = []
 
 for i in range(params_count):

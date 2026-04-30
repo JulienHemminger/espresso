@@ -126,18 +126,3 @@ if __name__ == "__main__":
 
 
     run_z_sweep(system, z_steps=36, params=params)
-
-
-"""
-
-* smaller 0.5 errors (sin wave shape)
-
-NOTES
-* the error originates from particle.pos.z (theres large errors if i move one or both particles)
-* error increases drastically the closer a particle (pos.z) is to the bottom dielectric interface
-
-* no error witn no plates
-    
-
-
-"""
