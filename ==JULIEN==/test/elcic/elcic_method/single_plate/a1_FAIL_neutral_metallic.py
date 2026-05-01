@@ -44,27 +44,8 @@ for i in range(params_count):
 param_sweep_accuracy_convergence(system, params_sets, accuracies = np.logspace(-1, -10, num=10))
 
 """
-is it backwards compatible? on random params (single plate, neutral, metallic, dipole)
+ELCIC Implementation Checkpoints
 * commit="err=1e-8 for large gap sizes, swapped "f_max" formula" 1/1m err=1e-8 - BEST AT RDM PARAM (with part.Z >> 0)
-
 * commit="fix elcic impl for no plates at all": 1/1, err=1e-1 err_for_near_plate_particles=0.4 - BEST AT Z-SHIFTING (part.Z -> 0) 
-
-Action Tree
-* write test cases
-
-
-
-* Goal: elcic.py that passes rdm_params.py and z_shifting.py
-
-
-"""
-
-"""
-META PLOT (wide range of rdm params)
-* see error, pick those params
-* change elcic to fit on those params
-* run meta-plot again
-    * if i fixed the outlier and the error of other curves is still fine: accept change
-    * if generally the performance got worse: discard change
 
 """
