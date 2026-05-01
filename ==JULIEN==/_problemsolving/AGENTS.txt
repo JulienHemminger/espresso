@@ -9,3 +9,11 @@ to initialize a system:
  system.part.add(pos=np.array([1, 2, 3]), q=1) # to add a particle
 
  system.box_l = [lx, ly, lz] # to resize a system, system needs to have no particles before doing this.
+
+to use P3M:
+    p3m = espressomd.electrostatics.P3M(
+            prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
+        )
+    system.electrostatics.solver = p3m
+    system.integrator.run(0)#
+    energy = system.analysis.energy()["total"]
