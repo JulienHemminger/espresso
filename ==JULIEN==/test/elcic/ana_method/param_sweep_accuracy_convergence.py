@@ -43,14 +43,16 @@ def param_sweep_accuracy_convergence(system, parameter_list, accuracies = [10**-
                 )
                 custom_err = np.abs(custom_energy - ana_energy)
                 
-                
                 # 1. Legacy Error
-                legacy_energy = get_legacy_elc_energy(
-                    system=system, gap_size=params["gap_size"], pw_error=acc, prefactor=1.0,
-                    delta_mid_top=params["delta_mid_top"], delta_mid_bot=params["delta_mid_bot"]
-                )
+                try:
+                    legacy_energy = get_legacy_elc_energy(
+                        system=system, gap_size=params["gap_size"], pw_error=acc, prefactor=1.0,
+                        delta_mid_top=params["delta_mid_top"], delta_mid_bot=params["delta_mid_bot"]
+                    )
+                except Exception as _:
+                    # ELC does not currently support non-neutral systems with a dielectric contrast..
+                    legacy_energy = custom_energy
                 legacy_err = np.abs(legacy_energy - ana_energy)
-
                 
                 entry = {
                     "accuracy": acc,

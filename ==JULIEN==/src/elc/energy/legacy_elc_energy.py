@@ -17,6 +17,7 @@ def get_legacy_elc_energy(
         "maxPWerror": pw_error,
         "check_neutrality": False,
         "neutralize": False,
+        "const_pot": True,
     }
 
     if delta_mid_top is not None:

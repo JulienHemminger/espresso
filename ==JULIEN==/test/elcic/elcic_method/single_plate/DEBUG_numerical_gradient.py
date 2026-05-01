@@ -71,27 +71,30 @@ def run_single_test(system, params):
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-target_params = {
-    "lx": 41,
-    "ly": 49,
-    "lz": 27,
-    "prefactor": 1.0,
-    "delta_mid_top": 0.0,
-    "delta_mid_bot": -0.05,
-    "pw_error": 1e-08,
-    "charges": [1, -1],
-}
+params = {
+        "lx": np.random.uniform(10.0, 20.0),
+        "ly": np.random.uniform(10.0, 20.0),
+        "lz": np.random.uniform(10.0, 20.0),
+        "gap_size": np.random.uniform(5.0, 10.0),
+        "prefactor": 1.0,
+        "delta_mid_top": 0.0,
+        "delta_mid_bot": -1.0,
+        "pw_error": 1e-8,
+        "charges": [+1, -1],
+    }
+params["positions"] = [
+        np.array([
+            np.random.uniform(0.1, params["lx"]),
+            np.random.uniform(0.1, params["ly"]),
+            np.random.uniform(0.1, params["lz"] - params["gap_size"]),
+            ]) for _ in range(len(params["charges"]))
+    ]
 
-target_params["gap_size"] = 15.347006932082047
-target_params["positions"] = [
-    np.array([25.24262787, 18.19765217, 0.69976629]),
-    np.array([33.49776678, 32.65676438, 0.23046683]),
-]
 
 # Helper to generate 7 points centered around a default
 def get_sweep(default, step, min_val=None, max_val=None):
-    value_count = 3
-    step = 20.0 * step
+    value_count = 7
+    step = 5.0 * step
 
     vals = np.linspace(default - value_count//2 * step, default + value_count//2 * step, value_count)
     if min_val is not None:
@@ -103,25 +106,25 @@ def get_sweep(default, step, min_val=None, max_val=None):
 plot_configs = [
     # Plot 1: Geometry (Steps of 0.5)
     {
-        "lx": get_sweep(target_params["lx"], 0.5, min_val=10.0),
-        "ly": get_sweep(target_params["ly"], 0.5, min_val=10.0),
-        "lz": get_sweep(target_params["lz"], 0.5, min_val=17.5),
-        "gap_size": get_sweep(target_params["gap_size"], 0.5, min_val=7.5, max_val=19),
+        "lx": get_sweep(params["lx"], 0.5, min_val=10.0),
+        "ly": get_sweep(params["ly"], 0.5, min_val=10.0),
+        "lz": get_sweep(params["lz"], 0.5, min_val=17.5),
+        "gap_size": get_sweep(params["gap_size"], 0.5, min_val=7.5, max_val=19),
     },
     # Plot 2: Physics (Prefactor steps 0.2, Delta steps 0.1)
     {
-        "prefactor": get_sweep(target_params["prefactor"], 0.2, min_val=1.0, max_val=5.0),
-        "delta_mid_top": get_sweep(target_params["delta_mid_top"], 0.1, min_val=-1.0, max_val=1.0),
-        "delta_mid_bot": get_sweep(target_params["delta_mid_bot"], 0.1, min_val=-1.0, max_val=1.0),
+        "prefactor": get_sweep(params["prefactor"], 0.2, min_val=1.0, max_val=5.0),
+        "delta_mid_top": get_sweep(params["delta_mid_top"], 0.1, min_val=-1.0, max_val=1.0),
+        "delta_mid_bot": get_sweep(params["delta_mid_bot"], 0.1, min_val=-1.0, max_val=1.0),
     },
     # Plot 3: All Particle Coordinates (Steps of 0.1)
     {
-        "p1_x": get_sweep(target_params["positions"][0][0], 0.1),
-        "p1_y": get_sweep(target_params["positions"][0][1], 0.1),
-        "p1_z": get_sweep(target_params["positions"][0][2], 0.1),
-        "p2_x": get_sweep(target_params["positions"][1][0], 0.1),
-        "p2_y": get_sweep(target_params["positions"][1][1], 0.1),
-        "p2_z": get_sweep(target_params["positions"][1][2], 0.1),
+        "p1_x": get_sweep(params["positions"][0][0], 0.1),
+        "p1_y": get_sweep(params["positions"][0][1], 0.1),
+        "p1_z": get_sweep(params["positions"][0][2], 0.1),
+        "p2_x": get_sweep(params["positions"][1][0], 0.1),
+        "p2_y": get_sweep(params["positions"][1][1], 0.1),
+        "p2_z": get_sweep(params["positions"][1][2], 0.1),
     },
 ]
 
@@ -135,7 +138,7 @@ for i, config in enumerate(plot_configs):
         legacy_errs = []
 
         for val in values:
-            test_params = copy.deepcopy(target_params)
+            test_params = copy.deepcopy(params)
 
             # Mapping string keys to the position array
             pos_map = {

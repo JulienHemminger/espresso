@@ -1,0 +1,11 @@
+meine ELCIC implementierung ist keineswegs perfekt, aber sind sie und Espressos ELC auf einer höhe.
+
+Probleme
+* error 
+
+
+
+es wird immer schwerer und aufwendiger meinen ELCIC protoypen zu verbessern
+* fehlerursachen endecken
+* welche contribution(s) müssen verbessert werden um den fehler zu senken
+* umfangreiches testen (viele parameter kombinationen, verschienede plots,...) um sicher zu gehen dass ich nur etwas verbessert habe und nicht den fehler für andere fälle  verdoppelt habe.
