@@ -72,22 +72,19 @@ system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
 params = {
-        "lx": np.random.uniform(10.0, 20.0),
-        "ly": np.random.uniform(10.0, 20.0),
-        "lz": np.random.uniform(10.0, 20.0),
-        "gap_size": np.random.uniform(5.0, 10.0),
+        "lx": 11.759257358146083,
+        "ly": 14.816336638656951,
+        "lz": 19.534515076746604,
+        "gap_size": 6.728560449178689,
         "prefactor": 1.0,
-        "delta_mid_top": 0.0,
-        "delta_mid_bot": -1.0,
+        "delta_mid_top": -0.6,
+        "delta_mid_bot": 1.0,
         "pw_error": 1e-8,
         "charges": [+1, -1],
     }
 params["positions"] = [
-        np.array([
-            np.random.uniform(0.1, params["lx"]),
-            np.random.uniform(0.1, params["ly"]),
-            np.random.uniform(0.1, params["lz"] - params["gap_size"]),
-            ]) for _ in range(len(params["charges"]))
+        np.array([5.40340537, 2.20880029, 11.07130164]),
+        np.array([3.78566675, 6.23855319, 1.02959082]),
     ]
 
 

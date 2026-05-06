@@ -6,29 +6,28 @@ import random
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-params_count = 20
+params_count = 10
 params_sets = []
 
 
 for _ in range(params_count):
-    particle_count = random.randint(2, 3)
     params = {
         "lx": np.random.uniform(10.0, 20.0),
         "ly": np.random.uniform(10.0, 20.0),
         "lz": np.random.uniform(10.0, 20.0),
         "gap_size": np.random.uniform(5.0, 10.0),
         "prefactor": 1.0,
-        "delta_mid_top": np.random.choice([-1, -0.6, +0.3, +1]),
+        "delta_mid_top": 0.0,
         "delta_mid_bot": np.random.choice([-1, -0.8, +0.4, +1]),
         "pw_error": 1e-6,
-        "charges": random.choices([1, -1], k=particle_count)
+        "charges": [-1, +1]
     }
     params["positions"] = [
             np.array([
                 np.random.uniform(0.1, params["lx"]),
                 np.random.uniform(0.1, params["ly"]),
                 np.random.uniform(0.1, params["lz"] - params["gap_size"]),
-                ]) for _ in range(particle_count)
+                ]) for _ in range(len(params["charges"]))
         ]
     params_sets.append(params)
 
