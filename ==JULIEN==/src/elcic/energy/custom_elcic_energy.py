@@ -211,7 +211,6 @@ def _calculate_elc_correction(system, qs, xs, ys, zs, lx, ly, lz, gap_size, pref
 
     return prefactor * (e_const + e_recip)
 
-
 def _calculate_L2_interaction(
     qs, xs, ys, zs, lx, ly, lz, gap_size, prefactor, p3m,
     delta_mid_bot, delta_mid_top, mask_L0_minus1, mask_L0_0, mask_L0_plus1
@@ -241,11 +240,19 @@ def _calculate_L2_interaction(
     # Delta = Δb·Δt (product of dielectric contrasts)
     Delta = delta_mid_bot * delta_mid_top
 
-    # L_p,q function (Eq. 4.4)
-    def L_pq(z_arr, arg_z_val):
-        """Compute geometric series sum for image charges."""
+    # L_p,q function (Eq. 4.4) - starts from m=0
+    def L_pq_from_0(z_arr, arg_z_val):
+        """Compute geometric series sum starting from m=0."""
         exp_term = np.exp(-arg_z_val[:, None] * z_arr)
-        return Delta * exp_term / (1.0 - Delta * np.exp(-4 * arg_z_val[:, None] * lz))
+        return Delta * exp_term / (1.0 - Delta * np.exp(-4.0 * arg_z_val[:, None] * lz))
+    
+    # For L±2, we need to exclude first generation (m=0), so start from m=1
+    def L_pq_from_1(z_arr, arg_z_val):
+        """Compute geometric series sum starting from m=1."""
+        # This is L_pq_from_0 minus the m=0 term
+        full_sum = L_pq_from_0(z_arr, arg_z_val)
+        first_term = Delta * np.exp(-arg_z_val[:, None] * z_arr)
+        return full_sum - first_term
 
     # Helper to compute Chi factors
     def compute_chi_L2(q_subset, x_subset, y_subset, z_subset, L_factors):
@@ -263,6 +270,7 @@ def _calculate_L2_interaction(
         return chi_cc, chi_sc, chi_cs, chi_ss
 
     # --- L-2 contributions (Eq. 4.6-4.9) ---
+    # Chi factors for L0
     chi_L0_cc = np.sum(qs * np.cos(arg_x[:, None] * xs) * np.cos(arg_y[:, None] * ys), axis=1)
     chi_L0_sc = np.sum(qs * np.sin(arg_x[:, None] * xs) * np.cos(arg_y[:, None] * ys), axis=1)
     chi_L0_cs = np.sum(qs * np.cos(arg_x[:, None] * xs) * np.sin(arg_y[:, None] * ys), axis=1)
@@ -273,21 +281,23 @@ def _calculate_L2_interaction(
     L_minus2_cs = np.zeros_like(arg_z)
     L_minus2_ss = np.zeros_like(arg_z)
 
+    # From L0,-1: exclude first image (use L_pq_from_1 for series 2.3)
     if np.any(mask_L0_minus1):
         q_m1 = delta_mid_bot * qs[mask_L0_minus1]
         x_m1, y_m1, z_m1 = xs[mask_L0_minus1], ys[mask_L0_minus1], zs[mask_L0_minus1]
-        L_fac = L_pq(2 * lz + z_m1, arg_z) + L_pq(2 * lz - z_m1, arg_z)
+        L_fac = L_pq_from_1(2 * lz + z_m1, arg_z) + L_pq_from_0(2 * lz - z_m1, arg_z)
         cc, sc, cs, ss = compute_chi_L2(q_m1, x_m1, y_m1, z_m1, L_fac)
         L_minus2_cc += cc
         L_minus2_sc += sc
         L_minus2_cs += cs
         L_minus2_ss += ss
 
+    # From L0,0 and L0,+1: all images
     if np.any(mask_L0_0 | mask_L0_plus1):
         mask_mid_top = mask_L0_0 | mask_L0_plus1
         q_mt = delta_mid_bot * qs[mask_mid_top]
         x_mt, y_mt, z_mt = xs[mask_mid_top], ys[mask_mid_top], zs[mask_mid_top]
-        L_fac = L_pq(z_mt, arg_z) + L_pq(2 * lz - z_mt, arg_z)
+        L_fac = L_pq_from_0(z_mt, arg_z) + L_pq_from_0(2 * lz - z_mt, arg_z)
         cc, sc, cs, ss = compute_chi_L2(q_mt, x_mt, y_mt, z_mt, L_fac)
         L_minus2_cc += cc
         L_minus2_sc += sc
@@ -300,28 +310,30 @@ def _calculate_L2_interaction(
     L_plus2_cs = np.zeros_like(arg_z)
     L_plus2_ss = np.zeros_like(arg_z)
 
+    # From L0,+1: exclude first image (use L_pq_from_1 for series 2.5)
     if np.any(mask_L0_plus1):
         q_p1 = delta_mid_top * qs[mask_L0_plus1]
         x_p1, y_p1, z_p1 = xs[mask_L0_plus1], ys[mask_L0_plus1], zs[mask_L0_plus1]
-        L_fac = L_pq(4 * lz - z_p1, arg_z) + L_pq(2 * lz + z_p1, arg_z)
+        L_fac = L_pq_from_1(4 * lz - z_p1, arg_z) + L_pq_from_0(2 * lz + z_p1, arg_z)
         cc, sc, cs, ss = compute_chi_L2(q_p1, x_p1, y_p1, z_p1, L_fac)
         L_plus2_cc += cc
         L_plus2_sc += sc
         L_plus2_cs += cs
         L_plus2_ss += ss
 
+    # From L0,0 and L0,-1: all images
     if np.any(mask_L0_0 | mask_L0_minus1):
         mask_mid_bot = mask_L0_0 | mask_L0_minus1
         q_mb = delta_mid_top * qs[mask_mid_bot]
         x_mb, y_mb, z_mb = xs[mask_mid_bot], ys[mask_mid_bot], zs[mask_mid_bot]
-        L_fac = L_pq(2 * lz - z_mb, arg_z) + L_pq(2 * lz + z_mb, arg_z)
+        L_fac = L_pq_from_0(2 * lz - z_mb, arg_z) + L_pq_from_0(2 * lz + z_mb, arg_z)
         cc, sc, cs, ss = compute_chi_L2(q_mb, x_mb, y_mb, z_mb, L_fac)
         L_plus2_cc += cc
         L_plus2_sc += sc
         L_plus2_cs += cs
         L_plus2_ss += ss
 
-    # Combine using far formula
+    # Combine using far formula (Eq. 3.4 structure)
     chi_prod = (
         (L_minus2_cc + L_plus2_cc) * chi_L0_cc +
         (L_minus2_sc + L_plus2_sc) * chi_L0_sc +
@@ -330,9 +342,8 @@ def _calculate_L2_interaction(
     )
 
     e_L2_recip = np.sum((1.0 / (lx * ly * f)) * chi_prod)
-    e_L2_const = 0.0  # Placeholder for dipole corrections
 
-    return prefactor * (e_L2_const + e_L2_recip)
+    return prefactor * e_L2_recip
 
 
 def get_elcic_energy(system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top):
