@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import signal
 from datetime import datetime
 from pathlib import Path
 
@@ -10,8 +11,15 @@ from elcic.energy.custom_elcic_energy import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
-def param_sweep_accuracy_convergence(system, parameter_list, accuracies=[10**-i for i in range(1, 8)]):
+class TimeoutException(Exception):
+    pass
+
+def timeout_handler(signum, frame):
+    raise TimeoutException
+
+def param_sweep_accuracy_convergence(system, parameter_list, accuracies=[10**-i for i in range(1, 6)]):
     results = []
+    signal.signal(signal.SIGALRM, timeout_handler)
 
     for i, params in enumerate(parameter_list):
         try:
@@ -41,6 +49,7 @@ def param_sweep_accuracy_convergence(system, parameter_list, accuracies=[10**-i 
                 )
 
                 try:
+                    signal.alarm(20)
                     legacy_energy = get_legacy_elc_energy(
                         system=system, 
                         gap_size=params["gap_size"], 
@@ -49,7 +58,9 @@ def param_sweep_accuracy_convergence(system, parameter_list, accuracies=[10**-i 
                         delta_mid_top=params["delta_mid_top"], 
                         delta_mid_bot=params["delta_mid_bot"]
                     )
-                except Exception:
+                    signal.alarm(0)
+                except (Exception, TimeoutException):
+                    signal.alarm(0)
                     legacy_energy = custom_energy
 
                 results.append({

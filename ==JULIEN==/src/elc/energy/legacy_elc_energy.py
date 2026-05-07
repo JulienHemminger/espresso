@@ -17,13 +17,14 @@ def get_legacy_elc_energy(
         "maxPWerror": pw_error,
         "check_neutrality": False,
         "neutralize": False,
-        "const_pot": True,
     }
 
     if delta_mid_top is not None:
         args["delta_mid_top"] = delta_mid_top
     if delta_mid_bot is not None:
         args["delta_mid_bot"] = delta_mid_bot
+    if delta_mid_top == -1 and delta_mid_bot == -1:
+        args["const_pot"] = True
 
     elc_legacy = espressomd.electrostatics.ELC(**args)
 
