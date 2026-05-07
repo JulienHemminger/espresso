@@ -4,18 +4,12 @@ from scipy.special import erfcx, erf, erfc
 def analytical_single_plate_2d_ewald_elcic_energy(positions, charges, box_l, prefactor, delta_mid_bot,
                     k_max, n_real, alpha=None):
     """
-    Compute the electrostatic energy using the 2D Ewald summation for a
-    system periodic in x and y with dielectric contrast at z=0.
-
-    The Coulomb sum is split into a short-range real-space part (screened by
-    erfc) and a long-range reciprocal-space part, giving exponential
-    convergence in both sums.
 
     Parameters
     ----------
     positions : (N, 3) array
     charges : (N,) array
-    box_l : (3,) array  –  box dimensions (only Lx, Ly used)
+    box_l : (3,) array  –  box dimensions
     prefactor : float  –  Coulomb prefactor
     delta_mid_bot : float  –  dielectric contrast at z = 0
     k_max : int  –  max reciprocal-vector index in each direction
@@ -36,20 +30,15 @@ def analytical_single_plate_2d_ewald_elcic_energy(positions, charges, box_l, pre
     pos_mirror[:, 2] = -pos_mirror[:, 2]
     q_mirror = delta_mid_bot * charges
 
-    # ------------------------------------------------------------------
-    # helper: h(k, z) via erfcx for numerical stability
-    #   h = exp(kz) erfc(k/(2a)+az) + exp(-kz) erfc(k/(2a)-az)
-    #     = exp(-k^2/(4a^2) - a^2 z^2) * [erfcx(k/(2a)+az) + erfcx(k/(2a)-az)]
-    # ------------------------------------------------------------------
+  
     def _h(k, z):
         u_plus = k / (2 * alpha) + alpha * z
         u_minus = k / (2 * alpha) - alpha * z
         prefac = np.exp(-k**2 / (4 * alpha**2) - (alpha * z)**2)
         return prefac * (erfcx(u_plus) + erfcx(u_minus))
 
-    # ------------------------------------------------------------------
+    
     # Real-space sum:  (1/2) sum'_{i,j,n} q_i q_j erfc(a r)/r
-    # ------------------------------------------------------------------
     def _real_space(pos_a, q_a, pos_b, q_b, exclude_self_n0):
         E = 0.0
         for nx in range(-n_real, n_real + 1):
@@ -67,10 +56,8 @@ def analytical_single_plate_2d_ewald_elcic_energy(positions, charges, box_l, pre
                         E += q_a[i] * q_b[j] * erfc(alpha * r) / r
         return 0.5 * E
 
-    # ------------------------------------------------------------------
+   
     # Reciprocal-space sum (k != 0):
-    #   (pi / 2A) sum_{k!=0} (1/k) sum_{i,j} q_i q_j cos(k.rho_ij) h(k, z_ij)
-    # ------------------------------------------------------------------
     def _recip_space(pos_a, q_a, pos_b, q_b):
         E = 0.0
         two_pi_over_Lx = 2 * np.pi / Lx
@@ -91,11 +78,7 @@ def analytical_single_plate_2d_ewald_elcic_energy(positions, charges, box_l, pre
                         E += q_a[i] * q_b[j] * np.cos(k_dot_rho) * _h(k, z_ij) / k
         return 0.5 * (np.pi / A) * E
 
-    # ------------------------------------------------------------------
     # k = 0 term:
-    #   -(pi / 2A) sum_{i,j} q_i q_j g(z_ij)
-    #   g(z) = |z| erf(a|z|) + exp(-a^2 z^2) / (a sqrt(pi))
-    # ------------------------------------------------------------------
     def _k0_term(pos_a, q_a, pos_b, q_b):
         E = 0.0
         inv_a_sqrtpi = 1.0 / (alpha * np.sqrt(np.pi))
@@ -109,9 +92,7 @@ def analytical_single_plate_2d_ewald_elcic_energy(positions, charges, box_l, pre
                 )
         return -1.0 * (np.pi / A) * E
 
-    # ------------------------------------------------------------------
     # Self-energy:  -(a / sqrt(pi)) sum_i q_i^2
-    # ------------------------------------------------------------------
     def _self_energy(q):
         return -(alpha / np.sqrt(np.pi)) * np.sum(q**2)
 
