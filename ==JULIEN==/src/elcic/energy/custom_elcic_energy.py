@@ -2,163 +2,109 @@ import espressomd
 import espressomd.electrostatics
 import numpy as np
 
+import espressomd
+import espressomd.electrostatics
+import numpy as np
 
 def get_elcic_energy_contribs(
-    system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
+    system, total_gap, pw_error, prefactor, delta_mid_bot, delta_mid_top
 ):
     """
-    Calculate ELCIC energy contributions with full subdivision of charge layers.
-    
     Parameters:
     -----------
-    system : espressomd.System
-        The simulation system
-    gap_size : float
-        Gap size (λ) for layer separation
-    pw_error : float
-        P3M accuracy target
-    prefactor : float
-        Electrostatic prefactor
-    delta_mid_bot : float
-        Dielectric contrast factor for bottom interface: (εm - εb)/(εm + εb)
-    delta_mid_top : float
-        Dielectric contrast factor for top interface: (εm - εt)/(εm + εt)
-    
-    Returns:
-    --------
-    dict : Energy contributions broken down by layer
+    total_gap : float
+        The total empty space added to the box (h in some papers).
+        We define lambda = total_gap / 3 as per Eq 4.14 logic.
     """
-    
-    # --- Setup P3M for 3D periodic system ---
-    p3m = espressomd.electrostatics.P3M(
-        prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
-    )
+    # Define lambda as 1/3 of the total gap provided
+    lam = total_gap / 3.0
     
     lx, ly, lz = system.box_l
     parts = system.part.all()
     qs, (xs, ys, zs) = parts.q, parts.pos.T
     N = len(qs)
-    
-    # --- Subdivide L0 based on distance to interfaces (Eq. 4.3) ---
-    # L0,-1: charges with 0 ≤ z ≤ λ (near bottom)
-    # L0,0:  charges with λ < z < lz - λ (middle)
-    # L0,+1: charges with lz - λ ≤ z ≤ lz (near top)
-    
-    mask_L0_minus1 = (zs >= 0) & (zs <= gap_size)
-    mask_L0_0 = (zs > gap_size) & (zs < lz - gap_size)
-    mask_L0_plus1 = (zs >= lz - gap_size) & (zs <= lz)
-    
-    # --- Generate image charges for L±1 (Section IV.B) ---
-    # L+1: first-generation images from L0,+1 (near top interface)
-    # L-1: first-generation images from L0,-1 (near bottom interface)
-    
-    # Image charges for L+1 (top interface, first generation only - Eq. 2.5, first term)
-    q_L_plus1 = delta_mid_top * qs[mask_L0_plus1]
-    z_L_plus1 = 2 * lz - zs[mask_L0_plus1]
-    x_L_plus1 = xs[mask_L0_plus1]
-    y_L_plus1 = ys[mask_L0_plus1]
-    
-    # Image charges for L-1 (bottom interface, first generation only - Eq. 2.3, first term)
+
+    # --- 1. Subdivide L0 based on lambda ---
+    # L0,-1: near bottom [0, lam]
+    # L0,0:  middle [lam, lz - lam]
+    # L0,+1: near top [lz - lam, lz]
+    mask_L0_minus1 = (zs <= lam)
+    mask_L0_plus1  = (zs >= lz - lam)
+    mask_L0_0      = (zs > lam) & (zs < lz - lam)
+
+    # --- 2. Generate Image Charges for L-1 and L+1 ---
+    # L-1 (images of L0,-1 across bottom interface at z=0)
     q_L_minus1 = delta_mid_bot * qs[mask_L0_minus1]
     z_L_minus1 = -zs[mask_L0_minus1]
-    x_L_minus1 = xs[mask_L0_minus1]
-    y_L_minus1 = ys[mask_L0_minus1]
     
-    # --- Create LT = L-1 ∪ L0 ∪ L+1 in expanded box (Section IV.B, Eq. 4.13) ---
-    # We need an expanded box with gap = 3λ: Lz = lz + 3λ
-    Lz = lz + 3 * gap_size
-    
-    # Combine all charges and positions for LT
+    # L+1 (images of L0,+1 across top interface at z=lz)
+    q_L_plus1 = delta_mid_top * qs[mask_L0_plus1]
+    z_L_plus1 = 2 * lz - zs[mask_L0_plus1]
+
+    # --- 3. Construct the Expanded Box ---
+    # New box height is lz + 3*lambda (which is lz + total_gap)
+    Lz_expanded = lz + total_gap
+    # We shift all charges by lam to center L0 and leave space for L-1 and L+1
+    shift = lam
+
+    # LT = L-1 U L0 U L+1
     q_LT = np.concatenate([q_L_minus1, qs, q_L_plus1])
-    x_LT = np.concatenate([x_L_minus1, xs, x_L_plus1])
-    y_LT = np.concatenate([y_L_minus1, ys, y_L_plus1])
-    z_LT = np.concatenate([z_L_minus1 + gap_size, zs + gap_size, z_L_plus1 + gap_size])
-    
-    # --- Calculate E(LT, LT) using P3M + ELC (Eq. 4.14) ---
-    # Store original particles
-    original_parts = [(p.pos.copy(), p.q) for p in system.part.all()]
-    
-    # Clear and setup expanded system
-    system.part.clear()
-    system.box_l = [lx, ly, Lz]
-    
-    # Add LT particles
-    for i in range(len(q_LT)):
-        system.part.add(pos=[x_LT[i], y_LT[i], z_LT[i]], q=q_LT[i])
-    
-    # Apply P3M + ELC for LT
-    system.electrostatics.solver = p3m
-    e_LT_3d = system.analysis.energy()["total"]
-    
-    # Calculate ELC correction for LT (non-neutral case, Eq. 3.10)
-    e_LT_elc = _calculate_elc_correction(
-        system, q_LT, x_LT, y_LT, z_LT, lx, ly, Lz, gap_size, prefactor, p3m
-    )
-    e_LT_total = e_LT_3d + e_LT_elc
-    
-    # --- Calculate E(L±1, L±1) using P3M + ELC ---
-    # L±1 only contains image charges
-    q_L1 = np.concatenate([q_L_minus1, q_L_plus1])
-    x_L1 = np.concatenate([x_L_minus1, x_L_plus1])
-    y_L1 = np.concatenate([y_L_minus1, y_L_plus1])
-    z_L1 = np.concatenate([z_L_minus1 + gap_size, z_L_plus1 + gap_size])
-    
-    if len(q_L1) > 0:
-        system.part.clear()
-        for i in range(len(q_L1)):
-            system.part.add(pos=[x_L1[i], y_L1[i], z_L1[i]], q=q_L1[i])
-        
-        e_L1_3d = system.analysis.energy()["total"]
-        e_L1_elc = _calculate_elc_correction(
-            system, q_L1, x_L1, y_L1, z_L1, lx, ly, Lz, gap_size, prefactor, p3m
+    z_LT = np.concatenate([z_L_minus1 + shift, zs + shift, z_L_plus1 + shift])
+    x_LT = np.concatenate([xs[mask_L0_minus1], xs, xs[mask_L0_plus1]])
+    y_LT = np.concatenate([ys[mask_L0_minus1], ys, ys[mask_L0_plus1]])
+
+    # --- 4. Energy Calculations using P3M + ELC ---
+    # Save state
+    original_box = system.box_l.copy()
+    p3m = espressomd.electrostatics.P3M(
+            prefactor=prefactor, accuracy=pw_error, check_neutrality=False
         )
-        e_L1_total = e_L1_3d + e_L1_elc
-    else:
-        e_L1_total = 0.0
-        e_L1_3d = 0.0
-        e_L1_elc = 0.0
     
-    # --- Calculate E(L0, L0) using P3M + ELC ---
+    def get_layer_energy(q_arr, x_arr, y_arr, z_arr):
+        if len(q_arr) == 0: return 0.0
+        system.part.clear()
+        system.box_l = [lx, ly, Lz_expanded]
+        for i in range(len(q_arr)):
+            system.part.add(pos=[x_arr[i], y_arr[i], z_arr[i]], q=q_arr[i])
+        
+        # P3M Setup
+        system.electrostatics.solver = p3m
+        
+        e_3d = system.analysis.energy()["total"]
+        # ELC correction (manually calculated or using system.electrostatics.ELC if preferred)
+        e_elc = _calculate_elc_correction(
+            system, q_arr, x_arr, y_arr, z_arr, lx, ly, Lz_expanded, lam, prefactor, p3m
+        )
+        return e_3d + e_elc
+
+    # E(LT, LT)
+    e_LT_total = get_layer_energy(q_LT, x_LT, y_LT, z_LT)
+    
+    # E(L-1 U L+1, L-1 U L+1)
+    q_L1 = np.concatenate([q_L_minus1, q_L_plus1])
+    z_L1 = np.concatenate([z_L_minus1 + shift, z_L_plus1 + shift])
+    x_L1 = np.concatenate([xs[mask_L0_minus1], xs[mask_L0_plus1]])
+    y_L1 = np.concatenate([ys[mask_L0_minus1], ys[mask_L0_plus1]])
+    e_L1_total = get_layer_energy(q_L1, x_L1, y_L1, z_L1)
+
+    # E(L0, L0)
+    e_L0_total = get_layer_energy(qs, xs, ys, zs + shift)
+
+    # Near-field contribution (Eq 4.14)
+    e_near = 0.5 * (e_LT_total - e_L1_total + e_L0_total)
+
+    # --- 5. Far-field Contribution ---
+    # Restore original box for L2 calculation
     system.part.clear()
-    system.box_l = [lx, ly, Lz]
-    
+    system.box_l = original_box
     for i in range(N):
-        system.part.add(pos=[xs[i], ys[i], zs[i] + gap_size], q=qs[i])
+        system.part.add(pos=[xs[i], ys[i], zs[i]], q=qs[i])
     
-    e_L0_3d = system.analysis.energy()["total"]
-    e_L0_elc = _calculate_elc_correction(
-        system, qs, xs, ys, zs + gap_size, lx, ly, Lz, gap_size, prefactor, p3m
-    )
-    e_L0_total = e_L0_3d + e_L0_elc
-    
-    # --- E(L0, LT) from Eq. 4.14 ---
-    e_L0_LT = 0.5 * (e_LT_total - e_L1_total + e_L0_total)
-    
-    # --- Calculate E(L0, L±2) using far formula (Section IV.A) ---
-    # Restore original box
-    system.part.clear()
-    system.box_l = [lx, ly, lz]
-    for pos, q in original_parts:
-        system.part.add(pos=pos, q=q)
-    
-    e_L2_total = _calculate_L2_interaction(
-        qs, xs, ys, zs, lx, ly, lz, gap_size, prefactor, p3m,
+    e_far = _calculate_L2_interaction(qs, xs, ys, zs, lx, ly, lz, lam, prefactor, p3m,
         delta_mid_bot, delta_mid_top, mask_L0_minus1, mask_L0_0, mask_L0_plus1
     )
-    
-    # --- Total energy ---
-    e_near = e_L0_LT  # "Near" includes L0 with L0 and L±1
-    e_far = e_L2_total  # "Far" includes L0 with L±2
-    
-    return {
-        "e_near": float(e_near),
-        "e_far": float(e_far),
-        "l0": {"e_3d": float(e_L0_3d), "e_elc": float(e_L0_elc), "total": float(e_L0_total)},
-        "pm1": {"e_3d": float(e_L1_3d), "e_elc": float(e_L1_elc), "total": float(e_L1_total)},
-        "lt": {"e_3d": float(e_LT_3d), "e_elc": float(e_LT_elc), "total": float(e_LT_total)},
-        "e_far_detail": {"L2": float(e_L2_total)}
-    }
 
+    return {"e_near": e_near, "e_far": e_far, "total": e_near + e_far}
 
 def _calculate_elc_correction(system, qs, xs, ys, zs, lx, ly, lz, gap_size, prefactor, p3m):
     """Calculate ELC correction term (Eq. 3.10 for non-neutral systems)."""

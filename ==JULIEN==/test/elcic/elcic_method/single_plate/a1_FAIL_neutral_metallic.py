@@ -6,7 +6,7 @@ import random
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-params_count = 5
+params_count = 20
 params_sets = []
 
 
