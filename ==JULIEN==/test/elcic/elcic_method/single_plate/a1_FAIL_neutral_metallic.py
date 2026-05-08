@@ -6,7 +6,7 @@ import random
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-params_count = 10
+params_count = 5
 params_sets = []
 
 
@@ -35,6 +35,13 @@ for _ in range(params_count):
 param_sweep_accuracy_convergence(system, params_sets, accuracies = np.logspace(-1, -10, num=10))
 
 """
+How do i make progress?
+* better planning
+* more structure
+* make sure when i change things, it stays backw.compatible
+    * strict tests (assert...)
+
+
 Für rdm-param bekomme ich err=1e-5, 1e-6. Espressos ELC bekommt 1e-8, 1e-9
     * reicht das an genauigkeit? (es ist sehr aufwendig die quelle von Fehlern von nur 1e-6/7 zu finden und zu fixen)
 
