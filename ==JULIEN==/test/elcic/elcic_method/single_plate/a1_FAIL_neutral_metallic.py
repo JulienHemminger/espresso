@@ -6,7 +6,7 @@ import random
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-params_count = 5
+params_count = 20
 params_sets = []
 
 
@@ -36,8 +36,11 @@ param_sweep_accuracy_convergence(system, params_sets, accuracies = np.logspace(-
 
 """
 How do i make progress?
-* better planning
 * more structure
+    * write test, modify test (until passed + all prev tests passed) then go on to next test
+        * NEVER overwrite an existing test, etc.
+        * try to do no code-sharing for tests (few depencencies that if modified can cause errors)
+
 * make sure when i change things, it stays backw.compatible
     * strict tests (assert...)
 
