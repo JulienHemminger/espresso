@@ -32,8 +32,7 @@ def param_sweep_accuracy_convergence(
                 box_l=system.box_l,
                 prefactor=params["prefactor"],
                 delta_mid_bot=params["delta_mid_bot"],
-                k_max=10,
-                n_real=10,
+                accuracy=pw_error
             )
 
             for acc in accuracies:
@@ -136,7 +135,7 @@ for i in range(params_count):
         "charges": [+1, -1],
     }
 
-    eps = 1e-2
+    eps = 1e-1
     params["positions"] = [
         np.array(
             [
