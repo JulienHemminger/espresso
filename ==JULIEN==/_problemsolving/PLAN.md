@@ -7,33 +7,25 @@
 
   * found outliers in param sweep, create numgrad
 
+## Make Progess
 
-
-
-
-
-
-## Action Tree
-
-* work on same problem
-
-  * final validification for "do MASSIVE param sweep for ana and legacy - if it passes anaSol is FIXED!"
-
-- work on simplified problem (cherry picked params, etc)
-
-  *
-
-    *
-
-
-
-
-
-# TODO never modify an already solved problem
-
-* dont modify testing script, ana, etc. - elcic.py too?
+* TESTS are there so i can test/debug/anaylize individual contribs/components
 *
+
+- setup dual plate test, find an anasol if possible, extend elcic.py by "E-upper plate"
+
+* setup non-neutral test, find an anasol if possible, extend elcic.py by E-non-neutral contrib
+
 *
+
+* custom\_elcic.py that
+
+  * matches analytical (if available)
+  * matches legacy\_elcic (except when particles near plate, there espresso has an error)
+
+##
+
+#
 
 #### File structure (creating new tests and dependencies instead of modifying old ones)
 
@@ -52,4 +44,3 @@ elcic/single\_plate/non-neutral/non-metallic/       &#x20;
 ##### Notes
 
 normally youd use git commits to "make sure no progess is thrown away"&#x20;
-

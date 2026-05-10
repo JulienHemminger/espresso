@@ -38,7 +38,7 @@ def _worker_get_energy(queue, system_state, gap_size, pw_error, prefactor, delta
 
 def get_legacy_elc_energy(
     system, gap_size, pw_error, prefactor=1.0, delta_mid_top=None, delta_mid_bot=None,
-    duration_limit_sec=10, fallback_return_value=0
+    duration_limit_sec=10.0, fallback_return_value=0.0
 ):
     q = Queue()
     # Create a separate process
