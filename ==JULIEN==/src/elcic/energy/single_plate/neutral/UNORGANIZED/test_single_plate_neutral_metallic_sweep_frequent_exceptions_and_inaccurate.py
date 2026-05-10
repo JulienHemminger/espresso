@@ -119,7 +119,7 @@ def _plot_interactive_errors(df):
 system = espressomd.System(box_l=[1, 1, 1])
 system.time_step = 0.01
 
-params_count = 10
+params_count = 1
 params_sets = []
 
 for i in range(params_count):
