@@ -346,9 +346,20 @@ def _calculate_L2_interaction(
     return prefactor * e_L2_recip
 
 
-def get_elcic_energy(system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top):
+def get_elcic_energy_old(system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top):
     """Calculate total ELCIC energy."""
     contribs = get_elcic_energy_contribs(
         system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
     )
     return contribs["e_near"] + contribs["e_far"]
+
+def get_elcic_energy(system, params: dict):
+    """Wrapper that extracts params and calls the main calculation."""
+    return get_elcic_energy_old(
+        system, 
+        gap_size=params["gap_size"], 
+        pw_error=params["pw_error"], 
+        prefactor=params.get("prefactor", 1.0), 
+        delta_mid_bot=params["delta_mid_bot"], 
+        delta_mid_top=params["delta_mid_top"]
+    )
