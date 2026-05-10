@@ -6,7 +6,7 @@ import numpy as np
 
 # Assuming these local imports are in your python path
 from src.common.has_downward_trend import has_downward_trend
-from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
+from elcic.energy.single_plate.neutral.UNORGANIZED.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 def run_energy_convergence():
     # 1. Setup ESPResSo System

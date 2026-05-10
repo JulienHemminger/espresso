@@ -3,7 +3,7 @@ import numpy as np
 from elcic.energy.custom_elcic_energy import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 
-from elcic.energy.analytical.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
+from elcic.energy.single_plate.neutral.UNORGANIZED.analytical_single_plate_elcic_energy import analytical_single_plate_2d_ewald_elcic_energy
 
 def run(system, z_pos_count, params):
     prefactor = params["prefactor"]
