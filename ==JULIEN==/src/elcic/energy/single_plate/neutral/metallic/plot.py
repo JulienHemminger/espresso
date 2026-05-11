@@ -50,6 +50,6 @@ Analytical Method
 
 
 * fix custom
-
+    * err=1e-3
 
 """
