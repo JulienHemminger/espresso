@@ -2,7 +2,7 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elcic.energy.custom_elcic_energy import get_elcic_energy
+from elcic.energy.single_plate.neutral.metallic.custom import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
 from elcic.energy.single_plate.neutral.metallic.analytical import (
     analytical_single_plate_2d_ewald_elcic_energy,

@@ -1,6 +1,4 @@
-TODO
 
-param\_lerp\_plot\_2d: add running multiple lerps and plot them in one plot? do i really need this bulk-feature?
 
 ## aufarbeitung bisher elcic
 
@@ -45,6 +43,4 @@ elcic/single\_plate/non-neutral/metallic/
 
 elcic/single\_plate/non-neutral/non-metallic/       &#x20;
 
-##### Notes
-
-normally youd use git commits to "make sure no progess is thrown away"&#x20;
+#####
