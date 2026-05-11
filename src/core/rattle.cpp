@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2022 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
  *   Max-Planck-Institute for Polymer Research, Theory Group
  *
@@ -188,9 +188,6 @@ void correct_position_shake(CellStructure &cs, BoxGeometry const &box_geo,
 
 /**
  * @brief Calculate the velocity correction for the particles.
- *
- * The position correction is accumulated in the forces
- * of the particles so that it can be reduced over the ghosts.
  *
  * @param ia_params Parameters
  * @param box_geo Box geometry.

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The ESPResSo project
+ * Copyright (C) 2025-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -21,10 +21,9 @@
 
 #include <config/config.hpp>
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
-
 #include "aosoa_pack.hpp"
 #include "forces_inline.hpp"
+#include "short_range_cabana_helpers.hpp"
 
 #include <utils/Vector.hpp>
 
@@ -37,12 +36,6 @@
 #include <optional>
 #include <variant>
 #include <vector>
-
-#if defined(__GNUG__) or defined(__clang__)
-#define ESPRESSO_ATTR_ALWAYS_INLINE [[gnu::always_inline]]
-#else
-#define ESPRESSO_ATTR_ALWAYS_INLINE
-#endif
 
 struct ForcesKernel {
   BondedInteractionsMap const &bonded_ias;
@@ -66,6 +59,7 @@ struct ForcesKernel {
 #ifdef ESPRESSO_P3M
   CoulombP3M const *p3m;
 #endif
+  double system_max_cutoff_sq;
 
   ForcesKernel(
       BondedInteractionsMap const &bonded_ias_,
@@ -85,7 +79,7 @@ struct ForcesKernel {
       Utils::Vector3d *const global_virial_,
       CellStructure::VirialType const &local_virial_,
 #endif
-      CellStructure::AoSoA_pack const &aosoa_)
+      CellStructure::AoSoA_pack const &aosoa_, double system_max_cutoff_)
       : bonded_ias(bonded_ias_), nonbonded_ias(nonbonded_ias_),
         coulomb_kernel(coulomb_kernel_), dipoles_kernel(dipoles_kernel_),
         elc_kernel(elc_kernel_), coulomb_u_kernel(coulomb_u_kernel_),
@@ -97,7 +91,7 @@ struct ForcesKernel {
 #ifdef ESPRESSO_NPT
         global_virial(global_virial_), local_virial(local_virial_),
 #endif
-        aosoa(aosoa_) {
+        aosoa(aosoa_), system_max_cutoff_sq(Utils::sqr(system_max_cutoff_)) {
 #ifdef ESPRESSO_P3M
     p3m = nullptr;
     if (auto &solver = coulomb_.impl->solver; solver.has_value()) {
@@ -108,60 +102,43 @@ struct ForcesKernel {
 #endif
   }
 
-  // Helper functions to check if specific algorithms are active
-  ESPRESSO_ATTR_ALWAYS_INLINE KOKKOS_INLINE_FUNCTION bool
-  gay_berne_active(double dist, IA_parameters const &ia_params) const {
-#ifdef ESPRESSO_GAY_BERNE
-    return dist < ia_params.gay_berne.cut;
-#else
-    return false;
-#endif
-  }
-
 #ifdef ESPRESSO_NPT
   ESPRESSO_ATTR_ALWAYS_INLINE KOKKOS_INLINE_FUNCTION bool npt_active() const {
     return global_virial != nullptr;
   }
 #endif
 
-#ifdef ESPRESSO_THOLE
-  ESPRESSO_ATTR_ALWAYS_INLINE KOKKOS_INLINE_FUNCTION bool
-  thole_active(IA_parameters const &ia_params) const {
-    return (ia_params.thole.scaling_coeff != 0. and
-            ia_params.thole.q1q2 != 0. and coulomb_kernel != nullptr);
-  }
-#endif
-
-#ifdef ESPRESSO_DIPOLES
-  ESPRESSO_ATTR_ALWAYS_INLINE KOKKOS_INLINE_FUNCTION bool
-  dipoles_active() const {
-    return dipoles_kernel != nullptr;
-  }
-#endif
-
   ESPRESSO_ATTR_ALWAYS_INLINE KOKKOS_INLINE_FUNCTION void
   operator()(std::size_t i, std::size_t j) const {
 
+    // calc distance (component-wise, avoids constructing pos1/pos2 Vector3d
+    // on the hot early-exit path; pos1/pos2 are built lazily below only
+    // where kernels actually require them)
+    auto const d = box_geo.get_mi_vector(
+        aosoa.position(i, 0), aosoa.position(i, 1), aosoa.position(i, 2),
+        aosoa.position(j, 0), aosoa.position(j, 1), aosoa.position(j, 2));
+    auto const dist_sq = d.norm2();
+
+    // Early exit if distance > maximal global cutoff
+    if (dist_sq > system_max_cutoff_sq)
+      return;
+    auto const dist = std::sqrt(dist_sq);
     auto const &ia_params =
         nonbonded_ias.get_ia_param(aosoa.type(i), aosoa.type(j));
 
     ParticleForce pf{};
 
-    // calc distance
-    auto const pos1 = aosoa.get_vector_at(aosoa.position, i);
-    auto const pos2 = aosoa.get_vector_at(aosoa.position, j);
-    auto const d = box_geo.get_mi_vector(pos1, pos2);
-    auto const dist = d.norm();
-
     // Determine which data needs to be loaded based on active algorithms
-#if defined(ESPRESSO_DIPOLES) or defined(ESPRESSO_GAY_BERNE)
-    bool const need_directors =
-        gay_berne_active(dist, ia_params) or dipoles_active();
-#endif
 #if defined(ESPRESSO_EXCLUSIONS) or defined(ESPRESSO_THOLE)
-    bool const need_particle_pointers = aosoa.has_exclusion(i) or
-                                        aosoa.has_exclusion(j) or
-                                        thole_active(ia_params);
+    bool need_particle_pointers = false;
+#ifdef ESPRESSO_EXCLUSIONS
+    need_particle_pointers |= aosoa.has_exclusion(i) or aosoa.has_exclusion(j);
+#endif
+#ifdef ESPRESSO_THOLE
+    need_particle_pointers |=
+        thole_active(ia_params, coulomb_kernel != nullptr);
+#endif
+
     Particle const *p1_ptr = nullptr;
     Particle const *p2_ptr = nullptr;
     if (need_particle_pointers) {
@@ -170,20 +147,11 @@ struct ForcesKernel {
     }
 #endif
 
-    // Load directors only if needed
-#if defined(ESPRESSO_GAY_BERNE) or defined(ESPRESSO_DIPOLES)
-    Utils::Vector3d dir1{}, dir2{};
-    if (need_directors) {
-      dir1 = aosoa.get_vector_at(aosoa.director, i);
-      dir2 = aosoa.get_vector_at(aosoa.director, j);
-    }
-#endif
-
     /***********************************************/
     /* non-bonded pair potentials                  */
     /***********************************************/
 
-    if (dist < ia_params.max_cut) {
+    if (dist <= ia_params.max_cut) {
 #ifdef ESPRESSO_EXCLUSIONS
       bool skip_non_bonded = false;
       if (aosoa.has_exclusion(i) or aosoa.has_exclusion(j)) {
@@ -197,7 +165,7 @@ struct ForcesKernel {
 
         // Only call Thole force kernel if active
 #ifdef ESPRESSO_THOLE
-        if (thole_active(ia_params)) {
+        if (thole_active(ia_params, coulomb_kernel != nullptr)) {
           pf.f += thole_pair_force(*p1_ptr, *p2_ptr, ia_params, d, dist,
                                    bonded_ias, coulomb_kernel);
         }
@@ -205,11 +173,13 @@ struct ForcesKernel {
         // Only call Gay-Berne force kernel if active
 #ifdef ESPRESSO_GAY_BERNE
         if (gay_berne_active(dist, ia_params)) {
+          auto const dir1 = aosoa.get_vector_at(aosoa.director, i);
+          auto const dir2 = aosoa.get_vector_at(aosoa.director, j);
           pf += gb_pair_force(dir1, dir2, ia_params, d, dist);
         }
 #endif
       } // not skip_non_bonded
-    }
+    } // not dist > ia_params.max_cut
 
     /*********************************************************************/
     /* everything before this contributes to the virial pressure in NpT, */
@@ -229,13 +199,14 @@ struct ForcesKernel {
 
     /* The inter dpd force should not be part of the virial */
 #ifdef ESPRESSO_DPD
-    if (thermostat.thermo_switch & THERMO_DPD) {
-      auto const dist2 = dist * dist;
+    if (dpd_active(ia_params, thermostat.thermo_switch)) {
+      auto const pos1 = aosoa.get_vector_at(aosoa.position, i);
+      auto const pos2 = aosoa.get_vector_at(aosoa.position, j);
       auto const vel1 = aosoa.get_vector_at(aosoa.velocity, i);
       auto const vel2 = aosoa.get_vector_at(aosoa.velocity, j);
       auto const force =
           dpd_pair_force(pos1, vel1, aosoa.id(i), pos2, vel2, aosoa.id(j),
-                         *thermostat.dpd, box_geo, ia_params, d, dist, dist2);
+                         *thermostat.dpd, box_geo, ia_params, d, dist, dist_sq);
       pf += force;
     }
 #endif // ESPRESSO_DPD
@@ -245,8 +216,8 @@ struct ForcesKernel {
     Utils::Vector3d f2_asym{};
     // real-space electrostatic charge-charge interaction
     if (coulomb_kernel != nullptr) {
-      auto const q1q2 = aosoa.charge(i) * aosoa.charge(j);
-      if (q1q2 != 0) {
+      if ((aosoa.charge(i) != 0.) and (aosoa.charge(j) != 0.)) {
+        auto const q1q2 = aosoa.charge(i) * aosoa.charge(j);
 #ifdef ESPRESSO_P3M
         if (p3m) [[likely]] {
           pf.f += p3m->pair_force(q1q2, d, dist);
@@ -256,10 +227,14 @@ struct ForcesKernel {
           pf.f += (*coulomb_kernel)(q1q2, d, dist);
         }
         if (elc_kernel) {
+          auto const pos1 = aosoa.get_vector_at(aosoa.position, i);
+          auto const pos2 = aosoa.get_vector_at(aosoa.position, j);
           (*elc_kernel)(pos1, pos2, f1_asym, f2_asym, q1q2);
         }
 #ifdef ESPRESSO_NPT
         if (npt_active()) {
+          auto const pos1 = aosoa.get_vector_at(aosoa.position, i);
+          auto const pos2 = aosoa.get_vector_at(aosoa.position, j);
           virial[0] += (*coulomb_u_kernel)(pos1, pos2, q1q2, d, dist);
         }
 #endif // ESPRESSO_NPT
@@ -269,11 +244,13 @@ struct ForcesKernel {
 
     // Only call dipole force kernel if active
 #ifdef ESPRESSO_DIPOLES
-    if (dipoles_active()) {
+    if (dipoles_kernel != nullptr) {
       auto const d1d2 = aosoa.dipm(i) * aosoa.dipm(j);
       if (d1d2 != 0.) {
+        auto const dir1 = aosoa.get_vector_at(aosoa.director, i);
+        auto const dir2 = aosoa.get_vector_at(aosoa.director, j);
         pf += (*dipoles_kernel)(d1d2, aosoa.dipm(i) * dir1,
-                                aosoa.dipm(j) * dir2, d, dist, dist * dist);
+                                aosoa.dipm(j) * dir2, d, dist, dist_sq);
       }
     }
 #endif // ESPRESSO_DIPOLES
@@ -312,5 +289,3 @@ struct ForcesKernel {
 #endif
   }
 };
-
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM

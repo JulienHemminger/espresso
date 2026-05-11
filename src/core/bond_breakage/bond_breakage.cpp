@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The ESPResSo project
+ * Copyright (C) 2022-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -17,8 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "bond_breakage/bond_breakage.hpp"
+#include <config/config.hpp>
+
 #include "bond_breakage/actions.hpp"
+#include "bond_breakage/bond_breakage.hpp"
 
 #include "cell_system/CellStructure.hpp"
 #include "communication.hpp"
@@ -31,8 +33,11 @@
 #include <boost/mpi.hpp>
 #include <boost/serialization/access.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <memory>
+#include <mutex>
+#include <span>
 #include <unordered_set>
 #include <utility>
 #include <variant>
@@ -50,7 +55,10 @@ using ActionSet = std::unordered_set<Action>;
 void BondBreakage::queue_breakage(int particle_id,
                                   BondPartners const &bond_partners,
                                   int bond_type) {
-  m_queue.emplace_back(QueueEntry{particle_id, bond_partners, bond_type});
+  {
+    std::lock_guard<std::mutex> lock(queue_mtx);
+    m_queue.emplace_back(QueueEntry{particle_id, bond_partners, bond_type});
+  }
 }
 
 /** @brief Gathers combined queue from all mpi ranks */

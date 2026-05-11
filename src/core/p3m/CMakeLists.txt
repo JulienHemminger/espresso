@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018-2025 The ESPResSo project
+# Copyright (C) 2018-2026 The ESPResSo project
 #
 # This file is part of ESPResSo.
 #
@@ -28,24 +28,24 @@ if(ESPRESSO_BUILD_WITH_FFTW)
   target_compile_options(
     espresso_p3m_compiler_flags
     INTERFACE
-      $<$<COMPILE_LANGUAGE:CXX>:-Wno-float-conversion>
+      $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,CrayClang,AppleClang,IntelLLVM>:-Wno-float-conversion>
       $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,IntelLLVM>:-Wno-implicit-float-conversion>
   )
   target_link_libraries(
     espresso_p3m
-    PRIVATE
-      espresso::compiler_flags
-      espresso::p3m::compiler_flags
-      espresso::instrumentation
-      espresso::utils
-      espresso::config
-      Random123
-      Boost::mpi
-      MPI::MPI_CXX
-      Heffte::Heffte
-      $<$<BOOL:${ESPRESSO_BUILD_WITH_SHARED_MEMORY_PARALLELISM}>:OpenMP::OpenMP_CXX>
-      $<$<BOOL:${ESPRESSO_BUILD_WITH_SHARED_MEMORY_PARALLELISM}>:Kokkos::kokkos>
-      $<$<BOOL:${ESPRESSO_BUILD_WITH_SHARED_MEMORY_PARALLELISM}>:Cabana::Core>)
+    PRIVATE espresso::compiler_flags
+            espresso::p3m::compiler_flags
+            espresso::instrumentation
+            espresso::utils
+            espresso::config
+            Random123
+            Boost::mpi
+            MPI::MPI_CXX
+            Heffte::Heffte
+            OpenMP::OpenMP_CXX
+            $<$<BOOL:${ESPRESSO_BUILD_WITH_CUDA}>:OpenMP::OpenMP_CUDA>
+            Kokkos::kokkos
+            Cabana::Core)
   set_target_properties(espresso_p3m PROPERTIES POSITION_INDEPENDENT_CODE ON)
   target_link_libraries(espresso_core PRIVATE espresso_p3m)
   target_sources(

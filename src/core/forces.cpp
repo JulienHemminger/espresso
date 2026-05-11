@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2022 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
  *   Max-Planck-Institute for Polymer Research, Theory Group
  *
@@ -26,6 +26,7 @@
 #include "PropagationMode.hpp"
 #include "bond_breakage/bond_breakage.hpp"
 #include "cell_system/CellStructure.hpp"
+#include "cell_system/for_each_particle.hpp"
 #include "cells.hpp"
 #include "collision_detection/CollisionDetection.hpp"
 #include "communication.hpp"
@@ -43,6 +44,7 @@
 #include "rotation.hpp"
 #include "short_range_cabana.hpp"
 #include "short_range_loop.hpp"
+#include "system/GpuParticleData.hpp"
 #include "system/System.hpp"
 #include "thermostat.hpp"
 #include "thermostats/langevin_inline.hpp"
@@ -56,12 +58,11 @@
 #include <caliper/cali.h>
 #endif
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 #include <Cabana_Core.hpp>
-#endif
 
 #include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <memory>
 #include <span>
 #include <variant>
@@ -123,9 +124,7 @@ static void init_forces_and_thermostat(System::System const &system) {
 #endif
     }
   });
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   cell_structure.reset_local_force();
-#endif
 
   // Initialize ghost forces (unchanged)
   cell_structure.ghosts_reset_forces();
@@ -151,7 +150,25 @@ static void reinit_dip_fld(CellStructure const &cell_structure) {
 }
 #endif
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
+static BondsKernelData
+create_kokkos_bonds_kernel_data(System::System const &system) {
+
+  auto &local_force = system.cell_structure->get_local_force();
+#ifdef ESPRESSO_NPT
+  auto &local_virial = system.cell_structure->get_local_virial();
+#endif
+  auto const &aosoa = system.cell_structure->get_aosoa();
+  return /* BondsKernelData */ {*system.bonded_ias,
+                                *system.bond_breakage,
+                                *system.box_geo,
+                                local_force,
+#ifdef ESPRESSO_NPT
+                                local_virial,
+#endif
+                                aosoa,
+                                !system.bond_breakage->breakage_specs.empty()};
+}
+
 static ForcesKernel create_cabana_neighbor_kernel(
     System::System const &system, Utils::Vector3d *virial,
     auto const &elc_kernel, auto const &coulomb_kernel,
@@ -185,7 +202,8 @@ static ForcesKernel create_cabana_neighbor_kernel(
                              virial,
                              local_virial,
 #endif
-                             aosoa};
+                             aosoa,
+                             system.maximal_cutoff()};
 }
 
 static void reduce_cabana_forces_and_torques(System::System const &system,
@@ -240,7 +258,6 @@ static void reduce_cabana_forces_and_torques(System::System const &system,
   }
 #endif
 }
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM
 
 void System::System::calculate_forces() {
 #ifdef ESPRESSO_CALIPER
@@ -251,7 +268,7 @@ void System::System::calculate_forces() {
 #ifdef ESPRESSO_CALIPER
     CALI_MARK_BEGIN("copy_particles_to_GPU");
 #endif
-    gpu.update();
+    gpu->update();
 #ifdef ESPRESSO_CALIPER
     CALI_MARK_END("copy_particles_to_GPU");
 #endif
@@ -285,16 +302,6 @@ void System::System::calculate_forces() {
   auto const coulomb_u_kernel = coulomb.pair_energy_kernel();
   auto *const virial = get_npt_virial();
 
-  // interaction kernel is defined
-  auto bond_kernel = [coulomb_kernel_ptr = get_ptr(coulomb_kernel),
-                      &bonded_ias = *bonded_ias,
-                      &bond_breakage = *bond_breakage, virial,
-                      &box_geo = *box_geo](Particle &p1, int bond_id,
-                                           std::span<Particle *> partners) {
-    return add_bonded_force(p1, bond_id, partners, bonded_ias, bond_breakage,
-                            box_geo, virial, coulomb_kernel_ptr);
-  };
-
   VerletCriterion<> const verlet_criterion{*this,
                                            cell_structure->get_verlet_skin(),
                                            get_interaction_range(),
@@ -302,10 +309,8 @@ void System::System::calculate_forces() {
                                            dipoles.cutoff(),
                                            collision_detection_cutoff};
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   update_cabana_state(*cell_structure, verlet_criterion,
                       get_interaction_range(), propagation->integ_switch);
-#endif
 #ifdef ESPRESSO_ELECTROSTATICS
   if (coulomb.impl->extension) {
     update_icc_particles();
@@ -325,18 +330,27 @@ void System::System::calculate_forces() {
   CALI_MARK_END("calc_long_range_forces");
 #endif
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 #ifdef ESPRESSO_CALIPER
   CALI_MARK_BEGIN("cabana_short_range");
 #endif
+  auto &bs = cell_structure->bond_state();
+  auto bonds_kernel_data = create_kokkos_bonds_kernel_data(*this);
+  auto pair_bonds_kernel = PairBondsKernel{
+      bonds_kernel_data, bs.pair_list, bs.pair_ids, get_ptr(coulomb_kernel)};
+  auto angle_bonds_kernel =
+      AngleBondsKernel{bonds_kernel_data, bs.angle_list, bs.angle_ids};
+  auto dihedral_bonds_kernel =
+      DihedralBondsKernel{bonds_kernel_data, bs.dihedral_list, bs.dihedral_ids};
 
   auto first_neighbor_kernel =
       create_cabana_neighbor_kernel(*this, virial, elc_kernel, coulomb_kernel,
                                     dipoles_kernel, coulomb_u_kernel);
 
-  cabana_short_range(bond_kernel, first_neighbor_kernel, *cell_structure,
-                     get_interaction_range(), bonded_ias->maximal_cutoff(),
-                     verlet_criterion, propagation->integ_switch);
+  cabana_short_range(pair_bonds_kernel, angle_bonds_kernel,
+                     dihedral_bonds_kernel, first_neighbor_kernel,
+                     *cell_structure, get_interaction_range(),
+                     bonded_ias->maximal_cutoff(), verlet_criterion,
+                     propagation->integ_switch);
 
   // Force and Torque reduction
   reduce_cabana_forces_and_torques(*this, virial);
@@ -350,50 +364,11 @@ void System::System::calculate_forces() {
   if (not collision_detection->is_off()) {
     cell_structure->non_bonded_loop(collision_kernel, verlet_criterion);
   }
-#endif
+#endif // ESPRESSO_COLLISION_DETECTION
 
 #ifdef ESPRESSO_CALIPER
   CALI_MARK_END("cabana_short_range");
 #endif
-
-#else // ESPRESSO_SHARED_MEMORY_PARALLELISM
-
-#ifdef ESPRESSO_CALIPER
-  CALI_MARK_BEGIN("serial_short_range");
-#endif
-
-  auto pair_kernel = [coulomb_kernel_ptr = get_ptr(coulomb_kernel),
-                      dipoles_kernel_ptr = get_ptr(dipoles_kernel),
-                      elc_kernel_ptr = get_ptr(elc_kernel),
-                      coulomb_u_kernel_ptr = get_ptr(coulomb_u_kernel),
-                      &nonbonded_ias = *nonbonded_ias,
-                      &thermostat = *thermostat, &bonded_ias = *bonded_ias,
-                      virial,
-#ifdef ESPRESSO_COLLISION_DETECTION
-                      &collision_detection = *collision_detection,
-#endif
-                      &box_geo = *box_geo](Particle &p1, Particle &p2,
-                                           Distance const &d) {
-    auto const &ia_params = nonbonded_ias.get_ia_param(p1.type(), p2.type());
-    add_non_bonded_pair_force(
-        p1, p2, d.vec21, sqrt(d.dist2), d.dist2, p1.q() * p2.q(), ia_params,
-        thermostat, box_geo, bonded_ias, virial, coulomb_kernel_ptr,
-        dipoles_kernel_ptr, elc_kernel_ptr, coulomb_u_kernel_ptr);
-#ifdef ESPRESSO_COLLISION_DETECTION
-    if (not collision_detection.is_off()) {
-      collision_detection.detect_collision(p1, p2, d.dist2);
-    }
-#endif
-  };
-
-  short_range_loop(bond_kernel, pair_kernel, *cell_structure, maximal_cutoff(),
-                   bonded_ias->maximal_cutoff(), verlet_criterion);
-
-#ifdef ESPRESSO_CALIPER
-  CALI_MARK_END("serial_short_range");
-#endif
-
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM
 
   constraints->add_forces(particles, get_sim_time());
   oif_global->calculate_forces();
@@ -417,10 +392,10 @@ void System::System::calculate_forces() {
 #ifdef ESPRESSO_CALIPER
     CALI_MARK_BEGIN("copy_forces_from_GPU");
 #endif
-    gpu.copy_forces_to_host(particles, this_node);
+    gpu->copy_forces_to_host(particles, this_node);
 
 #ifdef ESPRESSO_DIPOLE_FIELD_TRACKING
-    gpu.copy_dip_fld_to_host(particles, this_node);
+    gpu->copy_dip_fld_to_host(particles, this_node);
 #endif
 
 #ifdef ESPRESSO_CALIPER

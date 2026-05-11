@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The ESPResSo project
+ * Copyright (C) 2025-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -20,8 +20,6 @@
 #pragma once
 
 #include <config/config.hpp>
-
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 
 #include <Cabana_VerletList.hpp>
 
@@ -224,5 +222,3 @@ public:
     return list.neighbors(particle_index, count);
   }
 };
-
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM

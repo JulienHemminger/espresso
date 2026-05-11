@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The ESPResSo project
+ * Copyright (C) 2022-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -283,6 +283,7 @@ Variant CellSystem::do_call_method(std::string const &name,
 std::vector<int> CellSystem::mpi_resort_particles(bool global_flag) const {
   auto &cell_structure = get_cell_structure();
   cell_structure.resort_particles(global_flag);
+  cell_structure.set_resort_particles(Cells::RESORT_GLOBAL);
   clear_particle_node();
   auto const size = static_cast<int>(cell_structure.local_particles().size());
   std::vector<int> n_part_per_node;

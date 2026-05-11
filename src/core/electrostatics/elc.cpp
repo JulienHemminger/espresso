@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2022 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
  *   Max-Planck-Institute for Polymer Research, Theory Group
  *
@@ -37,12 +37,9 @@
 #include "errorhandling.hpp"
 #include "system/System.hpp"
 
-#include <utils/Vector.hpp>
 #include <utils/math/sqr.hpp>
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 #include <Kokkos_Core.hpp>
-#endif
 
 #include <boost/mpi/collectives/all_reduce.hpp>
 #include <boost/range/combine.hpp>
@@ -53,6 +50,8 @@
 #include <cstddef>
 #include <functional>
 #include <numbers>
+#include <stdexcept>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -962,22 +961,23 @@ double ElectrostaticLayerCorrection::tune_far_cut() const {
   auto const box_l_y_inv = box_geo.length_inv()[1];
   auto const min_inv_boxl = std::min(box_l_x_inv, box_l_y_inv);
   auto const box_l_z = box_geo.length()[2];
+  auto const h = elc.box_h;
   // adjust lz according to dielectric layer method
-  auto const lz =
-      (elc.dielectric_contrast_on) ? elc.box_h + elc.space_layer : box_l_z;
+  auto const lz = (elc.dielectric_contrast_on) ? h + elc.space_layer : box_l_z;
 
   auto tuned_far_cut = min_inv_boxl;
   double err;
   do {
+    // following equation 18 in arnold02d
     auto const pref = 2. * std::numbers::pi * tuned_far_cut;
     auto const sum = pref + 2. * (box_l_x_inv + box_l_y_inv);
-    auto const den = -expm1(-pref * lz);
-    auto const num1 = exp(pref * (elc.box_h - lz));
-    auto const num2 = exp(-pref * (elc.box_h + lz));
+    auto const den = expm1(pref * lz);
+    auto const num1 = exp(pref * h);
+    auto const num2 = 1. / num1; // exp(-pref * h);
 
     err = 0.5 / den *
-          (num1 * (sum + 1. / (lz - elc.box_h)) / (lz - elc.box_h) +
-           num2 * (sum + 1. / (lz + elc.box_h)) / (lz + elc.box_h));
+          (num1 / (lz - h) * (sum + 1. / (lz - h)) +
+           num2 / (lz + h) * (sum + 1. / (lz + h)));
 
     tuned_far_cut += min_inv_boxl;
   } while (err > elc.maxPWerror and tuned_far_cut < maximal_far_cut);
@@ -1132,12 +1132,8 @@ void charge_assign(elc_data const &elc, CoulombP3M &solver,
   solver.prepare_fft_mesh(protocol == ChargeProtocol::BOTH or
                           protocol == ChargeProtocol::IMAGE);
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   // multi-threading -> cache sizes must be equal to the number of particles
-  auto const include_neutral_particles = Kokkos::num_threads() > 1;
-#else
-  auto constexpr include_neutral_particles = false;
-#endif
+  auto constexpr include_neutral_particles = true;
 
   for (auto zipped : p_q_pos_range) {
     auto const p_q = boost::get<0>(zipped);

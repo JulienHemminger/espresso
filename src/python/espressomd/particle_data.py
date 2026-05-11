@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013-2022 The ESPResSo project
+# Copyright (C) 2013-2026 The ESPResSo project
 #
 # This file is part of ESPResSo.
 #
@@ -258,8 +258,6 @@ class ParticleHandle(ScriptInterfaceHelper):
            This needs the feature ``EXTERNAL_FORCES``.
 
     fix: (3,) array_like of :obj:`bool`
-        Fixes the particle motion in the specified cartesian directions.
-
         Fixes the particle in space. It is possible to fix motion in the
         x-, y-, or z-direction independently. For example::
 

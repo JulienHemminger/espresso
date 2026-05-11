@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The ESPResSo project
+ * Copyright (C) 2024-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -23,9 +23,7 @@
 
 #include <utils/index.hpp>
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 #include <Kokkos_Core.hpp>
-#endif
 
 #include <concepts>
 #include <cstddef>
@@ -123,14 +121,12 @@ void for_each_3d_order(detail::IndexVectorConcept auto &&start,
   }
 }
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 /** @brief Mapping between ESPResSo and Kokkos tags for memory order */
 template <Utils::MemoryOrder Order>
 using LayoutIterate = std::conditional_t<
     Order == Utils::MemoryOrder::COLUMN_MAJOR,
     std::integral_constant<Kokkos::Iterate, Kokkos::Iterate::Left>,
     std::integral_constant<Kokkos::Iterate, Kokkos::Iterate::Right>>;
-#endif
 
 /**
  * @brief Run a kernel(index_3d, linear_index) over the given 3d range with
@@ -139,24 +135,19 @@ using LayoutIterate = std::conditional_t<
 template <Utils::MemoryOrder memory_order, class Kernel>
 void for_each_3d_lin(detail::IndexVectorConcept auto &&start,
                      detail::IndexVectorConcept auto &&stop, Kernel &&kernel) {
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   if (Kokkos::num_threads() > 1) {
-    int nx = stop[0] - start[0];
-    int ny = stop[1] - start[1];
-    int nz = stop[2] - start[2];
+    auto const size = stop - start;
     constexpr Kokkos::Iterate iter = LayoutIterate<memory_order>::value;
     using Range3d = Kokkos::MDRangePolicy<Kokkos::Rank<3, iter, iter>>;
-    Range3d policy({0, 0, 0}, {nx, ny, nz});
+    Range3d policy({0, 0, 0}, {size[0], size[1], size[2]});
     Kokkos::parallel_for(
         "for_each_3d", policy, KOKKOS_LAMBDA(int i, int j, int k) {
-          auto const idx = {start[0] + i, start[1] + j, start[2] + k};
           auto const linear_idx =
-              Utils::get_linear_index<memory_order>({i, j, k}, {nx, ny, nz});
-          kernel(idx, linear_idx);
+              Utils::get_linear_index<memory_order>(i, j, k, size);
+          kernel(start + Utils::Vector3i{{i, j, k}}, linear_idx);
         });
     return;
   }
-#endif
 
   int linear_loop_index = 0u;
   if constexpr (memory_order == Utils::MemoryOrder::ROW_MAJOR) {

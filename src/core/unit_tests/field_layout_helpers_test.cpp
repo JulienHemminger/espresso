@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 The ESPResSo project
+ * Copyright (C) 2024-2026 The ESPResSo project
  *
  * ESPResSo is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,11 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include <config/config.hpp>
+
 #include "p3m/field_layout_helpers.hpp"
+
+#include <Kokkos_Core.hpp>
 
 #include <utils/Vector.hpp>
 #include <utils/index.hpp>
@@ -28,6 +32,14 @@
 #include <cstddef>
 #include <span>
 #include <vector>
+
+struct GlobalConfig {
+  GlobalConfig() { Kokkos::initialize(); }
+  ~GlobalConfig() { Kokkos::finalize(); }
+};
+
+BOOST_TEST_GLOBAL_CONFIGURATION(GlobalConfig);
+BOOST_AUTO_TEST_SUITE(suite)
 
 template <Utils::MemoryOrder MemOrderReal, Utils::MemoryOrder MemOrderFourier>
 void check_add_remove_halo() {
@@ -130,3 +142,5 @@ BOOST_AUTO_TEST_CASE(add_remove_halo_row_col) {
   check_add_remove_halo<Utils::MemoryOrder::ROW_MAJOR,
                         Utils::MemoryOrder::COLUMN_MAJOR>();
 }
+
+BOOST_AUTO_TEST_SUITE_END()

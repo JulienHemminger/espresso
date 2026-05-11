@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013-2022 The ESPResSo project
+# Copyright (C) 2013-2026 The ESPResSo project
 #
 # This file is part of ESPResSo.
 #
@@ -82,6 +82,7 @@ class CoulombCloudWall(ut.TestCase):
         self.compare("p3m", energy=True)
 
     @utx.skipIfMissingGPU()
+    @utx.skipIfMissingFeatures("P3M")
     def test_p3m_gpu(self):
         p3m = espressomd.electrostatics.P3M(
             **self.p3m_params, tune=False, gpu=True)

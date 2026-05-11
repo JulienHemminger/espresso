@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 The ESPResSo project
+ * Copyright (C) 2022-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -37,6 +37,8 @@
 #include <script_interface/auto_parameters/AutoParameters.hpp>
 #include <script_interface/code_info/CodeInfo.hpp>
 
+#include <instrumentation/fe_trap.hpp>
+
 #include <utils/math/int_pow.hpp>
 
 #include <memory>
@@ -57,7 +59,10 @@ protected:
   void make_instance(VariantMap const &args) override {
     // unit conversions
     auto const agrid = get_value<double>(m_lattice->get_parameter("agrid"));
-    m_conv_permittivity = Utils::int_pow<2>(agrid);
+    auto const tau = get_value<double>(args, "tau");
+    m_tau = tau;
+    m_conv_permittivity = Utils::int_pow<3>(agrid) / Utils::int_pow<2>(tau);
+    set_potential_conversion(agrid, tau);
     auto const permittivity =
         get_value<double>(args, "permittivity") * m_conv_permittivity;
     auto *make_new_instance = &::walberla::new_ek_poisson_fft;
@@ -71,8 +76,18 @@ protected:
     }
     m_instance = make_new_instance(m_lattice->lattice(), permittivity,
                                    m_single_precision);
-    m_instance->setup_fft(m_gpu and
-                          ::communication_environment->is_mpi_gpu_aware());
+    {
+#ifdef ESPRESSO_FPE
+      // cuFFT builds device kernels using CUDA-JIT
+      // (https://docs.nvidia.com/cuda/archive/13.1.1/cufft/#plan-initialization-time)
+      // please note this operation is not guaranteed to succeed for all
+      // mesh sizes, and in rare cases, it can send the SIGFPE signal
+      auto const trap_pause = fe_trap::make_shared_pause_scoped();
+#endif
+      auto const use_gpu_aware =
+          m_gpu and ::communication_environment->is_mpi_gpu_aware();
+      m_instance->setup_fft(use_gpu_aware);
+    }
   }
 
 public:
@@ -93,6 +108,7 @@ public:
 
   EKFFT() {
     add_parameters({
+        {"tau", AutoParameter::read_only, [this]() { return m_tau; }},
         {"permittivity",
          [this](Variant const &v) {
            m_instance->set_permittivity(get_value<double>(v) *

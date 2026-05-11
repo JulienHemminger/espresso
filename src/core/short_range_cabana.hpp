@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The ESPResSo project
+ * Copyright (C) 2025-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -21,11 +21,10 @@
 
 #include <config/config.hpp>
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
-
 #include "cell_system/CellStructure.hpp"
 
 #include "aosoa_pack.hpp"
+#include "bond_forces_kokkos.hpp"
 #include "custom_verlet_list.hpp"
 #include "forces_cabana.hpp"
 
@@ -62,9 +61,7 @@ commit_particle(Particle const &p, auto const index,
 #ifdef ESPRESSO_ELECTROSTATICS
   aosoa.charge(index) = p.q();
 #endif
-#ifdef ESPRESSO_DPD
   aosoa.set_vector_at(aosoa.velocity, index, p.v());
-#endif
 #if defined(ESPRESSO_GAY_BERNE) or defined(ESPRESSO_DIPOLES)
   aosoa.set_vector_at(aosoa.director, index,
                       Utils::convert_quaternion_to_director(p.quat()));
@@ -77,6 +74,10 @@ commit_particle(Particle const &p, auto const index,
   if (rebuild) {
     aosoa.id(index) = p.id();
     aosoa.type(index) = p.type();
+    aosoa.set_vector_at(aosoa.image, index, p.image_box());
+#ifdef ESPRESSO_MASS
+    aosoa.mass(index) = p.mass();
+#endif
   }
 
   // Always update exclusion flags (they can change during simulation)
@@ -93,14 +94,12 @@ link_cell_kokkos(std::span<Cell *const> cells, BoxGeometry const &box_geo,
                  Kokkos::View<int *> const &id_to_index, int const max_id,
                  auto const &intra_operator, auto const &inter_operator) {
 
-  auto const distance_function = detail::MinimalImageDistance{box_geo};
-
   // implementation detail: max_id refers to the max local particle id,
   // but ghost particles from other ranks may have larger particle ids;
   // -1 is used as a sentinel value for particle ids from other threads
 
-  auto intra_kernel = [&cells, &distance_function, &verlet_criterion,
-                       &id_to_index, &intra_operator, max_id](const int i) {
+  auto intra_kernel = [&cells, &box_geo, &verlet_criterion, &id_to_index,
+                       &intra_operator, max_id](const int i) {
     auto &local_particles = cells[i]->particles();
     for (auto it = local_particles.begin(); it != local_particles.end(); ++it) {
       auto const &p1 = *it;
@@ -110,7 +109,8 @@ link_cell_kokkos(std::span<Cell *const> cells, BoxGeometry const &box_geo,
           // pairs in this cell
           for (auto jt = std::next(it); jt != local_particles.end(); ++jt) {
             if ((*jt).id() <= max_id) {
-              if (verlet_criterion(p1, *jt, distance_function(p1, *jt))) {
+              if (verlet_criterion(p1, *jt,
+                                   box_geo.get_mi_dist2(p1.pos(), jt->pos()))) {
                 auto const jj = id_to_index((*jt).id());
                 if (jj >= 0) {
                   intra_operator(ii, jj);
@@ -123,8 +123,8 @@ link_cell_kokkos(std::span<Cell *const> cells, BoxGeometry const &box_geo,
     }
   };
 
-  auto inter_kernel = [&cells, &distance_function, &verlet_criterion,
-                       &id_to_index, &inter_operator, max_id](const int i) {
+  auto inter_kernel = [&cells, &box_geo, &verlet_criterion, &id_to_index,
+                       &inter_operator, max_id](const int i) {
     auto &local_particles = cells[i]->particles();
     for (auto const &p1 : local_particles) {
       if (p1.id() <= max_id) {
@@ -134,7 +134,8 @@ link_cell_kokkos(std::span<Cell *const> cells, BoxGeometry const &box_geo,
           for (auto &neighbor : cells[i]->neighbors().red()) {
             for (auto const &p2 : neighbor->particles()) {
               if (p2.id() <= max_id) {
-                if (verlet_criterion(p1, p2, distance_function(p1, p2))) {
+                if (verlet_criterion(
+                        p1, p2, box_geo.get_mi_dist2(p1.pos(), p2.pos()))) {
                   auto const jj = id_to_index(p2.id());
                   if (jj >= 0) {
                     inter_operator(ii, jj);
@@ -148,10 +149,10 @@ link_cell_kokkos(std::span<Cell *const> cells, BoxGeometry const &box_geo,
     }
   };
 
-  Kokkos::parallel_for("inter", cells.size(), intra_kernel);
+  Kokkos::parallel_for("intra", cells.size(), intra_kernel);
   Kokkos::fence();
 
-  Kokkos::parallel_for("intra", cells.size(), inter_kernel);
+  Kokkos::parallel_for("inter", cells.size(), inter_kernel);
   Kokkos::fence();
 }
 
@@ -178,13 +179,47 @@ update_cabana_state(CellStructure &cell_structure, auto const &verlet_criterion,
 #ifdef ESPRESSO_CALIPER
     CALI_MARK_BEGIN("AoSoA commit full");
 #endif
+    int pair_count = 0;
+    int angle_count = 0;
+    int dihedral_count = 0;
     kokkos_parallel_range_for<policy_type>(
         "AoSoA write", std::size_t{0}, n_part,
-        [&unique_particles, &aosoa, &id_to_index](int const index) {
+        [&unique_particles, &aosoa, &id_to_index, &cell_structure, &pair_count,
+         &angle_count, &dihedral_count](int const index) {
           auto const &p = *unique_particles.at(index);
           commit_particle(p, index, aosoa, true);
           id_to_index(p.id()) = index;
+          if (not p.is_ghost()) {
+            cell_structure.update_bond_storage(pair_count, angle_count,
+                                               dihedral_count, p);
+          }
         });
+    Kokkos::fence();
+    auto &bs = cell_structure.bond_state();
+    auto &pair_bond_list = bs.pair_list;
+    Kokkos::parallel_for("resolve_pair_bond_indices", pair_count,
+                         [&pair_bond_list, &id_to_index](int idx) {
+                           for (int col = 0; col < 2; ++col) {
+                             pair_bond_list(idx, col) =
+                                 id_to_index(pair_bond_list(idx, col));
+                           }
+                         });
+    auto &angle_bond_list = bs.angle_list;
+    Kokkos::parallel_for("resolve_angle_bond_indices", angle_count,
+                         [&angle_bond_list, &id_to_index](int idx) {
+                           for (int col = 0; col < 3; ++col) {
+                             angle_bond_list(idx, col) =
+                                 id_to_index(angle_bond_list(idx, col));
+                           }
+                         });
+    auto &dihedral_bond_list = bs.dihedral_list;
+    Kokkos::parallel_for("resolve_dihedral_bond_indices", dihedral_count,
+                         [&dihedral_bond_list, &id_to_index](int idx) {
+                           for (int col = 0; col < 4; ++col) {
+                             dihedral_bond_list(idx, col) =
+                                 id_to_index(dihedral_bond_list(idx, col));
+                           }
+                         });
     Kokkos::fence();
 #ifdef ESPRESSO_CALIPER
     CALI_MARK_END("AoSoA commit full");
@@ -263,7 +298,10 @@ update_aosoa_charges(CellStructure &cell_structure) {
 }
 #endif
 
-void cabana_short_range(auto const &bond_kernel, auto const &forces_kernel,
+void cabana_short_range(auto const &pair_bonds_kernel,
+                        auto const &angle_bonds_kernel,
+                        auto const &dihedral_bonds_kernel,
+                        auto const &nonbonded_kernel,
                         CellStructure &cell_structure, double pair_cutoff,
                         double bond_cutoff, auto const &verlet_criterion,
                         auto const integ_switch) {
@@ -274,7 +312,26 @@ void cabana_short_range(auto const &bond_kernel, auto const &forces_kernel,
 #ifdef ESPRESSO_CALIPER
     CALI_MARK_BEGIN("cabana_bond_loop");
 #endif
-    cell_structure.bond_loop(bond_kernel);
+    auto const n_pair_bonds = cell_structure.get_local_pair_bond_numbers();
+    auto const n_angle_bonds = cell_structure.get_local_angle_bond_numbers();
+    auto const n_dihedral_bonds =
+        cell_structure.get_local_dihedral_bond_numbers();
+    if (n_pair_bonds > 0) {
+      Kokkos::parallel_for( // loop over bonds
+          "for_each_local_pair_bonds", n_pair_bonds, pair_bonds_kernel);
+      Kokkos::fence();
+    }
+    if (n_angle_bonds > 0) {
+      Kokkos::parallel_for( // loop over bonds
+          "for_each_local_angle_bonds", n_angle_bonds, angle_bonds_kernel);
+      Kokkos::fence();
+    }
+    if (n_dihedral_bonds > 0) {
+      Kokkos::parallel_for( // loop over bonds
+          "for_each_local_dihedral_bonds", n_dihedral_bonds,
+          dihedral_bonds_kernel);
+      Kokkos::fence();
+    }
 #ifdef ESPRESSO_CALIPER
     CALI_MARK_END("cabana_bond_loop");
 #endif
@@ -290,7 +347,7 @@ void cabana_short_range(auto const &bond_kernel, auto const &forces_kernel,
       auto const &verlet_list = cell_structure.get_verlet_list_cabana();
       Kokkos::RangePolicy<execution_space> policy(
           std::size_t{0}, cell_structure.get_unique_particles().size());
-      Cabana::neighbor_parallel_for(policy, forces_kernel, verlet_list,
+      Cabana::neighbor_parallel_for(policy, nonbonded_kernel, verlet_list,
                                     Cabana::FirstNeighborsTag(),
                                     Cabana::SerialOpTag());
     } else {
@@ -302,11 +359,11 @@ void cabana_short_range(auto const &bond_kernel, auto const &forces_kernel,
                 cell_structure.get_cached_max_local_particle_id(),
                 [&](const int i, const int j) {
                   // intra cell loop
-                  forces_kernel(i, j);
+                  nonbonded_kernel(i, j);
                 },
                 [&](const int i, const int j) {
                   // inter cell loop
-                  forces_kernel(i, j);
+                  nonbonded_kernel(i, j);
                 });
           });
     }
@@ -316,5 +373,3 @@ void cabana_short_range(auto const &bond_kernel, auto const &forces_kernel,
 #endif
   }
 }
-
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM

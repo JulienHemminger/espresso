@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 The ESPResSo project
+ * Copyright (C) 2022-2026 The ESPResSo project
  * Copyright (C) 2020-2025 The waLBerla project
  *
  * This file is part of ESPResSo.
@@ -20,7 +20,7 @@
 
 // kernel generated with pystencils v1.4+1.ge851f4e, lbmpy v1.4+1.ge9efe34,
 // sympy v1.12.1, lbmpy_walberla/pystencils_walberla from waLBerla commit
-// 007e77e077ad9d22b5eed6f3d3118240993e553c
+// 3247aa7395049ca5bfb69d34d55e45db19fa439c
 
 /*
  * Boundary class.

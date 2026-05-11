@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2023 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
  *   Max-Planck-Institute for Polymer Research, Theory Group
  *
@@ -41,6 +41,7 @@
 #include "bond_breakage/bond_breakage.hpp"
 #include "bonded_interactions/bonded_interaction_data.hpp"
 #include "cell_system/CellStructure.hpp"
+#include "cell_system/for_each_particle.hpp"
 #include "cells.hpp"
 #include "collision_detection/CollisionDetection.hpp"
 #include "communication.hpp"
@@ -62,6 +63,8 @@
 #include "virtual_sites/lb_tracers.hpp"
 #include "virtual_sites/relative.hpp"
 
+#include <instrumentation/fe_trap.hpp>
+
 #include <boost/mpi/collectives/all_reduce.hpp>
 
 #ifdef ESPRESSO_CALIPER
@@ -78,6 +81,7 @@
 #include <csignal>
 #include <functional>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -193,6 +197,7 @@ void System::System::update_used_propagations() {
   used_propagations = boost::mpi::all_reduce(::comm_cart, used_propagations,
                                              std::bit_or<int>());
   propagation->used_propagations = used_propagations;
+  propagation->recalc_used_propagations = false;
 }
 
 void System::System::integrator_sanity_checks() const {
@@ -266,6 +271,38 @@ void System::System::integrator_sanity_checks() const {
   }
 #endif // ESPRESSO_ROTATION
 
+#ifdef ESPRESSO_VIRTUAL_SITES_CENTER_OF_MASS
+#ifdef ESPRESSO_EXTERNAL_FORCES
+  if (propagation->used_propagations &
+      PropagationMode::TRANS_VS_CENTER_OF_MASS) {
+    for (auto const &p : cell_structure->local_particles()) {
+      using namespace PropagationMode;
+      if ((p.propagation() & TRANS_VS_CENTER_OF_MASS) and
+          p.has_fixed_coordinates()) {
+        runtimeErrorMsg() << "VS COM particles cannot be fixed in space";
+        break;
+      }
+    }
+  }
+#endif // ESPRESSO_EXTERNAL_FORCES
+#ifdef ESPRESSO_BOND_CONSTRAINT
+  if (bonded_ias->get_n_rigid_bonds()) {
+    using namespace PropagationMode;
+    for (auto const &p : cell_structure->local_particles()) {
+      if (p.propagation() & TRANS_VS_CENTER_OF_MASS) {
+        for (auto const bond : p.bonds()) {
+          if (std::holds_alternative<RigidBond>(
+                  *bonded_ias->at(bond.bond_id()))) {
+            runtimeErrorMsg() << "VS COM particles cannot use rigid bonds";
+            break;
+          }
+        }
+      }
+    }
+  }
+#endif // ESPRESSO_BOND_CONSTRAINT
+#endif // ESPRESSO_VIRTUAL_SITES_CENTER_OF_MASS
+
 #ifdef ESPRESSO_THERMAL_STONER_WOHLFARTH
   if ((thermo_switch & THERMO_LANGEVIN) == 0) {
     for (auto const &p : cell_structure->local_particles()) {
@@ -310,15 +347,16 @@ void walberla_agrid_sanity_checks(std::string method,
   auto const tol = agrid / 1E6;
   if ((lattice_left - geo_left).norm2() > tol or
       (lattice_right - geo_right).norm2() > tol) {
-    runtimeErrorMsg() << "\nMPI rank " << ::this_node << ": "
-                      << "left ESPResSo: [" << geo_left << "], "
-                      << "left waLBerla: [" << lattice_left << "]"
-                      << "\nMPI rank " << ::this_node << ": "
-                      << "right ESPResSo: [" << geo_right << "], "
-                      << "right waLBerla: [" << lattice_right << "]"
-                      << "\nfor method: " << method;
-    throw std::runtime_error(
-        "waLBerla and ESPResSo disagree about domain decomposition.");
+    std::stringstream error_msg;
+    error_msg << "waLBerla and ESPResSo disagree about domain decomposition"
+              << "\nMPI rank " << ::this_node << ": "
+              << "left ESPResSo: [" << geo_left << "], "
+              << "left waLBerla: [" << lattice_left << "]"
+              << "\nMPI rank " << ::this_node << ": "
+              << "right ESPResSo: [" << geo_right << "], "
+              << "right waLBerla: [" << lattice_right << "]"
+              << "\nfor method: " << method;
+    throw std::runtime_error(error_msg.str());
   }
 }
 #endif // ESPRESSO_WALBERLA
@@ -717,6 +755,8 @@ int System::System::integrate(int n_steps, int reuse_forces) {
           lb.ghost_communication_vel();
 #ifdef ESPRESSO_CALIPER
           CALI_MARK_END("lb_propagation");
+#endif
+#ifdef ESPRESSO_CALIPER
           CALI_MARK_BEGIN("ek_propagation");
 #endif
           ek.propagate();
@@ -773,7 +813,9 @@ int System::System::integrate(int n_steps, int reuse_forces) {
 #endif
 
 #ifdef ESPRESSO_COLLISION_DETECTION
+      cell_structure->clear_new_bonds();
       collision_detection->handle_collisions();
+      cell_structure->rebuild_bond_list();
 #endif
       bond_breakage->process_queue(*this);
     }
@@ -830,12 +872,10 @@ int System::System::integrate(int n_steps, int reuse_forces) {
   if (caught_error) {
     return INTEG_ERROR_RUNTIME;
   }
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   if (boost::mpi::all_reduce(::comm_cart, not cell_structure->use_verlet_list,
                              std::logical_or<>())) {
     cell_structure->use_verlet_list = false;
   }
-#endif
   return integrated_steps;
 }
 

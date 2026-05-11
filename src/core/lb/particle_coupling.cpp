@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2022 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -24,7 +24,6 @@
 #include "Particle.hpp"
 #include "cell_system/CellStructure.hpp"
 #include "communication.hpp"
-#include "config/config.hpp"
 #include "errorhandling.hpp"
 #include "lb/particle_coupling.hpp"
 #include "random.hpp"
@@ -40,26 +39,25 @@
 #include <caliper/cali.h>
 #endif
 
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
 #include <ranges>
-#include <stdexcept>
 #include <vector>
 
 static Thermostat::GammaType lb_handle_particle_anisotropy(Particle const &p,
                                                            double lb_gamma) {
-#ifdef ESPRESSO_THERMOSTAT_PER_PARTICLE
-  auto const &partcl_gamma = p.gamma();
 #ifdef ESPRESSO_PARTICLE_ANISOTROPY
   auto const default_gamma = Thermostat::GammaType::broadcast(lb_gamma);
 #else
   auto const default_gamma = lb_gamma;
 #endif // ESPRESSO_PARTICLE_ANISOTROPY
-  return Thermostat::handle_particle_gamma(partcl_gamma, default_gamma);
+#ifdef ESPRESSO_THERMOSTAT_PER_PARTICLE
+  return Thermostat::handle_particle_gamma(p.gamma(), default_gamma);
 #else
-  return lb_gamma;
+  return default_gamma;
 #endif // ESPRESSO_THERMOSTAT_PER_PARTICLE
 }
 

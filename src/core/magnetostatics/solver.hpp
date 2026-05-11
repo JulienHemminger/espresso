@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2022 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -67,7 +67,7 @@ struct Solver {
       double, Utils::Vector3d const &, Utils::Vector3d const &,
       Utils::Vector3d const &, double, double)>;
   using ShortRangeEnergyKernel =
-      std::function<double(Particle const &, Particle const &,
+      std::function<double(Utils::Vector3d const &, Utils::Vector3d const &,
                            Utils::Vector3d const &, double, double)>;
 
   inline std::optional<ShortRangeForceKernel> pair_force_kernel() const;

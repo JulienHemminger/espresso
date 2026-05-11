@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2022 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
  *   Max-Planck-Institute for Polymer Research, Theory Group
  *
@@ -45,10 +45,11 @@
 #include <utils/Vector.hpp>
 #include <utils/math/sqr.hpp>
 
+#include <cstddef>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <variant>
 
@@ -115,7 +116,6 @@ struct elc_data {
   /** The space that is finally left. */
   double space_box;
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   /// pairwise contributions from lower and upper layers
   void dielectric_layers_contribution(BoxGeometry const &box_geo,
                                       std::size_t p1, std::size_t p2,
@@ -139,7 +139,6 @@ struct elc_data {
       kernel(q_eff, d);
     }
   }
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM
 
   /// pairwise contributions from lower and upper layers
   void dielectric_layers_contribution(BoxGeometry const &box_geo,
@@ -280,7 +279,6 @@ struct ElectrostaticLayerCorrection
         base_solver);
   }
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   /** @brief Calculate short-range pair energy correction. */
   double pair_energy_correction(std::size_t p1, std::size_t p2, auto &aosoa,
                                 double q1q2) const {
@@ -306,7 +304,6 @@ struct ElectrostaticLayerCorrection
     }
     return energy;
   }
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM
 
   /** @brief Calculate short-range pair energy correction. */
   double pair_energy_correction(Utils::Vector3d const &pos1,

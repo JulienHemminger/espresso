@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2022 The ESPResSo project
+ * Copyright (C) 2014-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -23,6 +23,7 @@
 #include "System.impl.hpp"
 
 #include "BoxGeometry.hpp"
+#include "GpuParticleData.hpp"
 #include "LocalBox.hpp"
 #include "PropagationMode.hpp"
 #include "accumulators/AutoUpdateAccumulators.hpp"
@@ -51,6 +52,7 @@
 #include <boost/mpi/collectives/all_reduce.hpp>
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -71,8 +73,9 @@ System::System(Private) {
   box_geo = std::make_shared<BoxGeometry>();
   local_geo = std::make_shared<LocalBox>();
   cell_structure = std::make_shared<CellStructure>(*box_geo);
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   cell_structure->set_kokkos_handle(::kokkos_handle);
+#ifdef ESPRESSO_CUDA
+  gpu = std::make_shared<GpuParticleData>();
 #endif
   propagation = std::make_shared<Propagation>();
   bonded_ias = std::make_shared<BondedInteractionsMap>();
@@ -121,8 +124,8 @@ void System::initialize() {
   auto_update_accumulators->bind_system(handle);
   constraints->bind_system(handle);
 #ifdef ESPRESSO_CUDA
-  gpu.bind_system(handle);
-  gpu.initialize();
+  gpu->bind_system(handle);
+  gpu->initialize();
 #endif
   lb.bind_system(handle);
   ek.bind_system(handle);
@@ -333,6 +336,7 @@ void System::on_lb_boundary_conditions_change() {
 void System::on_particle_local_change() {
   cell_structure->update_ghosts_and_resort_particle(get_global_ghost_flags());
   propagation->recalc_forces = true;
+  propagation->recalc_used_propagations = true;
 }
 
 void System::on_particle_change() {
@@ -348,12 +352,11 @@ void System::on_particle_change() {
   dipoles.on_particle_change();
 #endif
   propagation->recalc_forces = true;
+  propagation->recalc_used_propagations = true;
 
   /* the particle information is no longer valid */
   invalidate_fetch_cache();
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   cell_structure->clear_local_properties();
-#endif
 }
 
 void System::on_particle_charge_change() {
@@ -364,20 +367,28 @@ void System::on_particle_charge_change() {
 
 void System::update_dependent_particles() {
 #ifdef ESPRESSO_VIRTUAL_SITES
+  if (propagation->recalc_used_propagations) {
+    update_used_propagations();
+  }
 #ifdef ESPRESSO_VIRTUAL_SITES_RELATIVE
-  vs_relative_update_particles(*cell_structure, *box_geo);
+  if (propagation->used_propagations &
+      (PropagationMode::ROT_VS_RELATIVE | PropagationMode::ROT_VS_INDEPENDENT |
+       PropagationMode::TRANS_VS_RELATIVE)) {
+    vs_relative_update_particles(*cell_structure, *box_geo);
+  }
 #endif
 #ifdef ESPRESSO_VIRTUAL_SITES_CENTER_OF_MASS
-  vs_com_update_particles(*cell_structure, *box_geo);
+  if (propagation->used_propagations &
+      PropagationMode::TRANS_VS_CENTER_OF_MASS) {
+    vs_com_update_particles(*cell_structure, *box_geo);
+  }
 #endif
   cell_structure->update_ghosts_and_resort_particle(get_global_ghost_flags());
 #endif
 
 #ifdef ESPRESSO_ELECTROSTATICS
   if (has_icc_enabled()) {
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
     rebuild_aosoa();
-#endif
     update_icc_particles();
   }
 #endif
@@ -403,12 +414,9 @@ void System::on_observable_calc() {
 #endif
 
   clear_particle_node();
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   rebuild_aosoa();
-#endif
 }
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 void System::rebuild_aosoa() {
 #ifdef ESPRESSO_COLLISION_DETECTION
   auto const collision_detection_cutoff = collision_detection->cutoff();
@@ -426,7 +434,6 @@ void System::rebuild_aosoa() {
   update_cabana_state(*cell_structure, verlet_criterion,
                       get_interaction_range(), propagation->integ_switch);
 }
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM
 
 void System::on_lees_edwards_change() { lb.on_lees_edwards_change(); }
 
@@ -503,9 +510,7 @@ void System::on_integration_start() {
   }
 
   invalidate_fetch_cache();
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   cell_structure->clear_local_properties();
-#endif
 
 #ifdef ESPRESSO_ADDITIONAL_CHECKS
   if (!Utils::Mpi::all_compare(::comm_cart, cell_structure->use_verlet_list)) {

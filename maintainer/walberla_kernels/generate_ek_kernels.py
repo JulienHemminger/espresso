@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022-2025 The ESPResSo project
+# Copyright (C) 2022-2026 The ESPResSo project
 #
 # This file is part of ESPResSo.
 #
@@ -59,6 +59,13 @@ precision_rng = pystencils_espresso.precision_rng_modulo[double_precision]
 np2cpp_t = pystencils_espresso.numpy_types_to_cpp_types
 
 
+def patch_unused_direction_arrays_kernel(content, variables):
+    for name in variables:
+        content = walberla_ek_generation.remove_intermediate_variable(
+            content, name)
+    return content
+
+
 def patch_reaction_indexed_kernel(content: str, target_suffix) -> str:
     # replace getData with uncheckedFastGetData
     access_slow = "block->getData<IndexVectors>(indexVectorID);"
@@ -83,17 +90,17 @@ def patch_reaction_indexed_kernel(content: str, target_suffix) -> str:
         token = "const int32_t dummy = *((int32_t *  )(& _data_indexVector[12*ctr_0]));"
         assert token in content
         content = content.replace(token, "")
+    content = patch_unused_direction_arrays_kernel(
+        content, "cx cy cz invdir".split())
     return content
 
 
 def patch_dirichlet_boundary_kernel(content: str, target_suffix) -> str:
+    content = patch_unused_direction_arrays_kernel(content, ["dir"])
     if target_suffix in ["_CUDA"]:
         # remove unused assignment
-        token = "const int32_t dir = *((int32_t *  )(& _data_indexVector_112[24*blockDim.x*blockIdx.x + 24*threadIdx.x]));"
-        content = content.replace(token, "")
-        token = "uint8_t * RESTRICT _data_indexVector_112 = _data_indexVector + 12;"
-        content = content.replace(token, "")
-        token = "const int32_t dir = *((int32_t *  )(& _data_indexVector_112[20*blockDim.x*blockIdx.x + 20*threadIdx.x]));"
+        token = "uint8_t * RESTRICT _data_indexVector_112 = _data_indexVector + 12;\n"
+        assert token in content
         content = content.replace(token, "")
     return content
 
@@ -190,6 +197,7 @@ if args.gpu:
 else:
     params = {
         "target": target,
+        "cpu_openmp": True,
         "cpu_vectorize_info": {
             "assume_inner_stride_one": False,
         },
@@ -201,6 +209,8 @@ else:
 
 with code_generation_context.CodeGeneration() as ctx:
     ctx.double_accuracy = double_precision
+    if target == ps.Target.CPU:
+        ctx.openmp = True
     if target == ps.Target.GPU:
         ctx.gpu = True
         ctx.cuda = True
@@ -220,9 +230,9 @@ with code_generation_context.CodeGeneration() as ctx:
     if "diffusion" in args.kernels:
         for midfix, fluctuation in (("", False), ("Thermalized", True)):
             cpu_vectorize_info["cpu_prepend_opt_remove_conditionals"] = False
+            class_name = f"DiffusiveFluxKernel{midfix}_{precision_suffix}{processor_suffix}"  # nopep8
             pystencils_walberla.generate_sweep(
-                ctx,
-                f"DiffusiveFluxKernel{midfix}_{precision_suffix}{processor_suffix}",  # nopep8
+                ctx, class_name,
                 ek.flux(include_vof=False, include_fluctuations=fluctuation,
                         rng_node=precision_rng),
                 staggered=True,
@@ -263,15 +273,17 @@ with code_generation_context.CodeGeneration() as ctx:
                        patch_advection_kernel, processor_suffix)
 
     if "continuity" in args.kernels:
+        class_name = f"ContinuityKernel_{precision_suffix}{processor_suffix}"
         pystencils_walberla.generate_sweep(
             ctx,
-            f"ContinuityKernel_{precision_suffix}{processor_suffix}",
+            class_name,
             ek.continuity(),
             **params)
     if "friction_coupling" in args.kernels:
+        class_name = f"FrictionCouplingKernel_{precision_suffix}{processor_suffix}"  # nopep8
         pystencils_walberla.generate_sweep(
             ctx,
-            f"FrictionCouplingKernel_{precision_suffix}{processor_suffix}",
+            class_name,
             ek.friction_coupling(),
             **params)
 
@@ -292,6 +304,8 @@ with code_generation_context.CodeGeneration() as ctx:
                 content = re.sub(r"#ifdef __CUDACC__[\s\S]+?#endif(?=\n\n|\n//)", pop, content, 1)  # nopep8
                 assert push in content
                 assert pop in content
+            content = patch_unused_direction_arrays_kernel(
+                content, "cx cy cz invdir".split())
             return content
 
         # generate dynamic fixed flux

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The ESPResSo project
+ * Copyright (C) 2022-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -19,19 +19,22 @@
 
 #pragma once
 
+#include <config/config.hpp>
+
 #include "system/System.hpp"
 
 #include <boost/serialization/access.hpp>
 
 #include <array>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <unordered_map>
 #include <vector>
 
 namespace BondBreakage {
 
-/** Stores one or two bond parnters for pair/angle bonds */
+/** Stores one or two bond partners for pair/angle bonds */
 using BondPartners = std::array<std::optional<int>, 2>;
 
 enum class ActionType {
@@ -105,6 +108,8 @@ public:
   }
 
 private:
+  std::mutex queue_mtx;
+
   void process_queue_impl(System::System &system);
 
   /** Add a particle+bond combination to the breakage queue */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 The ESPResSo project
+ * Copyright (C) 2019-2026 The ESPResSo project
  *
  * This file is part of ESPResSo.
  *
@@ -556,16 +556,16 @@ BOOST_AUTO_TEST_CASE(ek_exceptions) {
 }
 
 BOOST_AUTO_TEST_CASE(ek_poisson_solver_none) {
-  auto ek_solver = walberla::PoissonSolverNone<double>(params.lattice);
+  auto ek_solver =
+      walberla::PoissonSolverNone<double, lbmpy::Arch::CPU>(params.lattice);
   // no-op
   ek_solver.add_charge_to_field(std::size_t{}, 0.);
   ek_solver.reset_charge_field();
   ek_solver.solve();
-  // exceptions
-  BOOST_CHECK_THROW(ek_solver.get_node_potential({0, 0, 0}, true),
-                    std::runtime_error);
-  BOOST_CHECK_THROW(ek_solver.get_slice_potential({0, 0, 0}, {1, 1, 1}),
-                    std::runtime_error);
+  BOOST_CHECK(not ek_solver.get_node_potential({9999, 9999, 9999}, true));
+  BOOST_CHECK(
+      ek_solver.get_slice_potential({9999, 9999, 9999}, {10000, 10000, 10000})
+          .empty());
 }
 
 int main(int argc, char **argv) {

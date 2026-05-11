@@ -1,4 +1,4 @@
-image: ghcr.io/espressomd/docker/ubuntu:3388b293a5e8a9b613b1bfa4220e54dfb4bff245
+image: ghcr.io/espressomd/docker/ubuntu:ab5bc64f5c3cc7330952f8b3bf321270ca53960c
 
 stages:
   - prepare
@@ -16,11 +16,11 @@ stages:
 
 .notification_job_template: &notification_job_definition
   <<: *global_job_definition
-  image: ghcr.io/espressomd/docker/alpine:3388b293a5e8a9b613b1bfa4220e54dfb4bff245
+  image: ghcr.io/espressomd/docker/alpine:ab5bc64f5c3cc7330952f8b3bf321270ca53960c
   variables:
     GET_SOURCES_ATTEMPTS: 3
   dependencies: []
-  timeout: 40m
+  timeout: 20m
   interruptible: false
   tags:
     - espresso
@@ -47,7 +47,7 @@ style:
     - cd build
     - cp ../style.patch .
     - cp ../maintainer/configs/maxset.hpp myconfig.hpp
-    - cmake .. -D ESPRESSO_BUILD_WITH_CUDA=ON -D ESPRESSO_BUILD_WITH_FFTW=ON -D ESPRESSO_BUILD_WITH_GSL=ON -D ESPRESSO_BUILD_WITH_HDF5=ON -D ESPRESSO_BUILD_WITH_SCAFACOS=ON -D ESPRESSO_BUILD_WITH_WALBERLA=ON -D ESPRESSO_BUILD_WITH_STOKESIAN_DYNAMICS=ON -D ESPRESSO_BUILD_WITH_CALIPER=ON -D ESPRESSO_BUILD_WITH_FPE=ON -D ESPRESSO_BUILD_WITH_SHARED_MEMORY_PARALLELISM=ON -D ESPRESSO_BUILD_WITH_NLOPT=ON
+    - cmake .. -D ESPRESSO_BUILD_WITH_CUDA=ON -D ESPRESSO_BUILD_WITH_FFTW=ON -D ESPRESSO_BUILD_WITH_GSL=ON -D ESPRESSO_BUILD_WITH_HDF5=ON -D ESPRESSO_BUILD_WITH_SCAFACOS=ON -D ESPRESSO_BUILD_WITH_WALBERLA=ON -D ESPRESSO_BUILD_WITH_STOKESIAN_DYNAMICS=ON -D ESPRESSO_BUILD_WITH_CALIPER=ON -D ESPRESSO_BUILD_WITH_FPE=ON -D ESPRESSO_BUILD_WITH_NLOPT=ON
     - sh ../maintainer/CI/dox_warnings.sh
   tags:
     - espresso
@@ -98,7 +98,7 @@ maxset:
      with_nlopt: 'true'
      with_caliper: 'true'
      check_skip_long: 'true'
-     cmake_params: '-D CMAKE_CXX_STANDARD=23 -D CMAKE_CXX_EXTENSIONS=OFF -D ESPRESSO_TEST_NP=8'
+     cmake_params: '-D CMAKE_CXX_STANDARD=23 -D CMAKE_CXX_EXTENSIONS=OFF -D ESPRESSO_TEST_NP=8 -D ESPRESSO_TEST_NT=8'
   script:
     - bash maintainer/CI/build_cmake.sh
   tags:
@@ -146,7 +146,6 @@ clang-sanitizer:
      with_scafacos: 'true'
      with_walberla: 'true'
      with_stokesian_dynamics: 'true'
-     with_shared_memory_parallelism: 'true'
      with_nlopt: 'true'
      with_coverage: 'false'
      with_coverage_python: 'false'
@@ -193,7 +192,6 @@ cuda12-coverage:
      with_scafacos: 'true'
      with_walberla: 'true'
      with_stokesian_dynamics: 'true'
-     with_shared_memory_parallelism: 'true'
      with_nlopt: 'true'
   script:
     - bash maintainer/CI/build_cmake.sh
@@ -221,7 +219,6 @@ cuda12-maxset:
      with_walberla: 'true'
      with_walberla_avx: 'true'
      with_stokesian_dynamics: 'true'
-     with_shared_memory_parallelism: 'true'
      with_nlopt: 'true'
   script:
     - bash maintainer/CI/build_cmake.sh
@@ -367,7 +364,6 @@ installation:
      with_walberla: 'true'
      with_walberla_avx: 'true'
      with_stokesian_dynamics: 'true'
-     with_shared_memory_parallelism: 'true'
      with_nlopt: 'true'
      srcdir: '${CI_PROJECT_DIR}'
      build_type: 'Release'
@@ -432,7 +428,7 @@ check_sphinx:
     - numa
     - reuse-artifacts-same-arch
 
-run_tutorials:
+.run_tutorials_template: &run_tutorials_definition
   <<: *global_job_definition
   stage: additional_checks
   needs:
@@ -442,7 +438,7 @@ run_tutorials:
     - cd ${CI_PROJECT_DIR}/build
     - ninja -t restat
     - ninja tutorials
-    - ninja -j1 tutorials_html
+    - ninja -j2 tutorials_html
     - cd doc/tutorials
     - mkdir html
     - ${CI_PROJECT_DIR}/maintainer/CI/deploy_tutorials.py
@@ -457,8 +453,17 @@ run_tutorials:
     - cuda
     - numa
     - reuse-artifacts-same-arch
+
+run_tutorials:
+  <<: *run_tutorials_definition
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
+
+run_tutorials_manual:
+  <<: *run_tutorials_definition
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
+  when: manual
 
 run_doxygen:
   <<: *global_job_definition

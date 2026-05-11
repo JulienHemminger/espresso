@@ -191,12 +191,20 @@ paths before building the project, for example via environment variables:
 
 .. code-block:: bash
 
-    export CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda-12.0"
+    export CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda-12.8"
     export PATH="${CUDA_TOOLKIT_ROOT_DIR}/bin${PATH:+:$PATH}"
     export LD_LIBRARY_PATH="${CUDA_TOOLKIT_ROOT_DIR}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+or alternatively via CMake-specific environment variables
+(e.g. `ENV{CUDACXX} <https://cmake.org/cmake/help/v4.0/envvar/CUDACXX.html>`__,
+`ENV{CUDAARCHS} <https://cmake.org/cmake/help/v4.0/envvar/CUDAARCHS.html>`__,
+`ENV{CUDAHOSTCXX} <https://cmake.org/cmake/help/v4.0/envvar/CUDAHOSTCXX.html>`__)
+or options (e.g. `-D CUDAToolkit_ROOT <https://cmake.org/cmake/help/v4.0/module/FindCUDAToolkit.html>`__,
+`-D CMAKE_CUDA_HOST_COMPILER <https://cmake.org/cmake/help/v4.0/variable/CMAKE_CUDA_HOST_COMPILER.html>`__).
+
 Later in the installation instructions, you will see CMake commands of the form
-``cmake ..`` with optional arguments, such as ``cmake .. -D ESPRESSO_BUILD_WITH_CUDA=ON``
+``cmake ..`` with optional CUDA-related options and environment variables,
+such as ``CUDACXX=/usr/lib/nvidia-cuda-toolkit/bin/nvcc cmake .. -D ESPRESSO_BUILD_WITH_CUDA=ON``
 to activate CUDA. These commands may need to be adapted depending on which
 operating system and CUDA version you are using.
 
@@ -210,38 +218,139 @@ The CMake option ``CMAKE_CUDA_ARCHITECTURES`` cannot be used to set CUDA
 architectures, because it has a default value that is too old for the
 minimally required CUDA version.
 
-On Ubuntu 24.04, the default GCC compiler may be too recent for nvcc.
-You can either use GCC 12:
+On Ubuntu 24.04, the default GCC compiler may be too recent for nvcc 12.0.
+You can either use GCC 12 or alternatively install Clang 19 as a replacement for nvcc and GCC.
+If the NVIDIA HPC SDK is installed, the NVHPC toolchain can be used with GCC 12.
 
-.. code-block:: bash
+.. tabs::
 
-    CC=gcc-12 CXX=g++-12 CUDACXX=/usr/local/cuda-12.0/bin/nvcc cmake .. \
-      -D ESPRESSO_BUILD_WITH_CUDA=ON \
-      -D CUDAToolkit_ROOT=/usr/local/cuda-12.0 \
-      -D CMAKE_CUDA_FLAGS="--compiler-bindir=/usr/bin/g++-12"
+   .. group-tab:: GCC on Ubuntu 24.04
 
-or alternatively install Clang 19 as a replacement for nvcc and GCC:
+      .. code-block:: bash
 
-.. code-block:: bash
+         CC=gcc-12 CXX=g++-12 CUDACXX=/usr/lib/nvidia-cuda-toolkit/bin/nvcc cmake .. \
+           -D ESPRESSO_BUILD_WITH_CUDA=ON \
+           -D CUDAToolkit_ROOT=/usr/lib/nvidia-cuda-toolkit \
+           -D CMAKE_CUDA_HOST_COMPILER=g++-12
 
-    CC=clang-19 CXX=clang++-19 CUDACXX=clang++-19 cmake .. \
-      -D ESPRESSO_BUILD_WITH_CUDA=ON \
-      -D CUDAToolkit_ROOT=/usr/local/cuda-12.0 \
-      -D CMAKE_CXX_FLAGS="-I/usr/include/x86_64-linux-gnu/c++/12 -I/usr/include/c++/12 --cuda-path=/usr/local/cuda-12.0" \
-      -D CMAKE_CUDA_FLAGS="-I/usr/include/x86_64-linux-gnu/c++/12 -I/usr/include/c++/12 --cuda-path=/usr/local/cuda-12.0"
+      with compiler dependencies:
+
+      .. code-block:: bash
+
+         sudo apt install gcc-12 g++-12 libstdc++-12-dev
+
+   .. group-tab:: Clang on Ubuntu 24.04
+
+      .. code-block:: bash
+
+         CC=clang-19 CXX=clang++-19 CUDACXX=clang++-19 cmake .. \
+           -D ESPRESSO_BUILD_WITH_CUDA=ON \
+           -D CUDAToolkit_ROOT=/usr/local/cuda-12.0 \
+           -D CMAKE_CXX_FLAGS="-I/usr/include/x86_64-linux-gnu/c++/12 -I/usr/include/c++/12" \
+           -D CMAKE_CUDA_FLAGS="-I/usr/include/x86_64-linux-gnu/c++/12 -I/usr/include/c++/12 --cuda-path=/usr/local/cuda-12.0"
+
+      with compiler dependencies:
+
+      .. code-block:: bash
+
+         sudo apt install \
+            clang-19 clang-tidy-19 clang-format-19 llvm-19 libc++-19-dev \
+            libclang-rt-19-dev libomp-19-dev gcc-12 g++-12 libstdc++-12-dev
+
+   .. group-tab:: NVHPC on Ubuntu 24.04
+
+      .. code-block:: bash
+
+         CC=nvc CXX=nvc++ CUDACXX=nvcc cmake .. \
+            -D ESPRESSO_BUILD_WITH_CUDA=ON \
+            -D CMAKE_CXX_FLAGS="--gcc-toolchain=gcc-12"
+
+      with compiler dependencies:
+
+      .. code-block:: bash
+
+         sudo apt install gcc-12 g++-12 libstdc++-12-dev
+
+      To print which toolchains and libraries are loaded by NVHPC, run:
+
+      .. code-block:: bash
+
+          echo 'int main() {}' > mwe.cpp
+          nvc++ -v -std=c++20 mwe.cpp
 
 Please note that all CMake options and compiler flags that involve
 ``/usr/local/cuda-*`` need to be adapted to your CUDA environment.
 But they are only necessary on systems with multiple CUDA releases installed,
 and can be safely removed if you have only one CUDA release installed.
 
-Please also note that with Clang, you still need the GCC 12 toolchain,
-which can be set up with ``apt install gcc-12 g++-12 libstdc++-12-dev``.
+Please also note that with Clang, you still need the GCC 12 toolchain.
 The extra compiler flags in the Clang CMake command above are needed to pin
 the search paths of Clang. By default, it searches trough the most recent
 GCC version, which is GCC 13 on Ubuntu 24.04. It is not possible to install
 the NVIDIA driver without GCC 13 due to a dependency resolution issue
 (``nvidia-dkms`` depends on ``dkms`` which depends on ``gcc-13``).
+
+On Ubuntu 26.04, only GCC <= 13 can be used with nvcc 12.4.
+Alternatively, the Clang toolchain can be used.
+If the NVIDIA HPC SDK is installed, the NVHPC toolchain can be used with GCC 13.
+
+.. tabs::
+
+   .. group-tab:: GCC on Ubuntu 26.04
+
+      .. code-block:: bash
+
+         CC=gcc-15 CXX=g++-15 CUDAHOSTCXX=g++-13 CUDACXX=/usr/lib/nvidia-cuda-toolkit/bin/nvcc \
+           CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES_EXCLUDE=/usr/lib/gcc/x86_64-linux-gnu/15 cmake .. \
+           -D ESPRESSO_BUILD_WITH_CUDA=ON \
+           -D CUDAToolkit_ROOT=/usr/lib/nvidia-cuda-toolkit
+
+      with compiler dependencies:
+
+      .. code-block:: bash
+
+         sudo apt install \
+            gcc-13 g++-13 libstdc++-13-dev \
+            gcc-15 g++-15 libstdc++-15-dev
+
+   .. group-tab:: Clang on Ubuntu 26.04
+
+      .. code-block:: bash
+
+         CC=clang-20 CXX=clang++-20 CUDACXX=clang++-20 cmake .. \
+           -D ESPRESSO_BUILD_WITH_CUDA=ON \
+           -D CUDAToolkit_ROOT=/usr/lib/cuda \
+           -D CMAKE_CXX_FLAGS="-I/usr/include/x86_64-linux-gnu/c++/15 -I/usr/include/c++/15" \
+           -D CMAKE_CUDA_FLAGS="-I/usr/include/x86_64-linux-gnu/c++/15 -I/usr/include/c++/15 --cuda-path=/usr/lib/cuda"
+
+      with compiler dependencies:
+
+      .. code-block:: bash
+
+         sudo apt install \
+            clang-20 clang-tidy-20 clang-format-20 llvm-20 libc++-20-dev \
+            libclang-rt-20-dev libomp-20-dev gcc-15 g++-15 libstdc++-15-dev
+
+   .. group-tab:: NVHPC on Ubuntu 26.04
+
+      .. code-block:: bash
+
+         CC=nvc CXX=nvc++ CUDACXX=nvcc cmake .. \
+            -D ESPRESSO_BUILD_WITH_CUDA=ON \
+            -D CMAKE_CXX_FLAGS="--gcc-toolchain=gcc-13"
+
+      with compiler dependencies:
+
+      .. code-block:: bash
+
+         sudo apt install gcc-13 g++-13 libstdc++-13-dev
+
+      To print which toolchains and libraries are loaded by NVHPC, run:
+
+      .. code-block:: bash
+
+          echo 'int main() {}' > mwe.cpp
+          nvc++ -v -std=c++20 mwe.cpp
 
 .. _Setting up a Jupyter environment:
 
@@ -321,7 +430,7 @@ To generate the Sphinx documentation, install the following packages:
 .. code-block:: bash
 
     python3 -m pip install -c requirements.txt \
-        sphinx sphinxcontrib-bibtex sphinx-toggleprompt
+        sphinx sphinxcontrib-bibtex sphinx-toggleprompt sphinx-tabs
 
 To generate the Doxygen documentation, install the following packages:
 
@@ -354,6 +463,11 @@ To run |es| on Windows, use the Linux subsystem (WSL). For that you need to
   use of |es|'s GPU acceleration, follow `these instructions <https://docs.nvidia.com/cuda/wsl-user-guide/index.html>`__
   to set up CUDA.
 * follow the instructions for :ref:`Installing requirements on Ubuntu`
+
+Note on file system performance: when using WSL, avoid cloning or building
+the repository on the mounted Windows file system (e.g., :file:`/mnt/c/Users/...`).
+This causes severe I/O performance degradation. Always clone and build within
+the Linux filesystem (e.g., :file:`/home/user/espresso`).
 
 .. _Installing requirements on macOS:
 
@@ -677,9 +791,6 @@ using a CMake flag (see :ref:`Options and Variables`).
 - ``STOKESIAN_DYNAMICS``: enable the Stokesian Dynamics propagator
   (see :ref:`Stokesian Dynamics`). Requires BLAS and LAPACK.
 
-- ``SHARED_MEMORY_PARALLELISM``: enable shared-memory parallelism
-  (OpenMP, Kokkos, Cabana)
-
 - ``CALIPER``, ``VALGRIND``, ``FPE``: enable various instrumentation tools
   (see :ref:`Instrumentation`)
 
@@ -843,7 +954,6 @@ The following options control features from external libraries:
 * ``ESPRESSO_BUILD_WITH_SCAFACOS``: Build with ScaFaCoS support.
 * ``ESPRESSO_BUILD_WITH_GSL``: Build with GSL support.
 * ``ESPRESSO_BUILD_WITH_STOKESIAN_DYNAMICS`` Build with Stokesian Dynamics support.
-* ``ESPRESSO_BUILD_WITH_SHARED_MEMORY_PARALLELISM``: Build with shared-memory parallelism support (OpenMP, Cabana, Kokkos, etc.)
 * ``ESPRESSO_BUILD_WITH_WALBERLA``: Build with waLBerla support.
 * ``ESPRESSO_BUILD_WITH_WALBERLA_AVX``: Build waLBerla with AVX kernels instead of regular kernels.
 * ``ESPRESSO_BUILD_WITH_PYTHON``: Build with the Python interface.
@@ -915,19 +1025,27 @@ The build type is controlled by ``-D CMAKE_BUILD_TYPE=<type>`` where
 * ``Debug``: for debugging in GDB
 * ``Coverage``: for code coverage
 
+In addition, third-party libraries may provide additional options that control performance.
+For example, ``-D Kokkos_ARCH_NATIVE=ON`` enables microarchitecture-specific optimizations,
+such as ``-march=native -mtune=native`` on x86 or ``-mcpu=native`` on ARM,
+in both the Kokkos library and |es|.
+These optimization flags are suitable for homogeneous computing environments,
+e.g. HPC clusters, but not for environments with heterogeneous computing resources,
+since different hardware may not share the same instruction set.
+
 Cluster users and HPC developers may be interested in manually editing the
-``espresso_cpp_flags`` target in the top-level ``CMakeLists.txt`` file for
+``espresso_compiler_flags`` target in the top-level ``CMakeLists.txt`` file for
 finer control over compiler flags. The variable declaration is followed
 by a series of conditionals to enable or disable compiler-specific flags.
 Compiler flags passed to CMake via the ``-D CMAKE_CXX_FLAGS`` option
 (such as ``cmake . -D CMAKE_CXX_FLAGS="-ffast-math -fno-finite-math-only"``)
-will appear in the compiler command before the flags in ``espresso_cpp_flags``,
+will appear in the compiler command before the flags in ``espresso_compiler_flags``,
 and will therefore have lower precedence.
 
 Be aware that fast-math mode can break |es|. It is incompatible with the
 ``ADDITIONAL_CHECKS`` feature due to the loss of precision in the LB code
 on CPU. The Clang 10 compiler breaks field couplings with ``-ffast-math``.
-The Intel compiler enables the ``-fp-model fast=1`` flag by default;
+The IntelLLVM compiler enables the ``-fp-model fast=1`` flag by default;
 it can be disabled by adding the ``-fp-model=strict`` flag.
 
 |es| currently doesn't fully support link-time optimization (LTO).

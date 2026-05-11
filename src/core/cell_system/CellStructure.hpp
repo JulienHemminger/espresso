@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2022 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
  *   Max-Planck-Institute for Polymer Research, Theory Group
  *
@@ -46,7 +46,6 @@
 #include <cassert>
 #include <concepts>
 #include <cstddef>
-#include <functional>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -62,7 +61,6 @@
 #endif
 
 // forward declarations
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 namespace Kokkos {
 template <class DataType, class... Properties> class View;
 class HostSpace;
@@ -73,21 +71,16 @@ namespace Cabana {
 class HalfNeighborTag;
 struct VerletLayout2D;
 class TeamVectorOpTag;
-template <typename... Types> struct MemberTypes;
-template <class DataType, class MemorySpace, int, class MemoryTraits>
-class AoSoA;
 } // namespace Cabana
 struct KokkosHandle;
 template <class MemorySpace, class ListAlgorithm, class Layout, class BuildTag>
 class CustomVerletList;
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM
+struct LocalBondState;
 
 template <typename Callable>
 concept ParticleCallback = requires(Callable c, Particle &p) {
   { c(p) } -> std::same_as<void>;
 };
-
-using ParticleUnaryOp = std::function<void(Particle &)>;
 
 namespace Cells {
 enum Resort : unsigned {
@@ -168,7 +161,6 @@ struct EuclidianDistance {
  *  be stored in separate structures.
  */
 class CellStructure : public System::Leaf<CellStructure> {
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 public:
   static constexpr auto vector_length = 1;
   struct AoSoA_pack;
@@ -179,7 +171,6 @@ public:
   using ListType =
       CustomVerletList<Kokkos::HostSpace, ListAlgorithm, Cabana::VerletLayout2D,
                        Cabana::TeamVectorOpTag>;
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM
 
 private:
   /** The local id-to-particle index */
@@ -199,7 +190,6 @@ private:
   /** @brief Verlet list skin. */
   double m_verlet_skin = 0.;
   double m_verlet_reuse = 0.;
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   int m_cached_max_local_particle_id = 0;
   std::size_t m_num_local_particles_cached = 0;
   int m_max_id = 0;
@@ -211,13 +201,13 @@ private:
 #ifdef ESPRESSO_NPT
   std::unique_ptr<VirialType> m_local_virial;
 #endif
+  std::unique_ptr<LocalBondState> m_bond_state;
   std::unique_ptr<ListType> m_verlet_list_cabana;
   /** particle properties using individual Kokkos Views */
   std::unique_ptr<AoSoA_pack> m_aosoa;
   /** The local id-to-index for aosoa data */
   std::vector<Particle *> m_unique_particles;
   std::shared_ptr<KokkosHandle> m_kokkos_handle;
-#endif // ESPRESSO_SHARED_MEMORY_PARALLELISM
 
 public:
   CellStructure(BoxGeometry const &box);
@@ -354,26 +344,18 @@ public:
   }
 
   /** @brief whether to use parallel version of @ref for_each_local_particle */
-  bool use_parallel_for_each_local_particle() const {
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
-    return true;
-#else
-    return false;
-#endif
-  }
+  bool use_parallel_for_each_local_particle() const { return true; }
 
   /**
    * @brief Run a kernel on all local particles.
    * The kernel is assumed to be thread-safe.
    */
-  void for_each_local_particle(ParticleUnaryOp &&f,
-                               bool parallel = true) const {
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
+  template <typename Callable>
+  void for_each_local_particle(Callable &&f, bool parallel = true) const {
     if (parallel and use_parallel_for_each_local_particle()) {
       parallel_for_each_particle_impl(decomposition().local_cells(), f);
       return;
     }
-#endif
     for (auto &p : local_particles()) {
       f(p);
     }
@@ -383,7 +365,8 @@ public:
    * @brief Run a kernel on all ghost particles.
    * The kernel is assumed to be thread-safe.
    */
-  void for_each_ghost_particle(ParticleUnaryOp &&f) const {
+  template <typename Callable>
+  void for_each_ghost_particle(Callable &&f) const {
     for (auto &p : ghost_particles()) {
       f(p);
     }
@@ -403,10 +386,9 @@ private:
     return decomposition().particle_to_cell(p);
   }
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
-  void parallel_for_each_particle_impl(std::span<Cell *const> cells,
-                                       ParticleUnaryOp &f) const;
-#endif
+  template <typename Callable>
+  inline void parallel_for_each_particle_impl(std::span<Cell *const> cells,
+                                              Callable &f) const;
 
 public:
   /**
@@ -456,14 +438,21 @@ public:
    * this node, or -1 if there are no particles on this node.
    */
   int get_max_local_particle_id() const;
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   int get_cached_max_local_particle_id() const {
     return m_cached_max_local_particle_id;
   }
   std::size_t get_num_local_particles_cached() const {
     return m_num_local_particles_cached;
   }
-#endif
+  int get_local_pair_bond_numbers() const;
+  int get_local_angle_bond_numbers() const;
+  int get_local_dihedral_bond_numbers() const;
+  void set_local_bond_numbers(int p, int a, int d);
+#ifdef ESPRESSO_COLLISION_DETECTION
+  void clear_new_bonds();
+  void add_new_bond(int bond_id, std::vector<int> const &particle_ids);
+  void rebuild_bond_list();
+#endif // ESPRESSO_COLLISION_DETECTION
 
   /**
    * @brief Remove all particles from the cell system.
@@ -629,7 +618,7 @@ private:
    *                should indicate if the bond was broken.
    */
   template <class Handler>
-  void execute_bond_handler(Particle &p, Handler handler) {
+  void execute_bond_handler(Particle &p, Handler const &handler) {
     for (const BondView bond : p.bonds()) {
       auto const partner_ids = bond.partner_ids();
 
@@ -640,8 +629,8 @@ private:
         if (bond_broken) {
           bond_broken_error(p.id(), partner_ids);
         }
-      } catch (const BondResolutionError &) {
-        bond_broken_error(p.id(), partner_ids);
+      } catch (BondResolutionError const &) {
+        bond_resolution_error(partner_ids);
       }
     }
   }
@@ -728,7 +717,6 @@ private:
     }
   }
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 public:
   auto get_max_id() const { return m_max_id; }
 
@@ -748,11 +736,24 @@ public:
   auto &get_aosoa() { return *m_aosoa; }
   auto const &get_unique_particles() const { return m_unique_particles; }
   auto const &get_verlet_list_cabana() const { return *m_verlet_list_cabana; }
+  auto &bond_state() { return *m_bond_state; }
+  auto const &bond_state() const { return *m_bond_state; }
   void clear_local_properties();
+  void clear_bond_properties();
 
   [[nodiscard]] auto is_verlet_list_cabana_rebuild_needed() const {
     return m_rebuild_verlet_list_cabana;
   }
+
+  /**
+   * @brief Update bond storage(m_*_bond_list_kokkos and m_*_bond_id_kokkos).
+   * @param pair_count      Index for pair bond storage.
+   * @param angle_count     Index for angle bond storage.
+   * @param dihedral_count  Index for dihedral bond storage.
+   * @param p               Particle pointer.
+   */
+  void update_bond_storage(int &pair_count, int &angle_count,
+                           int &dihedral_count, Particle const &p);
 
   /**
    * @brief Reset local properties of the Verlet list.
@@ -787,7 +788,6 @@ public:
   inline void cell_list_loop(auto &&kernel) {
     kernel(m_decomposition->local_cells(), m_decomposition->box());
   }
-#endif
 
 private:
   /** Non-bonded pair loop with verlet lists.
@@ -805,7 +805,7 @@ private:
       m_verlet_list.clear();
 
       link_cell([&](Particle &p1, Particle &p2, Distance const &d) {
-        if (verlet_criterion(p1, p2, d)) {
+        if (verlet_criterion(p1, p2, d.dist2)) {
           m_verlet_list.emplace_back(&p1, &p2);
           pair_kernel(p1, p2, d);
         }

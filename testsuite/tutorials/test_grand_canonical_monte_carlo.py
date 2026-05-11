@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2023 The ESPResSo project
+# Copyright (C) 2023-2026 The ESPResSo project
 #
 # This file is part of ESPResSo.
 #
@@ -23,7 +23,7 @@ import numpy as np
 
 tutorial, skipIfMissingFeatures = importlib_wrapper.configure_and_import(
     "@TUTORIALS_DIR@/grand_canonical_monte_carlo/grand_canonical_monte_carlo.py",
-    p3m_params={"mesh": 10, "cao": 6, "r_cut": 8.22})
+    p3m_params={"mesh": 20, "cao": 4, "r_cut": 5.05})
 
 
 @skipIfMissingFeatures
@@ -34,9 +34,9 @@ class Tutorial(ut.TestCase):
             (2. * tutorial.salt_concentration_si.magnitude)
         sim_xi_minus = tutorial.partition_coefficients_negative_ideal_array
         sim_xi_plus = tutorial.universal_partition_coefficients_positive_ideal
-        sim_xi_minus_ref = tutorial.analytical_solution(ratios)
+        ref_xi_minus = tutorial.analytical_solution(ratios)
         np.testing.assert_allclose(
-            sim_xi_plus, sim_xi_minus_ref, rtol=0.2)
+            sim_xi_plus, ref_xi_minus, rtol=0.2)
         np.testing.assert_allclose(
             sim_xi_minus, sim_xi_plus, rtol=1e-5, atol=1e-5)
 

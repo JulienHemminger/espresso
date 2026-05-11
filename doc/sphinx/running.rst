@@ -204,7 +204,7 @@ The codepace can be accessed from the terminal via the `GitHub CLI ssh command
 <https://cli.github.com/manual/gh_codespace_ssh>`__
 or from a web browser (default), which uses the VS Code IDE.
 Instructions to build |es| and execute the tutorials are available
-in file :file:`.devcontainer/Readme.md`.
+in file `.devcontainer/Readme.md <https://github.com/espressomd/espresso/blob/python/.devcontainer/Readme.md>`__.
 
 
 .. _Parallel computing:
@@ -262,9 +262,8 @@ extra arguments are passed to the ``mpiexec`` program.
 On cluster computers, it might be necessary to load the MPI library with
 ``module load openmpi`` or similar.
 
-On modern NUMA architectures, |es| can leverage shared-memory parallelism
-(SMP) using the `OpenMP <https://www.openmp.org>`__ programming model.
-This is enabled via the CMake option ``-D SHARED_MEMORY_PARALLELISM=ON``.
+|es| leverages shared-memory parallelism (SMP) using
+the `OpenMP <https://www.openmp.org>`__ programming model.
 To run a simulation with 4 OpenMP threads, use the following syntax:
 
 .. code-block:: bash
@@ -792,6 +791,22 @@ GDB can investigate ASAN reports with break points:
     set breakpoint pending on
     break __asan_report_error
 
+If that doesn't work, ASAN report can be configured to trigger a signal:
+
+.. code-block:: bash
+
+    ASAN_OPTIONS=abort_on_error=1 ./pypresso script.py
+
+Multiple `ASAN options <https://github.com/google/sanitizers/wiki/AddressSanitizerFlags#run-time-flags>`__
+can be joined with a semicolon.
+
+When using the GCC compiler toolchain, it might be necessary to preload
+the ASAN libraries before the C++ library, like so:
+
+.. code-block:: bash
+
+    LD_PRELOAD="$(g++ -print-file-name=libasan.so):$(g++ -print-file-name=libstdc++.so)" ./pypresso script.py
+
 .. _UBSAN:
 
 UBSAN
@@ -861,9 +876,13 @@ of an abnormal floating-point operation. This is achieved by sending a signal
 that can be caught in GDB to allow inspection of the failing code.
 
 When FPE instrumentation is enabled, most script interface calls will be
-monitored for abnormal mathematical operations. One can select which subset
-of CPU exceptions will trap by explicitly providing a bitmask to the FPE
-handler constructor, like so:
+monitored for abnormal mathematical operations.
+Some |es| features have to call third-party libraries that are known
+to occasionally raise CPU flags; to handle these exceptional cases,
+|es| will temporarily disable any active FPE monitoring during calls
+to the affected libraries.
+One can select which subset of CPU exceptions will trap by explicitly
+providing a bitmask to the FPE handler constructor, like so:
 
 .. code-block:: c++
 
@@ -936,6 +955,16 @@ For a more fine-grained report on GPU kernels:
 .. code-block:: none
 
     $ CALI_CONFIG=cuda-activity-report ./pypresso ../samples/p3m.py --gpu
+
+For more details on profiling methods and report types,
+see the following chapters of the Caliper user guide:
+
+* `GPU profiling <https://software.llnl.gov/Caliper/GPUProfiling.html>`__,
+  `CUDA services <https://software.llnl.gov/Caliper/services.html#cupti>`__
+* `MPI profiling <https://software.llnl.gov/Caliper/MPIProfiling.html>`__,
+  `MPI services <https://software.llnl.gov/Caliper/services.html#mpi>`__
+* `OpenMP profiling <https://software.llnl.gov/Caliper/OpenMP.html>`__,
+  `OpenMP services <https://software.llnl.gov/Caliper/services.html#ompt>`__
 
 To introduce custom markers at the C++ level, add ``CALI`` macros inside
 performance-critical functions to register them:

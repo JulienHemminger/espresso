@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013-2022 The ESPResSo project
+# Copyright (C) 2013-2026 The ESPResSo project
 #
 # This file is part of ESPResSo.
 #
@@ -57,9 +57,12 @@ add_library(espresso::pyx_flags ALIAS espresso_pyx_flags)
 target_compile_options(
   espresso_pyx_flags
   INTERFACE
-    $<$<NOT:$<CXX_COMPILER_ID:IntelLLVM>>:-Wno-pedantic>
+    $<$<NOT:$<CXX_COMPILER_ID:IntelLLVM,NVHPC>>:-Wno-pedantic>
     $<$<NOT:$<CXX_COMPILER_ID:IntelLLVM>>:-Wno-cast-qual>
     $<$<NOT:$<CXX_COMPILER_ID:IntelLLVM>>:-Wno-deprecated-declarations>
+    $<$<NOT:$<CXX_COMPILER_ID:NVHPC>>:-Wno-unused-macros>
+    $<$<NOT:$<CXX_COMPILER_ID:NVHPC>>:-Wno-missing-field-initializers>
+    $<$<NOT:$<CXX_COMPILER_ID:NVHPC>>:-Wno-format-nonliteral>
     $<$<CXX_COMPILER_ID:IntelLLVM>:-diag-disable=1224>
     $<$<CXX_COMPILER_ID:GNU>:-Wno-cpp>
     $<$<CXX_COMPILER_ID:GNU>:-Wno-volatile>
@@ -72,10 +75,9 @@ target_compile_options(
     $<$<CXX_COMPILER_ID:Clang,AppleClang,IntelLLVM>:-Wno-\#warnings>
     $<$<CXX_COMPILER_ID:Clang,AppleClang,IntelLLVM>:-Wno-deprecated-volatile>
     $<$<CXX_COMPILER_ID:GNU,Clang>:-Wno-format-signedness>
+    $<$<CXX_COMPILER_ID:NVHPC>:--diag_suppress=set_but_not_used>
+    $<$<CXX_COMPILER_ID:NVHPC>:--diag_suppress=identifier_not_keyword>
     -Wno-cast-align
-    -Wno-missing-field-initializers
-    -Wno-format-nonliteral
-    -Wno-unused-macros
     -Wno-unused-variable)
 
 # Configure, compile and install Cython files
@@ -114,16 +116,14 @@ foreach(cython_file ${cython_SRC})
       ${target} PROPERTIES SUFFIX ".so" LINK_FLAGS "-undefined dynamic_lookup")
   endif()
   set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "")
-  if(ESPRESSO_BUILD_WITH_SHARED_MEMORY_PARALLELISM)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL CrayClang AND target STREQUAL
-                                                    espressomd__init
-       AND DEFINED OpenMP_craymp_LIBRARY AND EXISTS ${OpenMP_craymp_LIBRARY})
-      # the Cray OpenMP library must be loaded before dependent Cray libraries,
-      # including those imported from target OpenMP::OpenMP_CXX, so as to avoid
-      # "ImportError: cannot allocate memory in static TLS block"
-      target_link_libraries(${target} PRIVATE ${OpenMP_craymp_LIBRARY}
-                                              OpenMP::OpenMP_CXX)
-    endif()
+  if(CMAKE_CXX_COMPILER_ID STREQUAL CrayClang AND target STREQUAL
+                                                  espressomd__init
+     AND DEFINED OpenMP_craymp_LIBRARY AND EXISTS ${OpenMP_craymp_LIBRARY})
+    # the Cray OpenMP library must be loaded before dependent Cray libraries,
+    # including those imported from target OpenMP::OpenMP_CXX, so as to avoid
+    # "ImportError: cannot allocate memory in static TLS block"
+    target_link_libraries(${target} PRIVATE ${OpenMP_craymp_LIBRARY}
+                                            OpenMP::OpenMP_CXX)
   endif()
   target_link_libraries(${target} PRIVATE espresso::config espresso::core
                                           espresso::script_interface)
