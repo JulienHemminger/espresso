@@ -47,9 +47,12 @@ Analytical Method
     * end_prams.pos1.z = 6: pass
 
     
+Custom Method
+* improve from err=1e-3
+    * setup contrib structure (what contribs/helper methods do i have)
+
+    * iterate over these contribs until the sum is correct?
 
 
-* fix custom
-    * err=1e-3
 
 """
