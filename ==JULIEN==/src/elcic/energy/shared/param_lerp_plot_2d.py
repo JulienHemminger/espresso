@@ -60,15 +60,13 @@ def run_lerp_plot(system, start_params, end_params, steps=20):
         results["legacy"].append(
             get_legacy_elc_energy(system, lerp_params)
         )
-
         # 2. Analytical (Takes current_params dict)
         results["analytical"].append(
             analytical_single_plate_2d_ewald_elcic_energy(lerp_params)
         )
-
         # 3. Custom ELCIC (Updated to take current_params dict)
         results["custom"].append(
-            0 # get_elcic_energy(system, lerp_params)
+            get_elcic_energy(system, lerp_params)
         )
 
     # Plotting according to sketch: Error vs t

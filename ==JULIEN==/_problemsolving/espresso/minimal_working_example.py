@@ -60,21 +60,17 @@ def run_elc(params):
 
 
 params = {
-    "lx": 50.0,
-    "ly": 50.0,
-    "lz": 40.0,
-    "gap_size": 10.0,
+    "lx": 10.0,
+    "ly": 10.0,
+    "lz": 10.0,
+    "gap_size": 5.0,
     "prefactor": 1.0,
     "delta_mid_top": 0.0,
     "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
-    "positions": [np.array([1, 1, 1]), np.array([2, 2, 2])],
+    "positions": [np.array([6, 5, 4]), np.array([3, 2, 1])],
     "pw_error": 1e-8,
 }
 
 
-run_elc(params)
-
-
-params["pw_error"] = 1e-6
 run_elc(params)

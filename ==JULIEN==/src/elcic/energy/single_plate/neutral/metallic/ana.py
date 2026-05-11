@@ -5,6 +5,7 @@ def analytical_single_plate_2d_ewald_elcic_energy(params_dict, alpha=None, max_i
     """
     Computes 2D Ewald energy by extracting necessary parameters from a dictionary.
     """
+    
     # Extracting core params
     positions = np.asarray(params_dict["positions"], dtype=np.float64)
     charges = np.asarray(params_dict["charges"], dtype=np.float64)
@@ -71,11 +72,20 @@ def analytical_single_plate_2d_ewald_elcic_energy(params_dict, alpha=None, max_i
                 dz = pos_b[:, 2][None, :] - pos_a[:, 2][:, None]
                 r = np.sqrt(dx**2 + dy**2 + dz**2)
                 
-                # Mask for self-interaction at n=(0,0)
-                if exclude_self and nx == 0 and ny == 0:
-                    diag_mask = ~np.eye(len(q_a), dtype=bool)
-                    return np.sum((q_a[:, None] * q_b[None, :] * erfc(alpha * r) / r)[diag_mask])
-                return np.sum(q_a[:, None] * q_b[None, :] * erfc(alpha * r) / r)
+                # Create mask: exclude diagonals only if we are in the (0,0,0) image 
+                # AND interacting the same particle set (real-real).
+                mask = r > 1e-12 # More robust than np.eye if particles overlap
+                if not (exclude_self and nx == 0 and ny == 0):
+                    # For mirror charges or distant boxes, we usually don't exclude.
+                    # But if r is still 0 (overlap), we must mask to avoid Inf.
+                    pass 
+
+                # Use errstate to silence the warning for the masked elements
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    inv_r = np.divide(1.0, r, out=np.zeros_like(r), where=mask)
+                    term = q_a[:, None] * q_b[None, :] * erfc(alpha * r) * inv_r
+                
+                return np.sum(term)
 
             E_shell += pair_real(positions, charges, positions, charges, True)
             E_shell += pair_real(positions, charges, pos_mirror, q_mirror, False)
