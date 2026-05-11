@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from elcic.energy.custom_elcic_energy import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
-from elcic.energy.single_plate.neutral.metallic.ana import (
+from elcic.energy.single_plate.neutral.metallic.analytical import (
     analytical_single_plate_2d_ewald_elcic_energy,
 )
 import os
@@ -68,6 +68,7 @@ def run_lerp_plot(system, start_params, end_params, steps=20):
         results["custom"].append(
             get_elcic_energy(system, lerp_params)
         )
+    print(results["analytical"])
 
     # Plotting according to sketch: Error vs t
     plt.figure(figsize=(10, 6))

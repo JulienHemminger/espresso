@@ -33,13 +33,20 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
-run_lerp_plot(system, start_params, end_params, steps=25)
+run_lerp_plot(system, start_params, end_params, steps=5)
 
 """
 
 
 * fix ana
-    * |legacy - ana| should be 1e-8
+    * fill in "hole"
+
+    /home/main/Documents/Career/1_Studium/espresso/==JULIEN==/src/elcic/energy/single_plate/neutral/metallic/analytical.py:54: RuntimeWarning: divide by zero encountered in scalar divide
+    E += q_a[i] * q_b[j] * erfc(alpha * r) / r
+
+    * if possible improve |legacy - ana| to 1e-8 (is 1e-6 right now)
 
 * fix custom
+
+
 """

@@ -7,7 +7,7 @@ from pathlib import Path
 import espressomd
 from elcic.energy.custom_elcic_energy import get_elcic_energy_old
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
-from elcic.energy.single_plate.neutral.metallic.ana import (
+from elcic.energy.single_plate.neutral.metallic.analytical import (
     analytical_single_plate_2d_ewald_elcic_energy,
 )
 pw_error = 1e-8
