@@ -1,14 +1,21 @@
 import numpy as np
 from scipy.special import erfcx, erf, erfc
 
-def analytical_single_plate_2d_ewald_elcic_energy(positions, charges, box_l, prefactor, delta_mid_bot, 
-                                                 accuracy=1e-8, alpha=None, max_iter=50):
+def analytical_single_plate_2d_ewald_elcic_energy(params_dict, alpha=None, max_iter=50):
     """
-    Computes 2D Ewald energy with adaptive convergence for k_max and n_real.
+    Computes 2D Ewald energy by extracting necessary parameters from a dictionary.
     """
-    positions = np.asarray(positions, dtype=np.float64)
-    charges = np.asarray(charges, dtype=np.float64)
-    box_l = np.asarray(box_l, dtype=np.float64)
+    # Extracting core params
+    positions = np.asarray(params_dict["positions"], dtype=np.float64)
+    charges = np.asarray(params_dict["charges"], dtype=np.float64)
+    prefactor = params_dict["prefactor"]
+    delta_mid_bot = params_dict["delta_mid_bot"]
+    accuracy = params_dict["pw_error"]
+    
+    # Constructing box_l from individual axes in the dict
+    box_l = np.array([params_dict["lx"], params_dict["ly"], params_dict["lz"]], dtype=np.float64)
+    
+    # Geometry setup
     Lx, Ly = box_l[0], box_l[1]
     A = Lx * Ly
 

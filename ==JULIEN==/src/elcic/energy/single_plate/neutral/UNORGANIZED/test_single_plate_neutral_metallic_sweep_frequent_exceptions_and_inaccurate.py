@@ -5,9 +5,9 @@ from datetime import datetime
 from pathlib import Path
 
 import espressomd
-from elcic.energy.custom_elcic_energy import get_elcic_energy
+from elcic.energy.custom_elcic_energy import get_elcic_energy_old
 from elc.energy.legacy_elc_energy import get_legacy_elc_energy
-from elcic.energy.single_plate.neutral.UNORGANIZED.analytical_single_plate_elcic_energy import (
+from elcic.energy.single_plate.neutral.metallic.ana import (
     analytical_single_plate_2d_ewald_elcic_energy,
 )
 pw_error = 1e-8
@@ -37,7 +37,7 @@ def param_sweep_accuracy_convergence(
 
             for acc in accuracies:
                 print("Computing custom_energy...")
-                custom_energy = get_elcic_energy(
+                custom_energy = get_elcic_energy_old(
                     system=system,
                     gap_size=params["gap_size"],
                     pw_error=acc,

@@ -1,22 +1,9 @@
-import signal
 import espressomd
 import espressomd.electrostatics
-import time
+import numpy as np
 
-# Define a custom exception for the timeout
-class TimeoutException(Exception):
-    pass
-
-def timeout_handler(signum, frame):
-    raise TimeoutException
-
-def get_legacy_elc_energy(system, params_dict, timeout_duration_sec=30, timeout_return_value=1e3):
+def get_legacy_elc_energy(system, params_dict, fallback_return_value=-999):
     system.electrostatics.clear()
-
-    # Register the signal handler
-    signal.signal(signal.SIGALRM, timeout_handler)
-    # Schedule the alarm
-    signal.alarm(timeout_duration_sec)
 
     try:
         gap_size      = params_dict["gap_size"]
@@ -44,7 +31,6 @@ def get_legacy_elc_energy(system, params_dict, timeout_duration_sec=30, timeout_
         if delta_mid_top == -1 and delta_mid_bot == -1:
             args["const_pot"] = True
 
-        # This is usually where the 'tuning' hang happens
         elc_legacy = espressomd.electrostatics.ELC(**args)
 
         system.electrostatics.solver = elc_legacy
@@ -52,21 +38,43 @@ def get_legacy_elc_energy(system, params_dict, timeout_duration_sec=30, timeout_
         
         energy = system.analysis.energy()["total"]
         system.electrostatics.clear()
-        
-        # Disable the alarm if we finished on time
-        signal.alarm(0)
         return energy
-
-    except TimeoutException:
-        print(f"--- WARNING: ELC timed out after {timeout_duration_sec}s. ---")
-        try:
-            system.electrostatics.clear()
-        except:
-            pass
-        return timeout_return_value
     
     except Exception as e:
-        signal.alarm(0) # Disable alarm on other errors
         print(f"--- ERROR: {e} ---")
         system.electrostatics.clear()
-        return timeout_return_value
+        return fallback_return_value
+
+system = espressomd.System(box_l=[50, 50, 50])
+system.time_step = 0.01
+
+def run_elc(params):
+    system.electrostatics.clear()
+    system.part.clear()
+    system.box_l = [params["lx"], params["ly"], params["lz"]]
+    for i in range(len(params["charges"])):
+        system.part.add(pos=params["positions"][i], q=params["charges"][i])
+
+    energy = get_legacy_elc_energy(system, params, fallback_return_value=-999)
+    print(f"{energy=}")
+
+
+params = {
+    "lx": 50.0,
+    "ly": 50.0,
+    "lz": 40.0,
+    "gap_size": 10.0,
+    "prefactor": 1.0,
+    "delta_mid_top": 0.0,
+    "delta_mid_bot": -1.0,
+    "charges": [+1.0, -1.0],
+    "positions": [np.array([1, 1, 1]), np.array([2, 2, 2])],
+    "pw_error": 1e-8,
+}
+
+
+run_elc(params)
+
+
+params["pw_error"] = 1e-6
+run_elc(params)

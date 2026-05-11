@@ -1,3 +1,7 @@
+TODO
+
+param\_lerp\_plot\_2d: add running multiple lerps and plot them in one plot? do i really need this bulk-feature?
+
 ## aufarbeitung bisher elcic
 
 * [start elcic, planning](https://github.com/JulienHemminger/espresso/commit/18dffc9de140c0b3b18ecdbd176b1962fac22abe)

@@ -26,7 +26,7 @@ def run_lerp_plot(system, start_params, end_params, steps=20):
     results = {"legacy": [], "analytical": [], "custom": []}
 
     for t in t_values:
-        system.electrostatics.clear() # need this when resetting box_l
+        system.electrostatics.clear() # NEED this when resetting box_l
 
         lerp_params = {
             "lx":            lerp(start_params["lx"],            end_params["lx"],            t),
