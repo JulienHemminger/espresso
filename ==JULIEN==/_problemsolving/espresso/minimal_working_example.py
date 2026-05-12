@@ -28,8 +28,7 @@ def get_legacy_elc_energy(system, params_dict, fallback_return_value=-999):
             args["delta_mid_top"] = delta_mid_top
         if delta_mid_bot is not None:
             args["delta_mid_bot"] = delta_mid_bot
-        if delta_mid_top == -1 and delta_mid_bot == -1:
-            args["const_pot"] = True
+        args["const_pot"] = True
 
         elc_legacy = espressomd.electrostatics.ELC(**args)
 
@@ -47,6 +46,8 @@ def get_legacy_elc_energy(system, params_dict, fallback_return_value=-999):
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
+system.cell_system.skin = 0.4 # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
+
 
 def run_elc(params):
     system.electrostatics.clear()
@@ -65,12 +66,32 @@ params = {
     "lz": 10.0,
     "gap_size": 5.0,
     "prefactor": 1.0,
-    "delta_mid_top": 0.0,
-    "delta_mid_bot": -1.0,
-    "charges": [+1.0, -1.0],
-    "positions": [np.array([6, 5, 4]), np.array([3, 2, 1])],
+    "charges": [+1.0, -1.0, -1.0],
+    "positions": [np.array([6, 5, 4]), np.array([3, 2, 1]), np.array([4, 2, 1])],
     "pw_error": 1e-8,
 }
 
+params["delta_mid_bot"] = -1.0
+params["delta_mid_top"] = -1.0
+run_elc(params)
 
+params["delta_mid_bot"] = -1.0
+params["delta_mid_top"] =  0.0
+run_elc(params)
+
+params["delta_mid_bot"] =  0.0
+params["delta_mid_top"] = -1.0
+run_elc(params)
+
+params["delta_mid_bot"] =  1.0
+params["delta_mid_top"] =  0.0
+run_elc(params)
+
+params["delta_mid_bot"] =  0.0
+params["delta_mid_top"] =  1.0
+run_elc(params)
+
+
+params["delta_mid_bot"] =  1.0
+params["delta_mid_top"] =  1.0
 run_elc(params)

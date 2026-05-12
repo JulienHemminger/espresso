@@ -70,29 +70,54 @@ def run_lerp_plot(system, start_params, end_params, steps=20):
         )
     print(results["analytical"])
 
-    # Plotting according to sketch: Error vs t
-    plt.figure(figsize=(10, 6))
+    
+    # --- Label Construction ---
+    label_lines = ["**Parameters**"]
+    
+    for key in start_params.keys():
+        val_start = start_params[key]
+        val_end = end_params[key]
+        
+        # Check if values are identical (handling both scalars and numpy arrays/lists)
+        if np.array_equal(val_start, val_end):
+            label_lines.append(f"{key}: {val_start}")
+        else:
+            # Special formatting for lists/arrays to keep the label clean
+            if isinstance(val_start, (list, np.ndarray)):
+                label_lines.append(f"{key}: [Changed]")
+            else:
+                label_lines.append(f"{key}: {val_start} → {val_end}")
 
-    # Calculating absolute error relative to analytical for the 'Error' plot
+    param_text = "\n".join(label_lines)
+
+    # --- Plotting ---
+    plt.figure(figsize=(12, 7)) # Increased width for the text box
+
     err_legacy = np.abs(np.array(results["legacy"]) - np.array(results["analytical"]))
     err_custom = np.abs(np.array(results["custom"]) - np.array(results["analytical"]))
 
-    plt.plot(t_values, err_legacy, label="Error: ana-legacy", color="red", lw=2)
-    plt.plot(t_values, err_custom, label="Error: ana-custom", color="blue", lw=2)
+    plt.plot(t_values, err_legacy, label="Error: Analytical-Legacy", color="red", lw=2)
+    plt.plot(t_values, err_custom, label="Error: Analytical-Custom", color="blue", lw=2)
 
-    plt.xlabel(r"Interpolation Parameter $t$ (Start $\to$ End)")
+    # Add the text box to the right of the plot
+    plt.text(1.02, 0.5, param_text, transform=plt.gca().transAxes, 
+             verticalalignment='center', fontsize=9,
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+
+    plt.xlabel(r"Interpolation Parameter $t$")
     plt.ylabel("Absolute Energy Error")
-    plt.title("Evaluation of Multiple Lerp Axes")
-    plt.legend()
+    plt.title("Evaluation over Lerp Axis")
+    plt.legend(loc='upper left')
     plt.grid(True, which="both", ls="-", alpha=0.5)
     plt.yscale("log")
     
-    # Generate filename with current date and time
+    # Adjust layout to make room for the label on the right
+    plt.tight_layout(rect=(0, 0, 0.82, 1))
+    
+    # Save logic...
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"lerp2d_{timestamp}.png"
     save_path = os.path.join("/home/main", filename)
-
-    # Save and close to free up memory
     plt.savefig(save_path)
     print(f"Plot saved to: {save_path}")
     plt.show()
