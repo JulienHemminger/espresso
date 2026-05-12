@@ -33,7 +33,7 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
-run_lerp_plot(system, start_params, end_params, steps=5)
+run_lerp_plot(system, start_params, end_params, steps=10)
 
 """
 Analytical Method
@@ -48,10 +48,7 @@ Analytical Method
 
     
 Custom Method
-* improve from err=1e-3
-    * setup contrib structure (what contribs/helper methods do i have)
-
-    * iterate over these contribs until the sum is correct?
+* 
 
 
 
