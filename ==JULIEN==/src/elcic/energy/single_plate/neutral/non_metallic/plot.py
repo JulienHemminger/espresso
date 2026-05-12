@@ -26,7 +26,7 @@ end_params = {
     "gap_size": 10.0,
     "prefactor": 1.0,
     "delta_mid_top": 0.0,
-    "delta_mid_bot": -1.0,
+    "delta_mid_bot": +1.0,
     "charges": [+1.0, -1.0],
     "positions": [np.array([6, 5, 6]), np.array([3, 2, 1])],
     "pw_error": 1e-8,
@@ -34,22 +34,3 @@ end_params = {
 end_params["lz"] = end_params["gap_size"] + 10
 
 run_lerp_plot(system, start_params, end_params, steps=20)
-
-"""
-Analytical Method
-* fill in "hole", SKIP
-    /home/main/Documents/Career/1_Studium/espresso/==JULIEN==/src/elcic/energy/single_plate/neutral/metallic/analytical.py:54: RuntimeWarning: divide by zero encountered in scalar divide
-    E += q_a[i] * q_b[j] * erfc(alpha * r) / r
-
-    * end_prams.pos1.z = 3: pass
-    * end_prams.pos1.z = 4: error, hole
-    * end_prams.pos1.z = 5: pass
-    * end_prams.pos1.z = 6: pass
-
-    
-Custom Method
-* 
-
-
-
-"""
