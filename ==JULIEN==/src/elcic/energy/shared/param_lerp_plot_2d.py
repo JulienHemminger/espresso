@@ -2,11 +2,7 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elcic.energy.single_plate.neutral.metallic.custom import get_elcic_energy
-from elc.energy.legacy_elc_energy import get_legacy_elc_energy
-from elcic.energy.single_plate.neutral.metallic.analytical import (
-    analytical_single_plate_2d_ewald_elcic_energy,
-)
+
 import os
 from datetime import datetime
 
@@ -15,7 +11,7 @@ def lerp(a, b, t):
     return (1 - t) * a + t * b
 
 
-def run_lerp_plot(system, start_params, end_params, steps=20):
+def run_lerp_plot(system, start_params, end_params, get_analytical_energy, get_legacy_energy, get_custom_energy, steps=20):
     assert len(start_params["positions"]) == len(start_params["charges"])
     assert len(end_params["positions"]) == len(end_params["charges"])
     assert len(start_params["charges"]) == len(end_params["charges"]), (
@@ -58,15 +54,15 @@ def run_lerp_plot(system, start_params, end_params, steps=20):
         
         # 1. Legacy ELC (Updated to take current_params dict)
         results["legacy"].append(
-            get_legacy_elc_energy(system, lerp_params)
+            get_legacy_energy(system, lerp_params)
         )
         # 2. Analytical (Takes current_params dict)
         results["analytical"].append(
-            analytical_single_plate_2d_ewald_elcic_energy(lerp_params)
+            get_analytical_energy(lerp_params)
         )
         # 3. Custom ELCIC (Updated to take current_params dict)
         results["custom"].append(
-            get_elcic_energy(system, lerp_params)
+            get_custom_energy(system, lerp_params)
         )
     print(results["analytical"])
 

@@ -1,5 +1,10 @@
 import espressomd
 import numpy as np
+from elcic.energy.single_plate.neutral.metallic.custom import get_elcic_energy
+from elc.energy.legacy_elc_energy import get_legacy_elc_energy
+from elcic.energy.single_plate.neutral.metallic.analytical import (
+    analytical_single_plate_2d_ewald_elcic_energy,
+)
 from elcic.energy.shared.param_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
@@ -33,7 +38,7 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
-run_lerp_plot(system, start_params, end_params, steps=5)
+run_lerp_plot(system, start_params, end_params, analytical_single_plate_2d_ewald_elcic_energy, get_legacy_elc_energy, get_elcic_energy, steps=5)
 
 """
 * ERROR in e_near (not in e_far)
