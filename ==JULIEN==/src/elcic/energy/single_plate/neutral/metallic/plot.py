@@ -33,14 +33,14 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
-run_lerp_plot(system, start_params, end_params, steps=20)
+run_lerp_plot(system, start_params, end_params, steps=5)
 
 """
-* find which params cause err=1-3?
-    * NOT: gap_size
-    * IS: lx(strong), ly(weak), lz(weak)
+* ERROR in e_near (not in e_far)
 
-* can i find any params, where custom_err=1-5?
+    * do num grad?
+
+
 
 Analytical Method
 * fill in "hole", SKIP
