@@ -86,3 +86,6 @@ def test_all():
 
     # huge_box_neutral
     run_basic(system, 200, 200, 10, 1, [+1, -1])
+
+
+test_all()
