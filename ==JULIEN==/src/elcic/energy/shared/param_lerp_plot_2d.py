@@ -64,9 +64,44 @@ def run_lerp_plot(system, start_params, end_params, get_analytical_energy, get_l
         results["custom"].append(
             get_custom_energy(system, lerp_params)
         )
-    print(results["analytical"])
 
-    
+    # --- Console Output Summary ---
+    print("\n" + "="*80)
+    print("LERP EVALUATION SUMMARY")
+    print("="*80)
+
+    for i, t in enumerate(t_values):
+        # Re-calculate the specific lerp_params for this t to print them
+        # (This mirrors the logic in the loop above)
+        current_params = {
+            "lx":            lerp(start_params["lx"],            end_params["lx"],            t),
+            "ly":            lerp(start_params["ly"],            end_params["ly"],            t),
+            "lz":            lerp(start_params["lz"],            end_params["lz"],            t),
+            "gap_size":      lerp(start_params["gap_size"],      end_params["gap_size"],      t),
+            "delta_mid_top": lerp(start_params["delta_mid_top"], end_params["delta_mid_top"], t),
+            "delta_mid_bot": lerp(start_params["delta_mid_bot"], end_params["delta_mid_bot"], t),
+            "pw_error":      lerp(start_params["pw_error"],      end_params["pw_error"],      t),
+            "prefactor":     lerp(start_params["prefactor"],     end_params["prefactor"],     t)
+        }
+
+        e_ana = results["analytical"][i]
+        e_leg = results["legacy"][i]
+        e_cus = results["custom"][i]
+        
+        err_leg = abs(e_leg - e_ana)
+        err_cus = abs(e_cus - e_ana)
+
+        # Print the parameter dictionary for this step
+        param_str = ", ".join([f"{k}: {v}" if isinstance(v, (float, int)) else f"{k}: {v}" 
+                              for k, v in current_params.items()])
+        
+        print(f"Step {i+1}/{steps} (t={t:.3f})")
+        print(f"parameters = {{{param_str}}}")
+        print(f"analytical_energy = {e_ana:.8f}")
+        print(f"legacy_energy     = {e_leg:.8f} (error={err_leg:.2e} compared to analytical)")
+        print(f"custom_energy     = {e_cus:.8f} (error={err_cus:.2e} compared to analytical)")
+        print("-" * 80)
+
     # --- Label Construction ---
     label_lines = ["**Parameters**"]
     
