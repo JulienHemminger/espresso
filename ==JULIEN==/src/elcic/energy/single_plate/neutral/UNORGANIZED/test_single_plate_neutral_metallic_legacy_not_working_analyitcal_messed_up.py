@@ -3,7 +3,7 @@ import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
 from elcic.energy.custom_elcic_energy import get_elcic_energy_old
-from elc.energy.legacy_elc_energy import get_legacy_elc_energy
+from elc.energy.legacy_elc_energy import get_legacy_energy
 
 import numpy as np
 
@@ -151,7 +151,7 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
             system.part.add(pos=pos, q=charges[i])
         
 
-        legacy_energy = get_legacy_elc_energy(system, gap_size, pw_error, prefactor, delta_mid_top, delta_mid_bot, duration_limit_sec=30)
+        legacy_energy = get_legacy_energy(system, gap_size, pw_error, prefactor, delta_mid_top, delta_mid_bot, duration_limit_sec=30)
         analytical_energy = analytical_elcic_energy(system, params)
         custom_energy = get_elcic_energy_old(
             system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top

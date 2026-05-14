@@ -6,7 +6,7 @@ from pathlib import Path
 
 import espressomd
 from elcic.energy.custom_elcic_energy import get_elcic_energy_old
-from elc.energy.legacy_elc_energy import get_legacy_elc_energy
+from elc.energy.legacy_elc_energy import get_legacy_energy
 from elcic.energy.single_plate.neutral.metallic.analytical import (
     analytical_single_plate_2d_ewald_elcic_energy,
 )
@@ -46,7 +46,7 @@ def param_sweep_accuracy_convergence(
                     delta_mid_top=params["delta_mid_top"],
                 )
                 print("Computing legacy_energy...")
-                legacy_energy = get_legacy_elc_energy(
+                legacy_energy = get_legacy_energy(
                     system=system,
                     gap_size=params["gap_size"],
                     pw_error=acc,

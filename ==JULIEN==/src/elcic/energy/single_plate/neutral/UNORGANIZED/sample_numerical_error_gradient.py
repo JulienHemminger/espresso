@@ -6,7 +6,7 @@ import mpld3
 from datetime import datetime
 
 from elcic.energy.custom_elcic_energy import get_elcic_energy_old
-from elc.energy.legacy_elc_energy import get_legacy_elc_energy
+from elc.energy.legacy_elc_energy import get_legacy_energy
 from elcic.energy.single_plate.neutral.metallic.analytical import (
     analytical_single_plate_2d_ewald_elcic_energy,
 )
@@ -26,7 +26,7 @@ def run_single_test(system, params):
         system.part.add(pos=pos, q=q)
 
     # --- Legacy Energy with Error Handling ---
-    legacy_energy = get_legacy_elc_energy(
+    legacy_energy = get_legacy_energy(
             system,
             params
         )
