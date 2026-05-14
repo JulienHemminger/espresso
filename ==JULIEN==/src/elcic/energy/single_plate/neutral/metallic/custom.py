@@ -96,7 +96,7 @@ def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
     return e_far
 
 def _get_config_energy(system, p_set, q_set, prefactor, accuracy):
-    """Helper to swap system particles and compute P3M energy without correction."""
+    """Helper to swap system particles and compute P3M + Correction."""
     system.part.clear()
     system.part.add(pos=p_set, q=q_set)
     
@@ -108,19 +108,12 @@ def _get_config_energy(system, p_set, q_set, prefactor, accuracy):
     
     e_3d = system.analysis.energy()["total"]
     system.electrostatics.clear()
-    
-    return e_3d
+    e_corr = prefactor * _get_non_neutral_correction(system.box_l, p_set[:, 2], q_set)
+    return e_3d + e_corr
 
 def get_elcic_energy(system, params: dict):
     """
     Main ELCIC energy calculation.
-    
-    BUG FIXES:
-    1. Corrected near-field linear combination to match C++ implementation
-    2. Fixed image charge treatment for dielectric contrast
-    3. Added proper self-energy correction for dielectric layers
-    4. Fixed non-neutrality correction application
-    5. Corrected image position calculations
     """
     box = system.box_l
     lz = box[2]
@@ -132,128 +125,37 @@ def get_elcic_energy(system, params: dict):
     parts = system.part.all()
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
 
-    # Calculate box_h (height of simulation region)
-    box_h = lz - gap
-    
-    # Space layer calculation (1/3 of gap, but check constraints)
-    space_layer = gap / 3.0
-    
-    # Check if dielectric contrast is on
-    dielectric_contrast_on = (db != 0.0 or dt != 0.0)
-    
     # 1. Generate Near-Image Coordinates
-    m_bot = ps_orig[:, 2] < space_layer
-    m_top = ps_orig[:, 2] > (box_h - space_layer)
+    m_bot = ps_orig[:, 2] <= gap
+    m_top = ps_orig[:, 2] > (lz - gap)
     
     ps_m1 = ps_orig[m_bot].copy()
-    ps_m1[:, 2] *= -1  # Mirror at z=0
+    ps_m1[:, 2] *= -1
     
     ps_p1 = ps_orig[m_top].copy()
-    ps_p1[:, 2] = 2 * box_h - ps_p1[:, 2]  # Mirror at z=2*box_h
+    ps_p1[:, 2] = 2 * lz - ps_p1[:, 2]
 
     qs_m1 = qs_orig[m_bot] * db
     qs_p1 = qs_orig[m_top] * dt
 
-    # 2. Compute energy components following C++ logic
-    # E_original: energy with original charges only
-    e_original = _get_config_energy(system, ps_orig, qs_orig, pref, eps)
+    # 2. Linear Combination for Near-Field (Eq. 4.14)
+    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps)
     
-    # Apply non-neutrality correction to original configuration
-    e_corr_original = pref * _get_non_neutral_correction(box, ps_orig[:, 2], qs_orig)
-    e_original += e_corr_original
-    
-    if not dielectric_contrast_on:
-        # No dielectric contrast: just use original energy
-        e_near = e_original
+    if len(qs_m1) > 0 or len(qs_p1) > 0:
+        e_pm1 = _get_config_energy(system, 
+                                   np.vstack([ps_m1, ps_p1]) if len(ps_m1) > 0 and len(ps_p1) > 0 
+                                   else (ps_m1 if len(ps_m1) > 0 else ps_p1),
+                                   np.concatenate([qs_m1, qs_p1]), pref, eps)
+        e_lt = _get_config_energy(system, 
+                                  np.vstack([ps_orig, ps_m1, ps_p1]) if len(ps_m1) > 0 and len(ps_p1) > 0
+                                  else (np.vstack([ps_orig, ps_m1]) if len(ps_m1) > 0 else np.vstack([ps_orig, ps_p1])),
+                                  np.concatenate([qs_orig, qs_m1, qs_p1]), pref, eps)
+        e_near = 0.5 * (e_lt - e_pm1 + e_l0)
     else:
-        # E_both: energy with original + image charges
-        if len(qs_m1) > 0 and len(qs_p1) > 0:
-            ps_both = np.vstack([ps_orig, ps_m1, ps_p1])
-            qs_both = np.concatenate([qs_orig, qs_m1, qs_p1])
-        elif len(qs_m1) > 0:
-            ps_both = np.vstack([ps_orig, ps_m1])
-            qs_both = np.concatenate([qs_orig, qs_m1])
-        elif len(qs_p1) > 0:
-            ps_both = np.vstack([ps_orig, ps_p1])
-            qs_both = np.concatenate([qs_orig, qs_p1])
-        else:
-            ps_both = ps_orig
-            qs_both = qs_orig
-        
-        e_both = _get_config_energy(system, ps_both, qs_both, pref, eps)
-        e_corr_both = pref * _get_non_neutral_correction(box, ps_both[:, 2], qs_both)
-        e_both += e_corr_both
-        
-        # E_image: energy with image charges only
-        if len(qs_m1) > 0 and len(qs_p1) > 0:
-            ps_image = np.vstack([ps_m1, ps_p1])
-            qs_image = np.concatenate([qs_m1, qs_p1])
-        elif len(qs_m1) > 0:
-            ps_image = ps_m1
-            qs_image = qs_m1
-        elif len(qs_p1) > 0:
-            ps_image = ps_p1
-            qs_image = qs_p1
-        else:
-            ps_image = np.zeros((0, 3))
-            qs_image = np.zeros(0)
-        
-        if len(qs_image) > 0:
-            e_image = _get_config_energy(system, ps_image, qs_image, pref, eps)
-            e_corr_image = pref * _get_non_neutral_correction(box, ps_image[:, 2], qs_image)
-            e_image += e_corr_image
-        else:
-            e_image = 0.0
-        
-        # Dielectric self-energy correction
-        # This accounts for the interaction of images with the dielectric boundaries
-        xy_area_inv = 1.0 / (box[0] * box[1])
-        pref_di = pref * 2.0 * np.pi * xy_area_inv
-        
-        delta = db * dt
-        shift = lz / 2.0
-        
-        # Collect moments for self-energy
-        sum_q = np.sum(qs_orig)
-        sum_qz = np.sum(qs_orig * (ps_orig[:, 2] - shift))
-        sum_q_image = 0.0
-        sum_qz_image = 0.0
-        
-        if delta != 0.0:
-            fac_delta_mid_bot = db / (1.0 - delta)
-            fac_delta_mid_top = dt / (1.0 - delta)
-            fac_delta = delta / (1.0 - delta)
-            
-            for i, (q, z) in enumerate(zip(qs_orig, ps_orig[:, 2])):
-                if z < space_layer:
-                    sum_q_image += fac_delta * (db + 1.0) * q
-                    # Image sum contribution for bottom
-                    sum_qz_image += q * (fac_delta_mid_bot * db * delta * (-2.0 * box_h - z - shift) / (1.0 - delta) +
-                                        fac_delta_mid_bot * delta * (-2.0 * box_h + z - shift) / (1.0 - delta))
-                else:
-                    sum_q_image += fac_delta_mid_bot * (1.0 + dt) * q
-                    sum_qz_image += q * (fac_delta_mid_bot * (-z - shift) / (1.0 - delta) +
-                                        fac_delta_mid_bot * delta * (-2.0 * box_h + z - shift) / (1.0 - delta))
-                
-                if z > (box_h - space_layer):
-                    sum_q_image -= fac_delta * (dt + 1.0) * q
-                    sum_qz_image -= q * (fac_delta_mid_top * dt * delta * (4.0 * box_h - z - shift) / (1.0 - delta) +
-                                        fac_delta_mid_top * delta * (2.0 * box_h + z - shift) / (1.0 - delta))
-                else:
-                    sum_q_image -= fac_delta_mid_top * (1.0 + db) * q
-                    sum_qz_image -= q * (fac_delta_mid_top * (2.0 * box_h - z - shift) / (1.0 - delta) +
-                                        fac_delta_mid_top * delta * (2.0 * box_h + z - shift) / (1.0 - delta))
-        
-        e_self = -pref_di * (sum_qz * sum_q_image - sum_q * sum_qz_image)
-        
-        # Following C++ formula: 0.5 * (E_original + E_self + E_both - E_image)
-        e_near = 0.5 * (e_original + e_self + e_both - e_image)
+        e_near = e_l0
 
     # 3. Far-Field Correction
-    if dielectric_contrast_on:
-        e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
-    else:
-        e_far = 0.0
+    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
 
     # Restore original state
     system.part.clear()

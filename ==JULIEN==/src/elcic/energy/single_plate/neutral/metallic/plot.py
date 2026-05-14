@@ -41,13 +41,6 @@ end_params["lz"] = end_params["gap_size"] + 10
 run_lerp_plot(system, start_params, end_params, analytical_single_plate_2d_ewald_elcic_energy, get_legacy_energy, get_elcic_energy, steps=5)
 
 """
-* find error in elcic
-    * create minimal working example
-
-
-* ERROR in e_near (not in e_far)
-
-    * do num grad?
 
 
 

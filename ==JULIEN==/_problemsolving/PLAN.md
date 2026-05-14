@@ -1,12 +1,4 @@
-
-
 ## ask gemini which E-contribs "activate" for what systems. can i find a system where custom\_elcic needs fewer contribs?
-
-
-
-* claudes
-
-
 
 # Make Progess
 
