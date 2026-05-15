@@ -2,13 +2,6 @@ import espressomd
 import espressomd.electrostatics
 import numpy as np
 
-def _get_non_neutral_correction(box, zs, qs):
-    """Equation 3.10 & 3.11: Dipole and non-neutrality energy correction."""
-    lx, ly, lz = box
-    xi0, xi1, xi2 = np.sum(qs), np.sum(qs * zs), np.sum(qs * zs**2)
-    fac = 2.0 * np.pi / (lx * ly * lz)
-    return fac * (xi1**2 - xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
-
 def _get_chi_components(fx, fy, f, pos, qs, sign=1):
     """Equation 3.3: Product decomposition for the ELC reciprocal sum."""
     arg_x, arg_y, arg_z = 2.0 * np.pi * fx, 2.0 * np.pi * fy, 2.0 * np.pi * f
@@ -94,21 +87,47 @@ def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
         e_far += pref * np.sum((1.0 / f) * np.real(np.conj(chi_p) * chi_m))
     
     return e_far
+def _get_non_neutral_correction(box, zs, qs, physical_lz):
+    """Equation 3.10 & 3.11: Dipole and non-neutrality energy correction."""
+    lx, ly, Lz = box  # Lz is the EXTENDED box height (lz + gap)
+    xi0, xi1, xi2 = np.sum(qs), np.sum(qs * zs), np.sum(qs * zs**2)
+    
+    # Equation 3.10/3.11 use the volume of the extended 3D cell
+    fac = 2.0 * np.pi / (lx * ly * Lz) 
+    
+    # The dipole correction specifically uses the extended box length Lz
+    return fac * (xi1**2 - xi0 * xi2 - (Lz**2 / 12.0) * xi0**2)
 
-def _get_config_energy(system, p_set, q_set, prefactor, accuracy):
+def _get_config_energy(system, p_set, q_set, prefactor, accuracy, gap_size):
     """Helper to swap system particles and compute P3M + Correction."""
+    physical_box = system.box_l.copy()
+    extended_lz = physical_box[2] + gap_size
+    
+    # Step 1: Clear and Resize to the artificial extended box (Section IV.B)
     system.part.clear()
+    system.box_l = [physical_box[0], physical_box[1], extended_lz]
+    
+    # Step 2: Add particles
     system.part.add(pos=p_set, q=q_set)
     
+    # Step 3: P3M Calculation
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor, accuracy=accuracy, check_neutrality=False, verbose=False
     )
     system.electrostatics.solver = p3m
     system.integrator.run(0)
-    
     e_3d = system.analysis.energy()["total"]
+    
+    # Step 4: Apply correction using the extended height
     system.electrostatics.clear()
-    e_corr = prefactor * _get_non_neutral_correction(system.box_l, p_set[:, 2], q_set)
+    e_corr = prefactor * _get_non_neutral_correction(
+        system.box_l, p_set[:, 2], q_set, physical_box[2]
+    )
+    
+    # Step 5: Restore physical box size (particles must be cleared first)
+    system.part.clear()
+    system.box_l = physical_box
+    
     return e_3d + e_corr
 
 def get_elcic_energy(system, params: dict):
@@ -139,17 +158,17 @@ def get_elcic_energy(system, params: dict):
     qs_p1 = qs_orig[m_top] * dt
 
     # 2. Linear Combination for Near-Field (Eq. 4.14)
-    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps)
+    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, gap)
     
     if len(qs_m1) > 0 or len(qs_p1) > 0:
         e_pm1 = _get_config_energy(system, 
                                    np.vstack([ps_m1, ps_p1]) if len(ps_m1) > 0 and len(ps_p1) > 0 
                                    else (ps_m1 if len(ps_m1) > 0 else ps_p1),
-                                   np.concatenate([qs_m1, qs_p1]), pref, eps)
+                                   np.concatenate([qs_m1, qs_p1]), pref, eps, gap)
         e_lt = _get_config_energy(system, 
                                   np.vstack([ps_orig, ps_m1, ps_p1]) if len(ps_m1) > 0 and len(ps_p1) > 0
                                   else (np.vstack([ps_orig, ps_m1]) if len(ps_m1) > 0 else np.vstack([ps_orig, ps_p1])),
-                                  np.concatenate([qs_orig, qs_m1, qs_p1]), pref, eps)
+                                  np.concatenate([qs_orig, qs_m1, qs_p1]), pref, eps, gap)
         e_near = 0.5 * (e_lt - e_pm1 + e_l0)
     else:
         e_near = e_l0
