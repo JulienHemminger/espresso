@@ -1,5 +1,12 @@
+import copy
+
 import espressomd
 import numpy as np
+from elcic.energy.single_plate.neutral.metallic.custom import get_elcic_energy
+from elc.energy.legacy_elc_energy import get_legacy_energy
+from elcic.energy.single_plate.neutral.metallic.analytical import (
+    analytical_single_plate_2d_ewald_elcic_energy,
+)
 from elcic.energy.shared.param_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
@@ -20,6 +27,11 @@ start_params = {
 }
 start_params["lz"] = start_params["gap_size"] + 40
 
+
+#end_params = copy.deepcopy(start_params)
+#end_params["ly"] = 10
+
+
 end_params = {
     "lx": 10.0,
     "ly": 10.0,
@@ -33,4 +45,5 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
-run_lerp_plot(system, start_params, end_params, steps=20)
+
+run_lerp_plot(system, start_params, end_params, analytical_single_plate_2d_ewald_elcic_energy, get_legacy_energy, get_elcic_energy, steps=10)
