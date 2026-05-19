@@ -1,6 +1,4 @@
-## ask gemini which E-contribs "activate" for what systems. can i find a system where custom\_elcic needs fewer contribs?
-
-# Make Progess
+Make Progess
 
 * TESTS are there so i can test/debug/anaylize individual contribs/components
 *
@@ -19,19 +17,5 @@
 ##
 
 #
-
-#### File structure (creating new tests and dependencies instead of modifying old ones)
-
-elcic/single\_plate/neutral/metallic/
-
-* analytical\_energy.py
-* custom\_energy.py
-* (legacy\_energy is shared)
-
-elcic/single\_plate/neutral/non-metallic/
-
-elcic/single\_plate/non-neutral/metallic/
-
-elcic/single\_plate/non-neutral/non-metallic/       &#x20;
 
 #####
