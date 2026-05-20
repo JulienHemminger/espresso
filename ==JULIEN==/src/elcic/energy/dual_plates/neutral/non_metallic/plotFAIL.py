@@ -4,14 +4,14 @@ import espressomd
 import numpy as np
 from elcic.energy.single_plate.neutral.metallic.custom import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_energy
-from elcic.energy.dual_plates.neutral.non_metallic.analytical import (
-    get_2d_ewald_energy,
-)
+
 from elcic.energy.shared.param_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
-system.cell_system.skin = 0.4 # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
+system.cell_system.skin = (
+    0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
+)
 
 
 start_params = {
@@ -32,9 +32,15 @@ end_params = copy.deepcopy(start_params)
 end_params["delta_mid_bot"] = -1.0
 
 
-
-
-run_lerp_plot(system, start_params, end_params, get_2d_ewald_energy, get_legacy_energy, get_elcic_energy, steps=10)
+run_lerp_plot(
+    system=system,
+    start_params=start_params,
+    end_params=end_params,
+    get_custom_energy=get_elcic_energy,
+    get_analytical_energy=None,
+    get_legacy_energy=get_legacy_energy,
+    steps=10,
+)
 
 """
 focus on legacy error

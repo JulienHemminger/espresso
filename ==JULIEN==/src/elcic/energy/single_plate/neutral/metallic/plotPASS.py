@@ -11,7 +11,9 @@ from elcic.energy.shared.param_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
-system.cell_system.skin = 0.4 # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
+system.cell_system.skin = (
+    0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
+)
 
 
 start_params = {
@@ -28,8 +30,8 @@ start_params = {
 start_params["lz"] = start_params["gap_size"] + 40
 
 
-#end_params = copy.deepcopy(start_params)
-#end_params["ly"] = 10
+# end_params = copy.deepcopy(start_params)
+# end_params["ly"] = 10
 
 
 end_params = {
@@ -45,8 +47,16 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
+run_lerp_plot(
+    system=system,
+    start_params=start_params,
+    end_params=end_params,
+    get_custom_energy=get_elcic_energy,
+    get_analytical_energy=analytical_single_plate_2d_ewald_elcic_energy,
+    get_legacy_energy=get_legacy_energy,
+    steps=10,
+)
 
-run_lerp_plot(system, start_params, end_params, analytical_single_plate_2d_ewald_elcic_energy, get_legacy_energy, get_elcic_energy, steps=10)
 
 """
 
