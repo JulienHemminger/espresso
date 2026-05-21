@@ -2,7 +2,7 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.dual_plates.neutral.non_metallic.custom import get_elcic_energy
+from elcic.energy.single_plate.neutral.non_metallic.top_plane.custom import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_energy
 
 from elcic.energy.dual_plates.neutral.non_metallic.param_lerp_plot_2d import run_lerp_plot
@@ -22,7 +22,7 @@ start_params = {
     "gap_size": 20.0,
     "prefactor": 1.0,
     "delta_mid_top": -1.0,
-    "delta_mid_bot": -1.0,
+    "delta_mid_bot": 0.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
     "positions": [np.array([6, 5, z_eps]), np.array([3, 2, z_eps])],
@@ -45,34 +45,32 @@ run_lerp_plot(
     steps=5,
 )
 
-
 """
-Error gets larger the closer part.z to top plate
-
-
-Goal:
-* symmatrical energy
-* custom - legacy < 1e-6
-
-
 Action Tree
-* direct implementation
-    * LLM with tyagi: NO (15 tries)
-    * LLM with elc.cpp: NO (2 tries)
+* LLM with Tyagi + no_plates_template.py: NO, 2 tries
+
+* LLM with Tyagi + single_bottom_plate_template.py
+
+* LLM, swap single_bottom_plate_template.py
 
 
+This method can compute the total electrostatic energy for a 2d+h slab system with a single bottom dielectric interface.
 
-HANDLE OTHER SYSTEM (non neutral, etc) FIRST
+Modify this method and "swap things around" so it accurately computes the electrostatic energy of a 2d+h system with a single TOP dielectric plane. (delta_mid_bot=0, delta_mid_top=1)
 
-FIND OTHER PARAMS
-* delta_mid_top=0,  delta_mid_bot=any in -1 to +1: single bottom plate works, is well tested
-
-* delta_mid_top=0.1,  delta_mid_bot=0.1: TODO weak dielectric contrast case, rapid convergence, 
-
-
-* delta_mid_top=1,  delta_mid_bot=0: test single top plate
-* delta_mid_top=0.1,  delta_mid_bot=0.1: 
-* delta_mid_top=1,  delta_mid_bot=1: adds the divergent infinite sum
-
-
+Example parameters are:
+z_eps = 0.1
+lz = 20
+start_params = {
+    "lx": 50.0,
+    "ly": 50.0,
+    "gap_size": 20.0,
+    "prefactor": 1.0,
+    "delta_mid_top": -1.0,
+    "delta_mid_bot": 0.0,
+    "charges": [+1.0, -1.0],
+    "pw_error": 1e-8,
+    "positions": [np.array([6, 5, z_eps]), np.array([3, 2, z_eps])],
+}
+start_params["lz"] = start_params["gap_size"] + lz
 """
