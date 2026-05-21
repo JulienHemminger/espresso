@@ -29,10 +29,6 @@ start_params = {
 start_params["lz"] = start_params["gap_size"] + 40
 
 
-#end_params = copy.deepcopy(start_params)
-#end_params["ly"] = 10
-
-
 end_params = {
     "lx": 10.0,
     "ly": 10.0,
@@ -55,3 +51,10 @@ run_lerp_plot(
     get_legacy_energy=get_legacy_energy,
     steps=10,
 )
+
+
+"""
+fix ana sol
+
+fix custom (focus on custom-legacy)
+"""

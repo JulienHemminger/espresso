@@ -28,8 +28,8 @@ start_params = {
 start_params["lz"] = start_params["gap_size"] + 40
 
 
-#end_params = copy.deepcopy(start_params)
-#end_params["ly"] = 10
+end_params = copy.deepcopy(start_params)
+end_params["delta_mid_bot"] = +1
 
 
 end_params = {

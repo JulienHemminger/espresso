@@ -57,9 +57,37 @@ run_lerp_plot(
     steps=10,
 )
 
+RUN_TEST = None
+f"""
+No plates, regular ELC: delta_mid_bot=0, delta_mid_top=0
+    * neutral
+        * {RUN_TEST}
+    * non-neutral
+        * {RUN_TEST}
 
-"""
+Single bottom plate: delta_mid_top=0
+* neutral: sum(charges) = 0
+    * metallic: delta_mid_top=-1
+        * {RUN_TEST}
+    * non-metallic: delta_mid_top=-1 to +1
+        * {RUN_TEST}
+* non-neutral: sum(charges) != 0
+    * metallic: delta_mid_top=-1
+        * {RUN_TEST}
+    * non-metallic: delta_mid_top=-1 to +1
+        * {RUN_TEST}
 
+Dual plates: delta_mid_top!=0
+* neutral: sum(charges) = 0
+    * metallic: delta_mid_bot=-1, delta_mid_top=-1
+        * {RUN_TEST}
+    * non-metallic: delta_mid_bot=-1 to +1 and delta_mid_top=-1 to +1
+        * {RUN_TEST}
+* non-neutral: sum(charges) != 0
+    * metallic: delta_mid_bot=-1, delta_mid_top=-1
+        * {RUN_TEST}
+    * non-metallic: delta_mid_bot=-1 to +1 and delta_mid_top=-1 to +1
+        * {RUN_TEST}
 
 
 Analytical Method
