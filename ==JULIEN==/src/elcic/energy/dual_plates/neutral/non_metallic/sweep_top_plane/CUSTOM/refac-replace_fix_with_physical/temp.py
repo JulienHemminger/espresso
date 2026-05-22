@@ -85,79 +85,75 @@ def _get_config_energy(system, p_set, q_set, prefactor, accuracy, gap_size, lz):
     system.electrostatics.clear()
     return e_3d + e_corr
 
-
 def get_elcic_energy(system, params: dict):
     """
-    Computes electrostatic energy for 2D+h system with TOP dielectric interface.
+    Computes electrostatic energy for 2D+h system with dielectric interfaces.
     """
     box = np.array(system.box_l)
     lz_full = box[2]
     gap, eps = params["gap_size"], params["pw_error"]
     pref = params.get("prefactor", 1.0)
     db, dt = params["delta_mid_bot"], params["delta_mid_top"]
-    lz = lz_full-gap
-    
+
     parts = system.part.all()
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
 
-    lambda_threshold = gap
- 
-    # Ensure lambda_threshold is a reasonable value, not the entire gap
-    # Typically lambda is a small distance parameter for the interface
-    lambda_threshold = params.get("lambda", 2.0) 
-
-    # 1. Bottom interface: 0 <= z < lambda
-    mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_threshold)
+    # Divide particles into three groups based on z-position
+    # λ (lambda) is the threshold distance from interfaces
+    lambda_threshold = gap  # or use a separate parameter if needed
     
-    # 2. Top interface: (lz - lambda) < z <= lz
-    mask_top = (ps_orig[:, 2] > (lz - lambda_threshold)) & (ps_orig[:, 2] <= lz)
-    
-    # 3. Middle region: lambda <= z <= (lz - lambda)
-    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
- 
+    mask_top = ps_orig[:, 2] > (lz_full - lambda_threshold)  # L0,+1
+    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz_full - lambda_threshold))  # L0,0
+    mask_bot = ps_orig[:, 2] < lambda_threshold  # L0,-1
 
-
-    # 1. Near-Images for Top Interface
-    ps_p1 = ps_orig[mask_top | mask_mid]
-    ps_p1[:, 2] = 2 * (lz_full - gap) - ps_p1[:, 2]
-    qs_p1 = qs_orig[mask_top | mask_mid]  * dt
-
-    # 2. Near-Images for Bottom Interface
-    ps_m1 = ps_orig[mask_bot | mask_mid]
-    ps_m1[:, 2] = 2 * gap - ps_m1[:, 2]
-    qs_m1 = qs_orig[mask_bot | mask_mid]  * db
-
-
-    # 3. Base energy (original configuration)
+    # 1. Base energy (original configuration)
     e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, gap, lz_full)
+
     e_near_top = 0.0
     e_near_bot = 0.0
 
-
-    # ---- TOP contribution ----
+    # ---- TOP contribution (only for particles in L0,+1 and L0,0) ----
     if np.any(mask_top | mask_mid):
+        ps_top_source = ps_orig[mask_top | mask_mid]
+        qs_top_source = qs_orig[mask_top | mask_mid]
+        
+        # Create top interface images
+        ps_p1 = ps_top_source.copy()
+        ps_p1[:, 2] = 2 * (lz_full - gap) - ps_p1[:, 2]
+        qs_p1 = qs_top_source * dt
+
+        # Combined system
         ps_total_top = np.vstack([ps_orig, ps_p1])
         qs_total_top = np.concatenate([qs_orig, qs_p1])
 
         e_pm1_top = _get_config_energy(system, ps_p1, qs_p1, pref, eps, gap, lz_full)
         e_lt_top = _get_config_energy(system, ps_total_top, qs_total_top, pref, eps, gap, lz_full)
 
-        e_near_top = 0.5 * (e_lt_top - e_pm1_top + e_l0)
+        e_near_top = 0.5 * (e_lt_top - e_pm1_top - e_l0)
 
-    # ---- BOTTOM contribution ----
+    # ---- BOTTOM contribution (only for particles in L0,-1 and L0,0) ----
     if np.any(mask_bot | mask_mid):
+        ps_bot_source = ps_orig[mask_bot | mask_mid]
+        qs_bot_source = qs_orig[mask_bot | mask_mid]
+        
+        # Create bottom interface images
+        ps_m1 = ps_bot_source.copy()
+        ps_m1[:, 2] = 2 * gap - ps_m1[:, 2]
+        qs_m1 = qs_bot_source * db
+
+        # Combined system
         ps_total_bot = np.vstack([ps_orig, ps_m1])
         qs_total_bot = np.concatenate([qs_orig, qs_m1])
 
         e_pm1_bot = _get_config_energy(system, ps_m1, qs_m1, pref, eps, gap, lz_full)
         e_lt_bot = _get_config_energy(system, ps_total_bot, qs_total_bot, pref, eps, gap, lz_full)
 
-        e_near_bot = 0.5 * (e_lt_bot - e_pm1_bot + e_l0)
-    
+        e_near_bot = 0.5 * (e_lt_bot - e_pm1_bot - e_l0)
+
     # Total near-field contribution
     e_near = e_near_top + e_near_bot
 
-    # 3. Far-Field Energy (Top specific)
+    # 3. Far-Field Energy
     e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
 
     return e_near + e_far

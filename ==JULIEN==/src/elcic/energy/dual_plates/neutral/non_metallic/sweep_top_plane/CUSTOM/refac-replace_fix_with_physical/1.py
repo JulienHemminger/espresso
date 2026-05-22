@@ -95,27 +95,14 @@ def get_elcic_energy(system, params: dict):
     gap, eps = params["gap_size"], params["pw_error"]
     pref = params.get("prefactor", 1.0)
     db, dt = params["delta_mid_bot"], params["delta_mid_top"]
-    lz = lz_full-gap
     
     parts = system.part.all()
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
 
     lambda_threshold = gap
- 
-    # Ensure lambda_threshold is a reasonable value, not the entire gap
-    # Typically lambda is a small distance parameter for the interface
-    lambda_threshold = params.get("lambda", 2.0) 
-
-    # 1. Bottom interface: 0 <= z < lambda
-    mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_threshold)
-    
-    # 2. Top interface: (lz - lambda) < z <= lz
-    mask_top = (ps_orig[:, 2] > (lz - lambda_threshold)) & (ps_orig[:, 2] <= lz)
-    
-    # 3. Middle region: lambda <= z <= (lz - lambda)
-    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
- 
-
+    mask_top = ps_orig[:, 2] > (lz_full - lambda_threshold)  # L0,+1
+    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz_full - lambda_threshold))  # L0,0
+    mask_bot = ps_orig[:, 2] < lambda_threshold  # L0,-1
 
     # 1. Near-Images for Top Interface
     ps_p1 = ps_orig[mask_top | mask_mid]
@@ -153,7 +140,16 @@ def get_elcic_energy(system, params: dict):
         e_lt_bot = _get_config_energy(system, ps_total_bot, qs_total_bot, pref, eps, gap, lz_full)
 
         e_near_bot = 0.5 * (e_lt_bot - e_pm1_bot + e_l0)
-    
+    """
+    # ============ HACK FIX ===============
+    part0_z = ps_orig[0, 2]
+    part0_is_in_bottom_half = part0_z <= (lz_full-gap) / 2
+    if part0_is_in_bottom_half:
+        e_near_top = 0
+    else:
+        e_near_bot = 0
+    # ============ HACK FIX ===============
+    """
     # Total near-field contribution
     e_near = e_near_top + e_near_bot
 

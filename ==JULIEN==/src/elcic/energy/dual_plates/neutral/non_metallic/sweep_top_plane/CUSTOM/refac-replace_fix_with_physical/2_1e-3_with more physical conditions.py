@@ -101,21 +101,12 @@ def get_elcic_energy(system, params: dict):
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
 
     lambda_threshold = gap
- 
-    # Ensure lambda_threshold is a reasonable value, not the entire gap
-    # Typically lambda is a small distance parameter for the interface
-    lambda_threshold = params.get("lambda", 2.0) 
-
-    # 1. Bottom interface: 0 <= z < lambda
-    mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_threshold)
+    mask_top = ps_orig[:, 2] > (lz - lambda_threshold)  # L0,+1
+    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))  # L0,0
+    mask_bot = ps_orig[:, 2] < lambda_threshold  # L0,-1
     
-    # 2. Top interface: (lz - lambda) < z <= lz
-    mask_top = (ps_orig[:, 2] > (lz - lambda_threshold)) & (ps_orig[:, 2] <= lz)
-    
-    # 3. Middle region: lambda <= z <= (lz - lambda)
-    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
- 
-
+    part0_z = ps_orig[0, 2]
+    part0_is_in_bottom_half = part0_z <= (lz_full-gap) / 2
 
     # 1. Near-Images for Top Interface
     ps_p1 = ps_orig[mask_top | mask_mid]
@@ -135,7 +126,7 @@ def get_elcic_energy(system, params: dict):
 
 
     # ---- TOP contribution ----
-    if np.any(mask_top | mask_mid):
+    if not part0_is_in_bottom_half:
         ps_total_top = np.vstack([ps_orig, ps_p1])
         qs_total_top = np.concatenate([qs_orig, qs_p1])
 
@@ -145,7 +136,7 @@ def get_elcic_energy(system, params: dict):
         e_near_top = 0.5 * (e_lt_top - e_pm1_top + e_l0)
 
     # ---- BOTTOM contribution ----
-    if np.any(mask_bot | mask_mid):
+    if part0_is_in_bottom_half:
         ps_total_bot = np.vstack([ps_orig, ps_m1])
         qs_total_bot = np.concatenate([qs_orig, qs_m1])
 

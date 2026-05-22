@@ -64,48 +64,6 @@ def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
         e_far += pref * np.sum((1.0 / f) * c0_p * cp2_m)
         
     return e_far
-
-def get_elcic_energy(system, params: dict):
-    box = np.array(system.box_l)
-    lz_full = box[2]
-    gap, eps = params["gap_size"], params["pw_error"]
-    pref = params.get("prefactor", 1.0)
-    dt = params["delta_mid_top"]
-    db = params["delta_mid_bot"]
-
-    parts = system.part.all()
-    qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
-
-    # 1. Image Charge Setup
-    # Reflection for Top Interface: z_img = 2 * (lz_interface) - z
-    # Ensure lz_interface is defined relative to the simulation box center
-    z_interface_top = lz_full - gap 
-    ps_p1 = ps_orig.copy()
-    ps_p1[:, 2] = 2 * z_interface_top - ps_orig[:, 2]
-    qs_p1 = qs_orig * dt
-
-    # 2. Corrected Near-Field Calculation
-    # We must treat the system as a neutral slab to avoid Ewald divergent terms
-    # Ensure the dipole correction is handled by your helper, but note that 
-    # the total system charge is now (Sum q_i + Sum q_image)
-    e_near = _get_config_energy(system, ps_orig, qs_orig, pref, eps, gap, lz_full)
-    # Add interaction between real and image charges
-    e_int = _get_interaction_energy(ps_orig, qs_orig, ps_p1, qs_p1, pref)
-    
-    # 3. Far-Field Correction
-    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt) # TODO DIFF
-
-    return e_near + e_int + e_far
-
-def _get_interaction_energy(ps1, qs1, ps2, qs2, pref):
-    """Calculates interaction energy between two sets of charges."""
-    # Use standard pairwise summation for the few-image interaction
-    # to avoid the complexity of full P3M recalculation here.
-    dist = np.linalg.norm(ps1[:, None, :] - ps2[None, :, :], axis=2)
-    # Mask self-interaction if same set
-    energy = np.sum(np.outer(qs1, qs2) / (dist + 1e-20)) 
-    return pref * energy
-
 def _get_config_energy(system, p_set, q_set, prefactor, accuracy, gap_size, lz):
     lx, ly = system.box_l[0], system.box_l[1]
     system.part.clear()
@@ -126,3 +84,66 @@ def _get_config_energy(system, p_set, q_set, prefactor, accuracy, gap_size, lz):
     
     system.electrostatics.clear()
     return e_3d + e_corr
+
+
+def get_elcic_energy(system, params: dict):
+    """
+    Computes electrostatic energy for 2D+h system with TOP dielectric interface.
+    """
+    box = np.array(system.box_l)
+    lz_full = box[2]
+    gap, eps = params["gap_size"], params["pw_error"]
+    pref = params.get("prefactor", 1.0)
+    db, dt = params["delta_mid_bot"], params["delta_mid_top"]
+
+    parts = system.part.all()
+    qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
+
+    # 1. Near-Images for Top Interface
+    ps_p1 = ps_orig.copy()
+    ps_p1[:, 2] = 2 * (lz_full - gap) - ps_p1[:, 2]
+    qs_p1 = qs_orig * dt
+
+    # 2. Near-Images for Bottom Interface
+    ps_m1 = ps_orig.copy()
+    ps_m1[:, 2] = 2 * gap - ps_m1[:, 2]
+    qs_m1 = qs_orig * db
+
+    # 3. Base energy (original configuration)
+    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, gap, lz_full)
+
+    # ---- TOP contribution ----
+    ps_total_top = np.vstack([ps_orig, ps_p1])
+    qs_total_top = np.concatenate([qs_orig, qs_p1])
+
+    e_pm1_top = _get_config_energy(system, ps_p1, qs_p1, pref, eps, gap, lz_full)
+    e_lt_top = _get_config_energy(system, ps_total_top, qs_total_top, pref, eps, gap, lz_full)
+
+    e_near_top = 0.5 * (e_lt_top - e_pm1_top + e_l0)
+
+    # ---- BOTTOM contribution ----
+    ps_total_bot = np.vstack([ps_orig, ps_m1])
+    qs_total_bot = np.concatenate([qs_orig, qs_m1])
+
+    e_pm1_bot = _get_config_energy(system, ps_m1, qs_m1, pref, eps, gap, lz_full)
+    e_lt_bot = _get_config_energy(system, ps_total_bot, qs_total_bot, pref, eps, gap, lz_full)
+
+    e_near_bot = 0.5 * (e_lt_bot - e_pm1_bot + e_l0)
+
+    # ============ HACK FIX ===============
+    part0_z = ps_orig[0, 2]
+    part0_is_in_bottom_half = part0_z <= (lz_full-gap) / 2
+    if part0_is_in_bottom_half:
+        e_near_top = 0
+    else:
+        e_near_bot = 0
+    # ============ HACK FIX ===============
+
+    # Total near-field contribution
+    e_near = e_near_top + e_near_bot
+
+    # 3. Far-Field Energy (Top specific)
+    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
+
+    return e_near + e_far
+

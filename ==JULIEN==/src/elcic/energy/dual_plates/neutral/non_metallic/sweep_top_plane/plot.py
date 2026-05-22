@@ -21,7 +21,7 @@ start_params = {
     "ly": 50.0,
     "gap_size": 20.0,
     "prefactor": 1.0,
-    "delta_mid_top": -1.0,
+    "delta_mid_top": +1.0,
     "delta_mid_bot": +1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
@@ -35,6 +35,7 @@ end_params = copy.deepcopy(start_params)
 end_params["positions"] = [np.array([6, 5, lz-z_eps]), np.array([3, 2, lz-z_eps])]
 
 
+
 run_lerp_plot(
     system=system,
     start_params=start_params,
@@ -46,39 +47,31 @@ run_lerp_plot(
 )
 NO = None
 f"""
-what causes the error?
-* lerping z positions
-    * db=-1, dt=+1, err= 8 left sign swap(near bottom plate)
-    * db=+1, dt=+1, err=1e-4
-    * db=-1, dt=-1, err=1e-4
+whats the problem
+* with mask conditions: error right, legacy=+4, custom=0
+* with hack conditions: good, err=1e-4
 
-    * db=+1, dt=-1, err= 8 left sign swap(near bottom plate)
-        * at bot plate: legacy: +4, custom: -4
+
+
 
 
 Action Tree
-* fix all at once: {NO}
-    * LLM left_swapped_sign, treat top and bot plane the same; {NO}, 15 tries
+* fix near (major contrib 5)
+    * replace the hack fix with "physical" logic
+        * LLM + Tyagi + "1e-3 for all db+-1 dt+-1_combis.py": {NO}, 4 tries
 
-    * debug by hand? just do same stuff for delta_top as delta_bot {NO}
-        * remove unusual delta_mid_top logic in "get_elcic_energy": {NO}, worse error
-        * remove unusual delta_mid_top logic in  "_get_far_field_energy": {NO} no cange
+        * by hand (i think i just need to filter particles in L-1, L0, L+1, etc) 
+            * basically replace "set to 0" by "set part=empty"
+            * kinda like sonnet in https://arena.ai/c/019e4ef2-a1e3-79ec-941d-baa716843c49
+
+
+
 
         
-* fix near (major contrib 5)
 
 * fix far (minor contrib 1e-5) - asymmetric "if np.any(m_top):" in get_far_field_energy
 
 
 
-
-
-NOTE
-
-narrow down which contrib causes the error
-* _get_chi_components: not changed 
-* _get_far_field_energy: not changed
-* _get_config_energy: not changed
-* DIFFERENCE IS IN get_elcic_energy, incl _get_interaction_energy
 
 """
