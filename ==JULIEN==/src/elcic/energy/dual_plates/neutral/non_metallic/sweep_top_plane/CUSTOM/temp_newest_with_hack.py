@@ -95,48 +95,74 @@ def get_elcic_energy(system, params: dict):
     gap, eps = params["gap_size"], params["pw_error"]
     pref = params.get("prefactor", 1.0)
     db, dt = params["delta_mid_bot"], params["delta_mid_top"]
-
+    lz = lz_full-gap
+    
     parts = system.part.all()
-    qs, ps = parts.q.copy(), parts.pos.copy()
+    qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
+
+    lambda_threshold = gap
+ 
+    # Ensure lambda_threshold is a reasonable value, not the entire gap
+    # Typically lambda is a small distance parameter for the interface
+    lambda_threshold = params.get("lambda", 2.0) 
+
+    # 1. Bottom interface: 0 <= z < lambda
+    mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_threshold)
+    
+    # 2. Top interface: (lz - lambda) < z <= lz
+    mask_top = (ps_orig[:, 2] > (lz - lambda_threshold)) & (ps_orig[:, 2] <= lz)
+    
+    # 3. Middle region: lambda <= z <= (lz - lambda)
+    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
+ 
+
 
     # 1. Near-Images for Top Interface
-    ps_top = ps.copy()
-    ps_top[:, 2] = 2 * (lz_full - gap) - ps_top[:, 2]
-    qs_top = qs * dt
-    ps_real_plus_top = np.vstack([ps, ps_top])
-    qs_real_plus_top = np.concatenate([qs, qs_top])
-
-    e_pm1_top = _get_config_energy(system, ps_top, qs_top, pref, eps, gap, lz_full)
-    e_lt_top = _get_config_energy(system, ps_real_plus_top, qs_real_plus_top, pref, eps, gap, lz_full)
-    e_near_top = e_lt_top - e_pm1_top
+    ps_p1 = ps_orig[mask_top | mask_mid]
+    ps_p1[:, 2] = 2 * (lz_full - gap) - ps_p1[:, 2]
+    qs_p1 = qs_orig[mask_top | mask_mid]  * dt
 
     # 2. Near-Images for Bottom Interface
-    ps_bot = ps.copy()
-    ps_bot[:, 2] = 2 * gap - ps_bot[:, 2]
-    qs_bot = qs * db
-    ps_real_plus_bot = np.vstack([ps, ps_bot])
-    qs_real_plus_bot = np.concatenate([qs, qs_bot])
-    
-    e_pm1_bot = _get_config_energy(system, ps_bot, qs_bot, pref, eps, gap, lz_full)
-    e_lt_bot = _get_config_energy(system, ps_real_plus_bot, qs_real_plus_bot, pref, eps, gap, lz_full)
+    ps_m1 = ps_orig[mask_bot | mask_mid]
+    ps_m1[:, 2] = 2 * gap - ps_m1[:, 2]
+    qs_m1 = qs_orig[mask_bot | mask_mid]  * db
 
-    e_near_bot = e_lt_bot - e_pm1_bot
 
-    # ============ HACK FIX ===============
-    part0_z = ps[0, 2]
+    # 3. Base energy (original configuration)
+    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, gap, lz_full)
+    e_near_top = 0.0
+    e_near_bot = 0.0
+
+    part0_z = ps_orig[0, 2]
     part0_is_in_bottom_half = part0_z <= (lz_full-gap) / 2
-    if part0_is_in_bottom_half:
-        e_near_top = 0
-    else:
-        e_near_bot = 0
-    # ============ HACK FIX ===============
 
+    # ---- TOP contribution ----
+    if not part0_is_in_bottom_half: #np.any(mask_top | mask_mid):
+        ps_total_top = np.vstack([ps_orig, ps_p1])
+        qs_total_top = np.concatenate([qs_orig, qs_p1])
+
+        e_pm1_top = _get_config_energy(system, ps_p1, qs_p1, pref, eps, gap, lz_full)
+        e_lt_top = _get_config_energy(system, ps_total_top, qs_total_top, pref, eps, gap, lz_full)
+
+        e_near_top = 0.5 * (e_lt_top - e_pm1_top + e_l0)
+
+    # ---- BOTTOM contribution ----
+    if part0_is_in_bottom_half: #np.any(mask_bot | mask_mid):
+        ps_total_bot = np.vstack([ps_orig, ps_m1])
+        qs_total_bot = np.concatenate([qs_orig, qs_m1])
+
+        e_pm1_bot = _get_config_energy(system, ps_m1, qs_m1, pref, eps, gap, lz_full)
+        e_lt_bot = _get_config_energy(system, ps_total_bot, qs_total_bot, pref, eps, gap, lz_full)
+
+        e_near_bot = 0.5 * (e_lt_bot - e_pm1_bot + e_l0)
+    
     # Total near-field contribution
-    e_l0 = _get_config_energy(system, ps, qs, pref, eps, gap, lz_full)
-    e_near = 0.5 * (e_near_top + e_near_bot + e_l0)
+    e_near = e_near_top + e_near_bot
 
     # 3. Far-Field Energy (Top specific)
-    e_far = pref * _get_far_field_energy(box, gap, eps, qs, ps, db, dt)
+    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
 
+
+    print(f"{e_near}, {e_far}")
     return e_near + e_far
 

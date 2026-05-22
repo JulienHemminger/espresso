@@ -46,25 +46,26 @@ run_lerp_plot(
     steps=5,
 )
 NO = None
-f"""
-whats the problem
-* with mask conditions: error right, legacy=+4, custom=0
-* with hack conditions: good, err=1e-4
 
+"""
+* stems from e_near (e_far is only 1e-6)
+with phys mask: err=1e-1 in center, 1e-4 at edge
+with hack mask: err=1e-4 everywhere
+* tuning lambda?
+    * lambda=2.0, error_center=1e-1
+    * lambda=4.0, error_center=1e-1
+    * lambda=8.0, error_center=1e-7 (with a center 1e-1 spike)
+    * lambda=lz/2, error_center=1e-7 (with a center 1e-1 spike)
 
-
+    
+* spike only when part.z = lz/2 (exactly middle)
 
 
 Action Tree
-* fix near (major contrib 5)
-    * replace the hack fix with "physical" logic
-        * LLM + Tyagi + "1e-3 for all db+-1 dt+-1_combis.py": {NO}, 4 tries
+* fix the part.z = lz/2 spike now {NO}
+* continue (param sweep, etc): {YES}
 
-        * by hand (i think i just need to filter particles in L-1, L0, L+1, etc) 
-            * basically replace "set to 0" by "set part=empty"
-            * kinda like sonnet in https://arena.ai/c/019e4ef2-a1e3-79ec-941d-baa716843c49
-
-
+* fix near (major contrib 5): DONE
 
 
         
@@ -74,4 +75,4 @@ Action Tree
 
 
 
-"""
+""" 

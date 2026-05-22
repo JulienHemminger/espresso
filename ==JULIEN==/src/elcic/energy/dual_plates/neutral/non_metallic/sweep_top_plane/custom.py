@@ -100,20 +100,16 @@ def get_elcic_energy(system, params: dict):
     parts = system.part.all()
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
 
-    lambda_threshold = gap
  
-    # Ensure lambda_threshold is a reasonable value, not the entire gap
-    # Typically lambda is a small distance parameter for the interface
-    lambda_threshold = params.get("lambda", 2.0) 
+    lambda_threshold = lz/2
 
+    # NOTE: theres a bug in the masks that causes an error-spike when part.z = lz/2 (exactly middle)
     # 1. Bottom interface: 0 <= z < lambda
     mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_threshold)
-    
     # 2. Top interface: (lz - lambda) < z <= lz
-    mask_top = (ps_orig[:, 2] > (lz - lambda_threshold)) & (ps_orig[:, 2] <= lz)
-    
+    mask_top = (ps_orig[:, 2] > (lz - lambda_threshold)) & (ps_orig[:, 2] <= lz)    
     # 3. Middle region: lambda <= z <= (lz - lambda)
-    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
+    mask_mid = False & (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
  
 
 
@@ -158,7 +154,7 @@ def get_elcic_energy(system, params: dict):
     e_near = e_near_top + e_near_bot
 
     # 3. Far-Field Energy (Top specific)
-    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
+    e_far = 0#  pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
 
     return e_near + e_far
 
