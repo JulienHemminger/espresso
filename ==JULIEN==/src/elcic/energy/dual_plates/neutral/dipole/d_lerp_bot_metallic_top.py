@@ -2,7 +2,7 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.dual_plates.neutral.dipole.b_zshift_both_non_metallic.custom import get_elcic_energy
+from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_energy
 
 from elcic.energy.dual_plates.neutral.param_lerp_plot_2d import run_lerp_plot
@@ -21,8 +21,8 @@ start_params = {
     "ly": 50.0,
     "gap_size": 20.0,
     "prefactor": 1.0,
-    "delta_mid_top": +1.0,
-    "delta_mid_bot": +1.0,
+    "delta_mid_top": -1.0,
+    "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
     "positions": [np.array([6, 5, z_eps]), np.array([3, 2, z_eps])],
@@ -33,7 +33,7 @@ start_params["lz"] = start_params["gap_size"] + lz
 
 end_params = copy.deepcopy(start_params)
 end_params["positions"] = [np.array([6, 5, lz-z_eps]), np.array([3, 2, lz-z_eps])]
-
+end_params["delta_mid_bot"] = 1.0
 
 
 run_lerp_plot(
@@ -47,6 +47,5 @@ run_lerp_plot(
 )
 
 """
-TODO
-theres a 1e-1 error spike when part.pos.z = lz/2 (set e.g. steps=5)
+TODO error spike(1e-1) for part.z = lz/2
 """
