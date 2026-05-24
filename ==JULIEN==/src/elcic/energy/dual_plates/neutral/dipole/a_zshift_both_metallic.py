@@ -2,7 +2,7 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.dual_plates.neutral.dipole.CUSTOM.versions.a_1e4 import get_elcic_energy
+from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_energy
 
 from elcic.energy.dual_plates.neutral.param_lerp_plot_2d import run_lerp_plot
