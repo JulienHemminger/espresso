@@ -91,17 +91,18 @@ def get_elcic_energy(system, params: dict):
     Computes electrostatic energy for 2D+h system with TOP dielectric interface.
     """
     box = np.array(system.box_l)
-    lz_full = box[2] # NOTE lz
+    lz_full = box[2]
     gap, eps = params["gap_size"], params["pw_error"]
     pref = params.get("prefactor", 1.0)
     db, dt = params["delta_mid_bot"], params["delta_mid_top"]
-    lz = lz_full-gap # NOTE lz
+    lz = lz_full-gap
     
     parts = system.part.all()
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
 
  
-    lambda_threshold = lz/2
+    lambda_val = params.get("lambda", lz / 2)
+    lambda_threshold = np.clip(lambda_val, 1e-3, lz / 2)
 
     # 1. Bottom interface: 0 <= z < lambda
     mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_threshold)
