@@ -1,18 +1,14 @@
-merge my "param\_lerp\_plot\_2d.py"
-
-plot contribs in 2d lerp plot
-
 impl 2d lerp batch plot
 
 impl 3d lerp plot, use it to lerp over a grid of delat\_mit bot x top
 
 impl old tests (no plate, single plate)
 
-# Procedure - isnt there a better way?
+# Procedure
 
 * z-shift test -> test masking, depending on part.z ALL particles are either in L0, L+1 or L-1
 * test wide range of symmetrical systems, assert `e_near_top ≈ e_near_bot`
-* with `delta``midbot = 0`_, errnear_bot=0 (also with top)
+* with delta mid bot = 0,  err e\_near\_bot=0 (also with top)
 
 **Far-Field Isolation (Large Gap)**
 
@@ -23,16 +19,6 @@ Expected:`e_near` → 0 (images far away), energy dominated by `e_far`. If total
 **Near-Field Isolation (Tight Tolerance):** the systems ive been doing have efar=1e-5 and enear=4
 
 
-
-
-
-specify lerp params (e.g. lerp over delta\_mid\_bot)
-
-* improve custom.py until err=1e-6
-
-specify lerp params (e.g. lerp over delta*midtop*)
-
-* improve custom.py until err=1e-6
 
 # Action Tree
 

@@ -156,5 +156,15 @@ def get_elcic_energy(system, params: dict):
     # 3. Far-Field Energy (Top specific)
     e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
 
-    return e_near + e_far
+    e_total = e_near + e_far
+
+    return {
+        "e_total": e_total,
+        
+        "e_far": e_far,
+
+        "e_near": e_near,
+        "e_near_top": e_near_top,
+        "e_near_bot": e_near_bot,
+    }
 

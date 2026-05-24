@@ -31,6 +31,27 @@ def lerp_dict(start_params, end_params, t):
     ]
     return lerp_params
 
+def save_plot_with_timestamp(fig, base_directory="/home/main/"):
+    """
+    Saves the provided figure as a PNG with a timestamped filename.
+    Ensures the directory exists before saving.
+    """
+    # Create the timestamp string
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"lerp2d_{timestamp}.png"
+    
+    # Ensure the directory exists (optional, but good practice)
+    if not os.path.exists(base_directory):
+        print(f"Directory {base_directory} not found. Saving to current directory.")
+        full_path = filename
+    else:
+        full_path = os.path.join(base_directory, filename)
+    
+    # Save the figure
+    # bbox_inches='tight' is recommended to prevent clipping of labels/legends
+    fig.savefig(full_path, bbox_inches='tight', dpi=300)
+    print(f"Figure successfully saved to: {full_path}")
+
 def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analytical_energy=None, get_legacy_energy=None, steps=20):
     t_values = np.linspace(0, 1, steps)
     results = {"legacy": [], "analytical": [], "custom": []}
@@ -39,7 +60,7 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
     for t in t_values:
         system.electrostatics.clear()
         params = lerp_dict(start_params, end_params, t)
-
+        
         system.part.clear()
         system.box_l = [params["lx"], params["ly"], params["lz"]]
         for i in range(len(params["charges"])):
@@ -49,32 +70,51 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
         if get_analytical_energy: results["analytical"].append(get_analytical_energy(params))
         results["custom"].append(get_custom_energy(system, params))
 
+    # --- Prepare Data ---
+    # Convert list of dicts to a dict of lists for easier plotting
+    custom_data = {k: np.array([d[k] for d in results["custom"]]) for k in results["custom"][0].keys()}
+
     # --- Plotting ---
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 9), sharex=True)
-
-    # 1. Top Subplot: Absolute Energy
-    ax1.plot(t_values, results["custom"], label="Custom Energy", color="green", lw=2)
-    if get_analytical_energy: ax1.plot(t_values, results["analytical"], label="Analytical Energy", color="black", ls="--")
-    if get_legacy_energy: ax1.plot(t_values, results["legacy"], label="Legacy Energy", color="orange", ls=":")
-    ax1.set_ylabel("Total Energy")
-    ax1.legend()
-    ax1.grid(True, alpha=0.5)
-
-    # 2. Bottom Subplot: Error
-    if get_analytical_energy:
-        ax2.plot(t_values, np.abs(np.array(results["custom"]) - np.array(results["analytical"])), label="Error: Custom-Ana", color="blue")
-        if get_legacy_energy: ax2.plot(t_values, np.abs(np.array(results["legacy"]) - np.array(results["analytical"])), label="Error: Leg-Ana", color="red")
-        ax2.set_ylabel("Absolute Energy Error")
-    elif get_legacy_energy:
-        ax2.plot(t_values, np.abs(np.array(results["custom"]) - np.array(results["legacy"])), label="Diff: Custom-Leg", color="purple")
-        ax2.set_ylabel("Difference")
+    fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
     
-    ax2.set_yscale("log")
-    ax2.set_xlabel(r"Interpolation Parameter $t$")
-    ax2.legend()
-    ax2.grid(True, alpha=0.5)
+    # 1. Top Subplot: Primary Energies
+    l1, = ax1.plot(t_values, custom_data["e_total"], label="Custom", color="blue", lw=4)
+    l2, = ax1.plot(t_values, custom_data["e_near"], label="e_near", color="cyan", ls="dashed", lw=2)
+    l3, = ax1.plot(t_values, custom_data["e_near_top"], label="e_near_top", color="aqua", ls="dotted", lw=1)
+    l4, = ax1.plot(t_values, custom_data["e_near_bot"], label="e_near_bot", color="lightblue", ls="dotted", lw=1)
+    
+    # Optional plots
+    lines = [l1, l2, l3, l4]
+    if get_analytical_energy: 
+        l_ana, = ax1.plot(t_values, results["analytical"], label="Analytical", color="black", lw=4)
+        lines.append(l_ana)
+    if get_legacy_energy: 
+        l_leg, = ax1.plot(t_values, results["legacy"], label="Legacy", color="red", lw=4)
+        lines.append(l_leg)
 
-    # Verbose Label Construction
+    # Secondary axis
+    ax1_twin = ax1.twinx()
+    l_far, = ax1_twin.plot(t_values, custom_data["e_far"], label="e_far (Secondary)", color="teal", ls="dashed", lw=2)
+    lines.append(l_far)
+    
+    # Combine handles and labels
+    labels = [l.get_label() for l in lines]
+    ax1.legend(lines, labels, loc='best', fontsize='small')
+
+    # 2. Bottom Subplot: Error/Difference
+    if get_analytical_energy:
+        ax3.plot(t_values, np.abs(custom_data["e_total"] - np.array(results["analytical"])), label="Error: Total-Ana", color="blue")
+        if get_legacy_energy: ax3.plot(t_values, np.abs(np.array(results["legacy"]) - np.array(results["analytical"])), label="Error: Leg-Ana", color="red")
+    elif get_legacy_energy:
+        ax3.plot(t_values, np.abs(custom_data["e_total"] - np.array(results["legacy"])), label="Diff: Total-Leg", color="purple")
+    
+    ax3.set_yscale("log")
+    ax3.set_ylabel("Absolute Error")
+    ax3.set_xlabel(r"Interpolation Parameter $t$")
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+
+    # Verbose Label Construction (remains the same)
     label_lines = ["**Parameters**"]
     for key in start_params.keys():
         v1, v2 = start_params[key], end_params[key]
@@ -89,4 +129,5 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
              bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3), transform=fig.transFigure)
 
     plt.tight_layout(rect=(0, 0, 0.82, 1))
+    save_plot_with_timestamp(fig)
     plt.show()
