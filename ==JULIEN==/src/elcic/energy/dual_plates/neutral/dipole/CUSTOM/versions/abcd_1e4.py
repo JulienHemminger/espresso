@@ -101,9 +101,9 @@ def get_elcic_energy(system, params: dict):
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
 
  
-    lambda_threshold = lz/2
+    lambda_val = params.get("lambda", lz / 2)
+    lambda_threshold = np.clip(lambda_val, 1e-3, lz / 2)
 
-    # NOTE: theres a bug in the masks that causes an error-spike when part.z = lz/2 (exactly middle)
     # 1. Bottom interface: 0 <= z < lambda
     mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_threshold)
     # 2. Top interface: (lz - lambda) < z <= lz
