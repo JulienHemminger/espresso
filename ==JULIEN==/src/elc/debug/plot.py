@@ -5,8 +5,7 @@ from elc.energy.legacy_elc_energy import get_legacy_energy
 from elc.debug.analytical import (
     get_ewald_energy_2d
 )
-from elc.debug.param_lerp_plot_2d import run_lerp_plot
-
+from common.plotting.param_lerp_plot_2d import run_lerp_plot
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
 system.cell_system.skin = 0.4 # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
@@ -34,4 +33,4 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
-run_lerp_plot(system, start_params, end_params, get_ewald_energy_2d, get_legacy_energy, get_elcic_energy, steps=5)
+run_lerp_plot(system, start_params=start_params, end_params=end_params, get_custom_energy=get_elcic_energy, get_analytical_energy=get_ewald_energy_2d, get_legacy_energy=get_legacy_energy, steps=5)
