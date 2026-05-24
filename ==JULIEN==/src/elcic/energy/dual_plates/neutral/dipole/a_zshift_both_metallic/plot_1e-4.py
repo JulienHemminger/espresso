@@ -2,10 +2,10 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.dual_plates.neutral.non_metallic.both_metallic.custom import get_elcic_energy
+from elcic.energy.dual_plates.neutral.dipole.a_zshift_both_metallic.custom import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_energy
 
-from elcic.energy.dual_plates.neutral.non_metallic.param_lerp_plot_2d import run_lerp_plot
+from elcic.energy.dual_plates.neutral.param_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01

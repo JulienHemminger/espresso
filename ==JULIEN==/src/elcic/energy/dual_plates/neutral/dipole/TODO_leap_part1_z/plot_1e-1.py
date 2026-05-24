@@ -2,10 +2,10 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.dual_plates.neutral.non_metallic.sweep_pos_z.custom import get_elcic_energy
+from elcic.energy.dual_plates.neutral.dipole.b_zshift_both_non_metallic.custom import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_energy
 
-from elcic.energy.dual_plates.neutral.non_metallic.param_lerp_plot_2d import run_lerp_plot
+from elcic.energy.dual_plates.neutral.param_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -28,7 +28,7 @@ start_params = {
 start_params["lz"] = start_params["gap_size"] + 40
 
 end_params = copy.deepcopy(start_params)
-end_params["positions"] = [np.array([1, 2, 3]), np.array([4, 5, 19])]
+end_params["positions"] = [np.array([1, 2, 19]), np.array([4, 5, 6])]
 
 
 
@@ -44,6 +44,13 @@ run_lerp_plot(
 
 
 """
+the problemn is
+* distance d=|pos1-pos2|: NO
+* pos-z
+    * 
+
+
+
 Large (1e-1) error when lerp "positions".
 * start_pos = [np.array([1, 2, 3]), np.array([4, 5, 6])],
     * end_pos = start_pos, err_right=1e-2
