@@ -27,18 +27,8 @@ start_params = {
 }
 start_params["lz"] = start_params["gap_size"] + 40
 
-end_params = {
-    "lx": 10.0,
-    "ly": 10.0,
-    "gap_size": 10.0,
-    "prefactor": 1.0,
-    "delta_mid_top": -1.0,
-    "delta_mid_bot": +1.0,
-    "charges": [+1.0, -1.0],
-    "positions": [np.array([6, 5, 6]), np.array([3, 2, 1])],
-    "pw_error": 1e-8,
-}
-end_params["lz"] = end_params["gap_size"] + 10
+end_params = copy.deepcopy(start_params)
+end_params["positions"] = [np.array([1, 2, 3]), np.array([4, 5, 19])]
 
 
 
@@ -54,6 +44,28 @@ run_lerp_plot(
 
 
 """
+Large (1e-1) error when lerp "positions".
+* start_pos = [np.array([1, 2, 3]), np.array([4, 5, 6])],
+    * end_pos = start_pos, err_right=1e-2
+    * end_pos = [np.array([6, 5, 6]), np.array([3, 2, 1])], err_right=1e-1
+
+    * end_pos = start_pos + p1.z=19, err_right=1e-1
+    * end_pos = start_pos + p2.z=19, err_right=1e-1
+
+
+
+    
+* lerp pos.x, y, z individually
+
+
+
+
+right valley happens for
+* all param change err_right=1e0
+* all except lx ly, err_righh=1e-1 (smaller but significant)
+* all except lx ly, lz, gap_size, err_righh=1e-1 (smaller but significant)
+
+
 steps=odd: fails, "No charged particles in system"
 steps=even: works,
 

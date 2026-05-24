@@ -114,8 +114,20 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
         if np.array_equal(val_start, val_end):
             label_lines.append(f"{key}: {val_start}")
         else:
-            if isinstance(val_start, (list, np.ndarray)):
-                label_lines.append(f"{key}: [Changed]")
+            # Check for positions to format them nicely
+            if key == "positions":
+                label_lines.append(f"{key}:")
+                for i, (p1, p2) in enumerate(zip(val_start, val_end)):
+                    # Formats as: P0: [x,y,z] -> [x,y,z]
+                    p1_fmt = "[" + ", ".join(f"{x:.2f}" for x in p1) + "]"
+                    p2_fmt = "[" + ", ".join(f"{x:.2f}" for x in p2) + "]"
+                    label_lines.append(f"  P{i}: {p1_fmt} → {p2_fmt}")
+            
+            # General case for other list-like types (e.g., charges)
+            elif isinstance(val_start, (list, np.ndarray)):
+                label_lines.append(f"{key}: {val_start} → {val_end}")
+            
+            # Scalar case
             else:
                 label_lines.append(f"{key}: {val_start} → {val_end}")
 
@@ -166,11 +178,14 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
         ax2.set_yscale("log")
 
     # --- Parameter Box Placement ---
-    # Placed relative to the entire figure so it centers neatly beside both subplots
-    fig.text(1.02, 0.5, param_text, verticalalignment='center', fontsize=9,
+    # 1. Change the text coordinates to be inside the figure (e.g., 0.85)
+    # The '0.85' places it on the right side within the figure boundaries.
+    fig.text(0.85, 0.5, param_text, verticalalignment='center', fontsize=9,
              bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3),
              transform=fig.transFigure)
 
+    # 2. Adjust the right padding in tight_layout to prevent the plot 
+    # from overlapping the text box (0.84 makes room for the text).
     plt.tight_layout(rect=(0, 0, 0.82, 1))
     
     # Save logic
