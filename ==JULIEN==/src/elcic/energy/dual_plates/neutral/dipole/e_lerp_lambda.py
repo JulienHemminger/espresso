@@ -44,8 +44,6 @@ run_lerp_plot(
 
 
 """
-TODO
-how can i test so tracking down the error is simpler (test e_near, test top mask, test bottom mask...)
 
 The data
 * lz=40: err_left=1e0

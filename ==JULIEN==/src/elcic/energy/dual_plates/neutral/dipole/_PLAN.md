@@ -1,3 +1,13 @@
+impl old tests (no plate, single plate)
+
+plot contribs in 2d lerp plot
+
+impl 2d lerp batch plot
+
+impl 3d lerp plot, use it to lerp over a grid of delat\_mit bot x top
+
+
+
 # Procedure - isnt there a better way?
 
 specify lerp params (e.g. lerp over delta\_mid\_bot)
@@ -25,12 +35,4 @@ specify lerp params (e.g. lerp over delta*midtop*)
   * "b\_zshift\_both\_non\_metallic" contains error spike at pos.z=lz/2
 
 * fix far energy (e\_far = 1e-5) so my accuracy has to be like 1e-6 / 1e-8.
-
-* impl 3d lerp plot
-
-  * use it to lerp over a grid of delat\_mit bot x top
-
-
-
-
 

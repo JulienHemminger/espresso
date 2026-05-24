@@ -109,7 +109,7 @@ def get_elcic_energy(system, params: dict):
     # 2. Top interface: (lz - lambda) < z <= lz
     mask_top = (ps_orig[:, 2] > (lz - lambda_threshold)) & (ps_orig[:, 2] <= lz)    
     # 3. Middle region: lambda <= z <= (lz - lambda)
-    mask_mid = False & (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
+    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
  
 
 
