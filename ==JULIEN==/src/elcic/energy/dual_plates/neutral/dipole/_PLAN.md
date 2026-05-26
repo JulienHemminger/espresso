@@ -1,10 +1,7 @@
 
 
-impl old tests (no plate, single plate)
-
 # Procedure
 
-* z-shift test -> test masking, depending on part.z ALL particles are either in L0, L+1 or L-1
 * test wide range of symmetrical systems, assert `e_near_top ≈ e_near_bot`
 * with delta mid bot = 0,  err e\_near\_bot=0 (also with top)
 
@@ -18,19 +15,10 @@ Expected:`e_near` → 0 (images far away), energy dominated by `e_far`. If total
 
 # Action Tree
 
-* fix custom.py structure
-
-  * old\_plot.py, old\_custom.py
-  * new\_custom.py
-
 &#x20;&#x20;
 
-* do i need to test old\_plot.py against old\_custom.py AND new\_custom.py
-
-* GOAL: one custom.py that passes all the tests.
-
 * fix near energy
-  * "b\_zshift\_both\_non\_metallic" contains error spike at pos.z=lz/2
+  * "a/b\_zshift\_" contains error spike at pos.z=lz/2
 
 * fix far energy (e\_far = 1e-5) so my accuracy has to be like 1e-6 / 1e-8.
 

@@ -35,7 +35,7 @@ end_params = copy.deepcopy(start_params)
 end_params["positions"] = [np.array([6, 5, lz-z_eps]), np.array([3, 2, lz-z_eps])]
 
 
-
+# z-shift test -> test masking, depending on part.z ALL particles are either in L0, L+1 or L-1
 run_lerp_plot(
     system=system,
     start_params=start_params,
@@ -43,10 +43,6 @@ run_lerp_plot(
     get_custom_energy=get_elcic_energy,
     get_analytical_energy=None,
     get_legacy_energy=get_legacy_energy,
-    steps=6,
+    steps=6, # TODO theres a 1e-1 error spike when part.pos.z = lz/2 (set e.g. steps=5)
 )
 
-"""
-TODO
-theres a 1e-1 error spike when part.pos.z = lz/2 (set e.g. steps=5)
-"""
