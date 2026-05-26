@@ -31,6 +31,29 @@ def lerp_dict(start_params, end_params, t):
     ]
     return lerp_params
 
+def get_param_label(start_params, end_params):
+    label_lines = ["**Parameters**"]
+    for key in start_params.keys():
+        v1, v2 = start_params[key], end_params[key]
+        
+        if key == "positions":
+            label_lines.append("positions:")
+            for i, (p1, p2) in enumerate(zip(v1, v2)):
+                # Use np.array_equal to safely compare two arrays
+                if np.array_equal(p1, p2):
+                    label_lines.append(f"  P{i}: [{', '.join(f'{x:.1f}' for x in p1)}]")
+                else:
+                    label_lines.append(f"  P{i}: [{', '.join(f'{x:.1f}' for x in p1)}] → [{', '.join(f'{x:.1f}' for x in p2)}]")
+        else:
+            # For scalar parameters, direct comparison works fine
+            if v1 == v2:
+                label_lines.append(f"{key}: {v1}")
+            else:
+                label_lines.append(f"{key}: {v1} → {v2}")
+
+    return "\n".join(label_lines)
+
+
 def save_plot_with_timestamp(fig, base_directory="/home/main/"):
     """
     Saves the provided figure as a PNG with a timestamped filename.
@@ -114,18 +137,8 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
     ax3.legend()
     ax3.grid(True, alpha=0.3)
 
-    # Verbose Label Construction (remains the same)
-    label_lines = ["**Parameters**"]
-    for key in start_params.keys():
-        v1, v2 = start_params[key], end_params[key]
-        if key == "positions":
-            label_lines.append("positions:")
-            for i, (p1, p2) in enumerate(zip(v1, v2)):
-                label_lines.append(f"  P{i}: [{', '.join(f'{x:.1f}' for x in p1)}] → [{', '.join(f'{x:.1f}' for x in p2)}]")
-        else:
-            label_lines.append(f"{key}: {v1} → {v2}")
 
-    fig.text(0.85, 0.5, "\n".join(label_lines), verticalalignment='center', fontsize=8,
+    fig.text(0.85, 0.5, get_param_label(start_params, end_params), verticalalignment='center', fontsize=8,
              bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3), transform=fig.transFigure)
 
     plt.tight_layout(rect=(0, 0, 0.82, 1))

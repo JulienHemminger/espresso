@@ -1,8 +1,5 @@
 # Procedure
 
-* test wide range of symmetrical systems, assert `e_near_top ≈ e_near_bot`
-* with delta mid bot = 0,  err e\_near\_bot=0 (also with top)
-
 **Far-Field Isolation (Large Gap)**
 
 Use `gap_size >> λ` (e.g., gap = 30, lz = 10) so near-field image charges are very distant.
