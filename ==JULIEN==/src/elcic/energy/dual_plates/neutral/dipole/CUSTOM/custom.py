@@ -100,18 +100,11 @@ def get_elcic_energy(system, params: dict):
     parts = system.part.all()
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
 
- 
-    lambda_val = params.get("lambda", lz / 2)
-    lambda_threshold = np.clip(lambda_val, 1e-3, lz / 2)
+    lambda_ = np.clip(params.get("lambda", lz / 2), 1e-3, lz / 2)
 
-    # 1. Bottom interface: 0 <= z < lambda
-    mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_threshold)
-    # 2. Top interface: (lz - lambda) < z <= lz
-    mask_top = (ps_orig[:, 2] > (lz - lambda_threshold)) & (ps_orig[:, 2] <= lz)    
-    # 3. Middle region: lambda <= z <= (lz - lambda)
-    mask_mid = (ps_orig[:, 2] >= lambda_threshold) & (ps_orig[:, 2] <= (lz - lambda_threshold))
- 
-
+    mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_)
+    mask_top = (ps_orig[:, 2] > (lz - lambda_)) & (ps_orig[:, 2] <= lz)    
+    mask_mid = (ps_orig[:, 2] >= lambda_) & (ps_orig[:, 2] <= (lz - lambda_))
 
     # 1. Near-Images for Top Interface
     ps_p1 = ps_orig[mask_top | mask_mid]
@@ -123,12 +116,10 @@ def get_elcic_energy(system, params: dict):
     ps_m1[:, 2] = - ps_m1[:, 2]
     qs_m1 = qs_orig[mask_bot | mask_mid]  * db
 
-
     # 3. Base energy (original configuration)
     e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, lz_full)
     e_near_top = 0.0
     e_near_bot = 0.0
-
 
     # ---- TOP contribution ----
     if np.any(mask_top | mask_mid):
@@ -138,7 +129,7 @@ def get_elcic_energy(system, params: dict):
         e_pm1_top = _get_config_energy(system, ps_p1, qs_p1, pref, eps, lz_full)
         e_lt_top = _get_config_energy(system, ps_total_top, qs_total_top, pref, eps, lz_full)
 
-        e_near_top = 0.5 * (e_lt_top - e_pm1_top + e_l0)
+        e_near_top = 0.5 * (e_lt_top - e_pm1_top)
 
     # ---- BOTTOM contribution ----
     if np.any(mask_bot | mask_mid):
@@ -148,10 +139,10 @@ def get_elcic_energy(system, params: dict):
         e_pm1_bot = _get_config_energy(system, ps_m1, qs_m1, pref, eps, lz_full)
         e_lt_bot = _get_config_energy(system, ps_total_bot, qs_total_bot, pref, eps, lz_full)
 
-        e_near_bot = 0.5 * (e_lt_bot - e_pm1_bot + e_l0)
+        e_near_bot = 0.5 * (e_lt_bot - e_pm1_bot)
     
     # Total near-field contribution
-    e_near = e_near_top + e_near_bot
+    e_near = e_near_top + e_near_bot + 0.5*e_l0
 
     # 3. Far-Field Energy (Top specific)
     e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)

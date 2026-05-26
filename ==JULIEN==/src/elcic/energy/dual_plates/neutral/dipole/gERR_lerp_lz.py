@@ -13,6 +13,7 @@ system.cell_system.skin = (
     0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
 )
 
+
 start_params = {
     "lx": 50.0,
     "ly": 50.0,
@@ -22,7 +23,8 @@ start_params = {
     "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    "positions": [np.array([6, 5, 4]), np.array([3, 2, 1])],
+    "positions": [np.array([6, 5, 14]), np.array([3, 2, 11])],
+    
 }
 start_params["lz"] = start_params["gap_size"] + 40
 
@@ -43,9 +45,19 @@ run_lerp_plot(
 
 
 """
-* is legacy correct?
+FOR "positions": [np.array([6, 5, 4]), np.array([3, 2, 1])], err=1e-4
+
+FOR "positions": [np.array([6, 5, 14]), np.array([3, 2, 11])], any lambda, err=1e-1
 
 
++ i think the "magnitude" of e_near_bot/top is correct, but its activated (mask) wrong
+
+the "handoff" between E_near_top and E_near_bot is offset
+
+why tf does "a_zshift_both_metallic.py"(err=1e-4) work but this "lz shifting doesnt?"
+
+Action Tree
+* 
 
 Custom = E_near = E_near bot
 (E_near_top = 0)
