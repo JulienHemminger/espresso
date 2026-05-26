@@ -4,8 +4,7 @@ import espressomd
 import numpy as np
 from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
 from elc.energy.legacy_elc_energy import get_legacy_energy
-
-from common.plotting.param_lerp_plot_2d import run_lerp_plot
+from src.common.plotting.parap_lerp_plot_3d import run_2d_contour_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -13,33 +12,43 @@ system.cell_system.skin = (
     0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
 )
 
-# https://gemini.google.com/app/5ee31aa2c36a5960
 
-start_params = {
+params = {
     "lx": 50.0,
     "ly": 50.0,
     "gap_size": 20.0,
     "prefactor": 1.0,
-    "delta_mid_top": 0.0,
-    "delta_mid_bot": 0.0,
+    "delta_mid_top": -1.0,
+    "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
     "positions": [np.array([6, 5, 4]), np.array([3, 2, 1])],
 }
-start_params["lz"] = start_params["gap_size"] + 20
+params["lz"] = params["gap_size"] + 20
+N_per_axis = 4  # make it even, else Error: no charged particles
 
-
-
-end_params = copy.deepcopy(start_params)
-end_params["lambda"] = 0
-
-run_lerp_plot(
+"""
+run_2d_contour_plot(
     system=system,
-    start_params=start_params,
-    end_params=end_params,
-    get_custom_energy=get_elcic_energy, 
+    base_params=params,
+    x_param_key="delta_mid_bot",
+    x_values=np.linspace(-1.0, 1.0, N_per_axis),
+    y_param_key="delta_mid_bot",
+    y_values=np.linspace(-1.0, 1.0, N_per_axis),
+    get_custom_energy=get_elcic_energy,
     get_analytical_energy=None,
     get_legacy_energy=get_legacy_energy,
-    steps=6,
 )
+"""
 
+run_2d_contour_plot(
+    system=system,
+    base_params=params,
+    x_param_key="lx",
+    x_values=np.linspace(10, 50, N_per_axis),
+    y_param_key="ly",
+    y_values=np.linspace(10, 50, N_per_axis),
+    get_custom_energy=get_elcic_energy,
+    get_analytical_energy=None,
+    get_legacy_energy=get_legacy_energy,
+)

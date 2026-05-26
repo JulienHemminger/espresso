@@ -1,6 +1,4 @@
-impl 2d lerp batch plot
 
-impl 3d lerp plot, use it to lerp over a grid of delat\_mit bot x top
 
 impl old tests (no plate, single plate)
 
@@ -17,8 +15,6 @@ Use `gap_size >> λ` (e.g., gap = 30, lz = 10) so near-field image charges are v
 Expected:`e_near` → 0 (images far away), energy dominated by `e_far`. If total energy is wrong here, the bug is in `_get_far_field_energy`.
 
 **Near-Field Isolation (Tight Tolerance):** the systems ive been doing have efar=1e-5 and enear=4
-
-
 
 # Action Tree
 
