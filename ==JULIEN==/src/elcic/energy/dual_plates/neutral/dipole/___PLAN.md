@@ -1,5 +1,3 @@
-
-
 # Procedure
 
 * test wide range of symmetrical systems, assert `e_near_top ≈ e_near_bot`
