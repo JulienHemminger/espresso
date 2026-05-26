@@ -120,7 +120,7 @@ def get_elcic_energy(system, params: dict):
 
     # 2. Near-Images for Bottom Interface
     ps_m1 = ps_orig[mask_bot | mask_mid]
-    ps_m1[:, 2] = - ps_m1[:, 2]
+    ps_m1[:, 2] = 2 * gap - ps_m1[:, 2]
     qs_m1 = qs_orig[mask_bot | mask_mid]  * db
 
 

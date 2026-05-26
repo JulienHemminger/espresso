@@ -43,27 +43,15 @@ run_lerp_plot(
 
 
 """
-TODO
-
-
-The data
-* lz=40: err_left=1e0
-* lz=20: err_left=1e-4
-
-Whats the problem
-* e_near
-    * 
+* is legacy correct?
 
 
 
+Custom = E_near = E_near bot
+(E_near_top = 0)
 
+od i need to fix E_near_bot, or do i need e_near_top to "balance it out"?
 
-
-the problemn is pos.z (not distance d=|pos1-pos2|)
-
-* part1, part2,
-* do z closer to edges,
-* i already did z shift
 
 
 
