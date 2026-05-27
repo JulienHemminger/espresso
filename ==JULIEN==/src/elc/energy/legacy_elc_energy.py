@@ -26,7 +26,7 @@ def get_legacy_energy(system, params_dict, timeout_duration_sec=30, timeout_retu
         delta_mid_bot = params_dict.get("delta_mid_bot")
         
         p3m = espressomd.electrostatics.P3M(
-            prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=True,
+            prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False,
         )
 
         args = {
