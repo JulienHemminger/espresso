@@ -95,7 +95,7 @@ def get_elcic_energy(system, params: dict):
     gap, eps = params["gap_size"], params["pw_error"]
     pref = params.get("prefactor", 1.0)
     db, dt = params["delta_mid_bot"], params["delta_mid_top"]
-    lz = lz_full-gap
+    lz = lz_full - gap
     
     parts = system.part.all()
     qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
@@ -106,25 +106,27 @@ def get_elcic_energy(system, params: dict):
     mask_top = (ps_orig[:, 2] > (lz - lambda_)) & (ps_orig[:, 2] <= lz)    
     mask_mid = (ps_orig[:, 2] >= lambda_) & (ps_orig[:, 2] <= (lz - lambda_))
 
+    # --- DEBUG: Print particle distribution ---
+    print(f"DEBUG: Total particles: {len(qs_orig)}")
+    print(f"DEBUG: Mask counts - Bot: {np.sum(mask_bot)}, Top: {np.sum(mask_top)}, Mid: {np.sum(mask_mid)}")
+
     # 1. Near-Images for Top Interface
-    ps_p1 = ps_orig[mask_top | mask_mid]
+    ps_p1 = ps_orig[mask_top | mask_mid].copy()
     ps_p1[:, 2] = 2 * lz - ps_p1[:, 2]
-    qs_p1 = qs_orig[mask_top | mask_mid]  * dt
+    qs_p1 = qs_orig[mask_top | mask_mid] * dt
 
     # 2. Near-Images for Bottom Interface
-    ps_m1 = ps_orig[mask_bot | mask_mid]
-    ps_m1[:, 2] = - ps_m1[:, 2]
-    qs_m1 = qs_orig[mask_bot | mask_mid]  * db
+    ps_m1 = ps_orig[mask_bot | mask_mid].copy()
+    ps_m1[:, 2] = -ps_m1[:, 2]
+    qs_m1 = qs_orig[mask_bot | mask_mid] * db
 
     # 1. Base energies
     e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, lz_full)
     
     # 2. Combined Sets
-    # L_T = L0 U L+1 U L-1
     ps_lt = np.vstack([ps_orig, ps_p1, ps_m1])
     qs_lt = np.concatenate([qs_orig, qs_p1, qs_m1])
     
-    # L_pm1 = L+1 U L-1
     ps_pm1 = np.vstack([ps_p1, ps_m1])
     qs_pm1 = np.concatenate([qs_p1, qs_m1])
     
@@ -132,9 +134,12 @@ def get_elcic_energy(system, params: dict):
     e_lt = _get_config_energy(system, ps_lt, qs_lt, pref, eps, lz_full)
     e_pm1 = _get_config_energy(system, ps_pm1, qs_pm1, pref, eps, lz_full)
     
+    # --- DEBUG: Energy components ---
+    print(f"DEBUG: E_l0: {e_l0:.4f}, E_lt: {e_lt:.4f}, E_pm1: {e_pm1:.4f}")
+
     # 4. Partitioning Formula
-    # Energy of (L0, L_T)
     e_near = 0.5 * (e_lt - e_pm1 + e_l0)
+    print(f"DEBUG: Calculated E_near: {e_near:.4f}")
 
     # 3. Far-Field Energy (Top specific)
     e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
@@ -143,11 +148,8 @@ def get_elcic_energy(system, params: dict):
 
     return {
         "e_total": e_total,
-        
         "e_far": e_far,
-
         "e_near": e_near,
         "e_near_top": 0,
         "e_near_bot": 0,
     }
-

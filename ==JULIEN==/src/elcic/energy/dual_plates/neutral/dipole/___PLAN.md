@@ -1,3 +1,15 @@
+* setup LLM driven iterative diagnose & improvement pipeline
+
+  * TODO Heres error over lz: err(lz=10) = 1e-3, err(lz=13) = 1e-4. The remaining parameters were fixed at ...
+
+    * in the prompt
+
+      * paper (tyagi...)
+      * Find which contrib contains/causes the error (i.e. those depending on lz)
+      * write a corrected code snippet
+
+theres still E-near errors (i get err=1e-3, but e\_far can only account for 1e-5)
+
 # Procedure
 
 **Far-Field Isolation (Large Gap)**
