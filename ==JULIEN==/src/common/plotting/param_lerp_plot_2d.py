@@ -89,9 +89,22 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
         for i in range(len(params["charges"])):
             system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
-        if get_legacy_energy: results["legacy"].append(get_legacy_energy(system, params))
+        print("==============================================")
+        print(f"Parameters = [fixed_params, lz={params["lz"]}]")
+
+
+        if get_legacy_energy:
+            results["legacy"].append(get_legacy_energy(system, params))
+            
         if get_analytical_energy: results["analytical"].append(get_analytical_energy(params))
+
         results["custom"].append(get_custom_energy(system, params))
+        
+        
+        a = results["custom"][-1]["e_total"]
+        b = results["legacy"][-1]
+        print(f"custom_implementation_energy = {a}, error={abs(a-b)}")
+        print(f"ground_truth_energy = {b}")
 
     # --- Prepare Data ---
     # Convert list of dicts to a dict of lists for easier plotting
