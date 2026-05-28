@@ -5,9 +5,16 @@ fix near energy, "a/b\_zshift\_" contains error spike at pos.z=lz/2
 * debug/fix by hand: NO, super expensive and slow
 * using gemini chatbot (prompts, pasting code, etc): NO, didnt work in 20 tries &#x20;
 * using ai agent: MEH, slight improvement
+* port elc.cpp to python
+  * insert contrib print statements in elc.cpp
 * IDEA: why does LLM: "convert elc.cpp to python" not work?
   * can i do it contrib-wise (e.g. "convert e\_near from elc-cpp to python?)
-  * insert contrib print statements in elc.cpp
+
+
+
+
+
+
 
 fix Far-Field Isolation (Large Gap) (e\_far = 1e-5) so my accuracy has to be like 1e-6 / 1e-8.
 
