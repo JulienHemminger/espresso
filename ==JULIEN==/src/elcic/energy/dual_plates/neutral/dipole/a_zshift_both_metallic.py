@@ -45,6 +45,3 @@ run_lerp_plot(
     get_legacy_energy=get_legacy_energy,
     steps=6, # TODO theres a 1e-1 error spike when part.pos.z = lz/2 (set e.g. steps=5)
 )
-"""
-"positions": [np.array([6, 5, 14]), np.array([3, 2, 11])],
-"""

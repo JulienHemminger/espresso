@@ -11,7 +11,11 @@ fix near energy, "a/b\_zshift\_" contains error spike at pos.z=lz/2
 
 * debug/fix by hand: NO, super expensive and slow
 * using gemini chatbot (prompts, pasting code, etc): NO, didnt work in 20 tries &#x20;
-* using ai agent
+* using ai agent: YES
+  * eval
+    * all abcdefg plots
+    * wih efar, no efar, etc-
+    * TODO do i need to fix something more about E_near or do i do E_far?
 
   *
 
