@@ -10,7 +10,7 @@ class TimeoutException(Exception):
 def timeout_handler(signum, frame):
     raise TimeoutException
 
-def get_legacy_energy(system, params_dict, timeout_duration_sec=30, timeout_return_value=1e3):
+def get_legacy_energy(system, params_dict, timeout_duration_sec=90, timeout_return_value=1e3):
     system.electrostatics.clear()
 
     # Register the signal handler
