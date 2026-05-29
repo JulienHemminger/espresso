@@ -65,3 +65,21 @@ custom_implementation_energy = -0.19340156375889017, error=0.0004476687437601212
 ground_truth_energy = -0.19295389501513005
 Figure successfully saved to: /home/main/lerp2d_2026-05-28_20-59-26.png
 """
+
+
+"""
+refac elc.cpp (more readable, etc)
+
+map elc.cpp to python
+
+
+
+"""
+
+# setup system
+# run legacy elcic
+# extract ground truth contib values (E_near, E_far, E_total...)
+
+# reset system
+# run custom elcic
+# plot custom contribs vs legacy contribs

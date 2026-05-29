@@ -40,5 +40,5 @@ run_lerp_plot(
     get_custom_energy=get_elcic_energy, 
     get_analytical_energy=None,
     get_legacy_energy=get_legacy_energy,
-    steps=6,
+    steps=2,
 )
