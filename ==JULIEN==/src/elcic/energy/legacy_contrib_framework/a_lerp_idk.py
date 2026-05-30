@@ -80,9 +80,9 @@ run_lerp_plot(system=system, start_params=start_params, end_params=end_params, g
 Action Tree
 * fix custom.py for this single test
 * add range of test (lerp) and plots (now im at my old err=1e-4): DONE
+* swap E_near and E_far in legacy contribs, i thing theres a bug on the C++ side: DONE
 
-* fix E-near
-    * swap E_near and E_far in legacy contribs, i thing theres a bug on the C++ side: DONE
-
-    * TODO do i fix E_far first or E_near? (try to get e.g. E_far difference line small, i.e. below 1e-8)
+* TODO why do i get errors for some params?
+* TODO fix E_near
+    * can/should i break it doen to E_near_p3m or E_near_corr.
 """

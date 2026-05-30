@@ -89,8 +89,6 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
         for i in range(len(params["charges"])):
             system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
-        print("==============================================")
-        print(f"Parameters = [fixed_params, lz={params['lz']}]")
 
         # Capture full dictionaries
         if get_legacy_energy:
@@ -99,7 +97,19 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
         custom_res = get_custom_energy(system, params)
         results["custom"].append(custom_res)
 
-            
+    # --- Print Summary for t=1 (last result) ---
+    if get_legacy_energy and results["legacy"]:
+        print(f"{'Name':<12} | {'Legacy':<10} | {'Custom':<10} | {'Error (abs)'}")
+        print("-" * 50)
+        leg_final = results["legacy"][-1]
+        cus_final = results["custom"][-1]
+        
+        for key in cus_final.keys():
+            if key in leg_final:
+                val_l = leg_final[key]
+                val_c = cus_final[key]
+                error = abs(val_l - val_c)
+                print(f"{key:<12} | {val_l:<10.6f} | {val_c:<10.6f} | {error:<10.6f}")
 
     # --- Prepare Data ---
     # Convert list of dicts to a dict of numpy arrays
@@ -136,3 +146,13 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
     plt.tight_layout(rect=(0, 0, 0.82, 1))
     save_plot_with_timestamp(fig)
     plt.show()
+
+
+"""
+Before creating the plot, make it print a detailed summary of the results like this:
+Do it for all contributions/keys both dicts have in common
+
+Name    | Legacy | Custom | Error (abs(legacy_val-error_val))
+E_total | 0.214235 | 0.321923 | 0.13425
+
+"""

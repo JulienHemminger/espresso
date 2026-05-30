@@ -64,15 +64,18 @@ def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
         e_far += pref * np.sum((1.0 / f) * c0_p * cp2_m)
         
     return e_far
+
+
 def _get_config_energy(system, p_set, q_set, prefactor, accuracy, lz):
     if len(q_set) == 0:
-        return 0.0
+        return 0.0, 0.0 # Return tuple
 
     lx, ly = system.box_l[0], system.box_l[1]
     p_wrapped = p_set.copy()
     p_wrapped[:, 0] = np.mod(p_wrapped[:, 0], lx)
     p_wrapped[:, 1] = np.mod(p_wrapped[:, 1], ly)
     p_wrapped[:, 2] = np.mod(p_wrapped[:, 2], lz)
+    
     system.part.clear()
     system.box_l = [lx, ly, lz]
     system.part.add(pos=p_wrapped, q=q_set)
@@ -84,7 +87,6 @@ def _get_config_energy(system, p_set, q_set, prefactor, accuracy, lz):
     system.integrator.run(0)
     e_3d = system.analysis.energy()["total"]
     
-    # Correction term logic remains consistent with ELC non-neutrality
     xi0, xi1 = np.sum(q_set), np.sum(q_set * p_wrapped[:, 2])
     fac = 2.0 * np.pi / (lx * ly * lz)
     if np.isclose(xi0, 0.0, atol=1e-12):
@@ -93,7 +95,7 @@ def _get_config_energy(system, p_set, q_set, prefactor, accuracy, lz):
         e_corr = 0.0
     
     system.electrostatics.clear()
-    return e_3d + e_corr
+    return e_3d, e_corr
 
 
 def get_elcic_energy(system, params: dict):
@@ -136,8 +138,6 @@ def get_elcic_energy(system, params: dict):
     # --------------------------
     # Energy calculations (unchanged, formula is correct per ELCIC literature)
     # --------------------------
-    # 1. Base energy of original charges
-    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, lz_full)
     
     # 2. Combined sets: original + top images + bottom images
     ps_lt = np.vstack([ps_orig, ps_p1, ps_m1])
@@ -147,21 +147,29 @@ def get_elcic_energy(system, params: dict):
     ps_pm1 = np.vstack([ps_p1, ps_m1])
     qs_pm1 = np.concatenate([qs_p1, qs_m1])
     
-    # 4. Energies of combined and image-only sets
-    e_lt = _get_config_energy(system, ps_lt, qs_lt, pref, eps, lz_full)
-    e_pm1 = _get_config_energy(system, ps_pm1, qs_pm1, pref, eps, lz_full)
     
 
-    e_near = 0.5 * (e_lt - e_pm1 + e_l0)
+    # 1. Base energy
+    e_l0_3d, e_l0_corr = _get_config_energy(system, ps_orig, qs_orig, pref, eps, lz_full)
 
-    # 3. Far-Field Energy (ensure this accounts for BOTH interfaces in your implementation)
+    # 2. Combined sets
+    e_lt_3d, e_lt_corr = _get_config_energy(system, ps_lt, qs_lt, pref, eps, lz_full)
+
+    # 3. Image-only set
+    e_pm1_3d, e_pm1_corr = _get_config_energy(system, ps_pm1, qs_pm1, pref, eps, lz_full)
+
+    # Aggregate components
+    e_near_3d = 0.5 * (e_lt_3d - e_pm1_3d + e_l0_3d)
+    e_near_corr = 0.5 * (e_lt_corr - e_pm1_corr + e_l0_corr)
+
+    e_near = e_near_3d + e_near_corr
     e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
-
     e_total = e_near + e_far
 
     return {
         "E_total": e_total,
         "E_near": e_near,
+        "E_near_p3m": e_near_3d,
+        "E_near_corr": e_near_corr,
         "E_far": e_far,
-        
     }
