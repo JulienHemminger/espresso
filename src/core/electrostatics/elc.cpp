@@ -257,21 +257,9 @@ void ElectrostaticLayerCorrection::add_dipole_force() const {
     auto const field_applied = elc.pot_diff / elc.box_h;
     field_tot -= field_applied + field_induced;
 
-    // Print constant potential contributions
-    std::cout << std::setprecision(15)
-              << "[ELC] Dipole force: field_induced = " << field_induced
-              << ", field_applied = " << field_applied
-              << ", const_pot correction = " << -(field_applied + field_induced)
-              << std::endl;
   }
 
-  // Print the total dipole field before applying to particles
-  std::cout << std::setprecision(15)
-            << "[ELC] Dipole force: gblcblk[0] (sum q*(z-L/2), scaled) = " << gblcblk[0]
-            << ", gblcblk[1] (sum q*z, scaled) = " << gblcblk[1]
-            << ", gblcblk[2] (sum q, scaled) = " << gblcblk[2]
-            << ", field_tot = " << field_tot
-            << std::endl;
+
 
   for (auto &p : particles) {
     // Save force before dipole contribution
@@ -286,15 +274,7 @@ void ElectrostaticLayerCorrection::add_dipole_force() const {
       p.force()[2] += neutralize_contrib;
     }
 
-    // Print per-particle dipole force contributions
-    std::cout << std::setprecision(15)
-              << "[ELC] Dipole force on particle id=" << p.id()
-              << ": q=" << p.q()
-              << ", z=" << p.pos()[2]
-              << ", dipole_Fz_contrib=" << -(field_tot * p.q())
-              << ", neutralize_Fz_contrib=" << neutralize_contrib
-              << ", total_Fz_after_dipole=" << p.force()[2]
-              << std::endl;
+
   }
 }
 
@@ -349,17 +329,7 @@ double ElectrostaticLayerCorrection::dipole_energy() const {
 
   distribute(size);
 
-  // Print the collected moments
-  std::cout << std::setprecision(15)
-            << "[ELC] Dipole energy moments:"
-            << " gblcblk[0]= " << gblcblk[0] << " (sum q, primary)"
-            << " gblcblk[1]= " << gblcblk[1] << " (sum q, boundary)"
-            << " gblcblk[2]= " << gblcblk[2] << " (sum q*(z-L/2), primary)"
-            << " gblcblk[3]= " << gblcblk[3] << " (sum q*(z-L/2), boundary)"
-            << " gblcblk[4]= " << gblcblk[4] << " (sum q*(z-L/2)^2, primary)"
-            << " gblcblk[5]= " << gblcblk[5] << " (sum q*(z-L/2)^2, boundary)"
-            << " gblcblk[6]= " << gblcblk[6] << " (sum q*z, primary)"
-            << std::endl;
+ 
 
   // Yeh + Berkowitz term @cite yeh99a
   auto energy = 2. * pref * (Utils::sqr(gblcblk[2]) + gblcblk[2] * gblcblk[3]);
@@ -512,13 +482,6 @@ double ElectrostaticLayerCorrection::z_energy() const {
   }
   distribute(size);
 
-  // Print z-energy components
-  std::cout << std::setprecision(15)
-            << "[ELC] z_energy: gblcblk[0]= " << gblcblk[0]
-            << " (sum q), gblcblk[1]= " << gblcblk[1]
-            << " (sum q*(z-shift)), gblcblk[2]= " << gblcblk[2]
-            << " (image q sum), gblcblk[3]= " << gblcblk[3]
-            << " (image q*(z-shift) sum)" << std::endl;
 
   auto const energy = gblcblk[1] * gblcblk[2] - gblcblk[0] * gblcblk[3];
 
@@ -582,19 +545,10 @@ void ElectrostaticLayerCorrection::add_z_force() const {
 
     distribute(size);
 
-    std::cout << std::setprecision(15)
-              << "[ELC] add_z_force: gblcblk[0] (scaled image charge sum) = "
-              << gblcblk[0] << std::endl;
 
     for (auto &p : particles) {
       auto const fz_contrib = gblcblk[0] * p.q();
       p.force()[2] += fz_contrib;
-      std::cout << std::setprecision(15)
-                << "[ELC] add_z_force on particle id=" << p.id()
-                << ": q=" << p.q()
-                << ", Fz_z_force_contrib=" << fz_contrib
-                << ", total Fz after z_force=" << p.force()[2]
-                << std::endl;
     }
   }
 }
@@ -704,16 +658,6 @@ void setup_PoQ(elc_data const &elc, double prefactor, std::size_t index,
     scale_vec(pref_di, lclimge, size);
     add_vec(gblcblk, gblcblk, lclimge, size);
   }
-
-  // Print setup_PoQ results
-  std::cout << std::setprecision(15)
-            << "[ELC] setup_PoQ<" << (axis == PoQ::P ? "P" : "Q")
-            << "> index=" << index << " omega=" << omega
-            << ": gblcblk[POQESP]=" << gblcblk[POQESP]
-            << " gblcblk[POQECP]=" << gblcblk[POQECP]
-            << " gblcblk[POQESM]=" << gblcblk[POQESM]
-            << " gblcblk[POQECM]=" << gblcblk[POQECM]
-            << std::endl;
 }
 
 template <PoQ axis> void add_PoQ_force(ParticleRange const &particles) {
@@ -739,14 +683,6 @@ template <PoQ axis> void add_PoQ_force(ParticleRange const &particles) {
     force[i] += f_lateral;
     force[2] += f_z;
 
-    std::cout << std::setprecision(15)
-              << "[ELC] add_PoQ_force<" << (axis == PoQ::P ? "P" : "Q")
-              << "> particle id=" << p.id()
-              << ": F[" << i << "]_contrib=" << f_lateral
-              << ", Fz_contrib=" << f_z
-              << ", total F[" << i << "]=" << force[i]
-              << ", total Fz=" << force[2]
-              << std::endl;
 
     ++ic;
   }
@@ -764,11 +700,6 @@ static double PoQ_energy(double omega, std::size_t n_part) {
   }
 
   auto const result = energy / omega;
-  std::cout << std::setprecision(15)
-            << "[ELC] PoQ_energy: omega=" << omega
-            << ", raw_sum=" << energy
-            << ", energy/omega=" << result
-            << std::endl;
 
   return result;
 }
@@ -908,20 +839,6 @@ static void setup_PQ(elc_data const &elc, double prefactor, std::size_t index_p,
     scale_vec(pref_di, lclimge, size);
     add_vec(gblcblk, gblcblk, lclimge, size);
   }
-
-  // Print setup_PQ results
-  std::cout << std::setprecision(15)
-            << "[ELC] setup_PQ p=" << index_p << " q=" << index_q
-            << " omega=" << omega
-            << ": gblcblk[PQESSM]=" << gblcblk[PQESSM]
-            << " gblcblk[PQESCM]=" << gblcblk[PQESCM]
-            << " gblcblk[PQECSM]=" << gblcblk[PQECSM]
-            << " gblcblk[PQECCM]=" << gblcblk[PQECCM]
-            << " gblcblk[PQESSP]=" << gblcblk[PQESSP]
-            << " gblcblk[PQESCP]=" << gblcblk[PQESCP]
-            << " gblcblk[PQECSP]=" << gblcblk[PQECSP]
-            << " gblcblk[PQECCP]=" << gblcblk[PQECCP]
-            << std::endl;
 }
 
 static void add_PQ_force(std::size_t index_p, std::size_t index_q, double omega,
@@ -972,18 +889,6 @@ static void add_PQ_force(std::size_t index_p, std::size_t index_q, double omega,
     force[1] += fy_contrib;
     force[2] += fz_contrib;
 
-    std::cout << std::setprecision(15)
-              << "[ELC] add_PQ_force p=" << index_p << " q=" << index_q
-              << " omega=" << omega
-              << " particle id=" << p.id()
-              << ": Fx_contrib=" << fx_contrib
-              << ", Fy_contrib=" << fy_contrib
-              << ", Fz_contrib=" << fz_contrib
-              << ", total Fx=" << force[0]
-              << ", total Fy=" << force[1]
-              << ", total Fz=" << force[2]
-              << std::endl;
-
     ic++;
   }
 }
@@ -1004,11 +909,6 @@ static double PQ_energy(double omega, std::size_t n_part) {
   }
 
   auto const result = energy / omega;
-  std::cout << std::setprecision(15)
-            << "[ELC] PQ_energy: omega=" << omega
-            << ", raw_sum=" << energy
-            << ", energy/omega=" << result
-            << std::endl;
 
   return result;
 }
@@ -1024,7 +924,6 @@ void ElectrostaticLayerCorrection::add_force() const {
   auto const n_scycache = std::get<1>(n_freqs);
   partblk.resize(particles.size() * 8);
 
-  std::cout << "[ELC] === add_force() begin ===" << std::endl;
 
   add_dipole_force();
   add_z_force();
@@ -1035,9 +934,7 @@ void ElectrostaticLayerCorrection::add_force() const {
        p <= n_scxcache;
        p++) {
     auto const omega = c_2pi * box_geo.length_inv()[0] * static_cast<double>(p);
-    std::cout << std::setprecision(15)
-              << "[ELC] add_force: PoQ P loop, p=" << p
-              << ", omega=" << omega << std::endl;
+    
     setup_PoQ<PoQ::P>(elc, prefactor, p, omega, particles, box_geo);
     distribute(4);
     add_PoQ_force<PoQ::P>(particles);
@@ -1048,9 +945,6 @@ void ElectrostaticLayerCorrection::add_force() const {
        q <= n_scycache;
        q++) {
     auto const omega = c_2pi * box_geo.length_inv()[1] * static_cast<double>(q);
-    std::cout << std::setprecision(15)
-              << "[ELC] add_force: PoQ Q loop, q=" << q
-              << ", omega=" << omega << std::endl;
     setup_PoQ<PoQ::Q>(elc, prefactor, q, omega, particles, box_geo);
     distribute(4);
     add_PoQ_force<PoQ::Q>(particles);
@@ -1071,26 +965,11 @@ void ElectrostaticLayerCorrection::add_force() const {
           c_2pi *
           sqrt(Utils::sqr(box_geo.length_inv()[0] * static_cast<double>(p)) +
                Utils::sqr(box_geo.length_inv()[1] * static_cast<double>(q)));
-      std::cout << std::setprecision(15)
-                << "[ELC] add_force: PQ loop, p=" << p << ", q=" << q
-                << ", omega=" << omega << std::endl;
       setup_PQ(elc, prefactor, p, q, omega, particles, box_geo);
       distribute(8);
       add_PQ_force(p, q, omega, particles, box_geo);
     }
   }
-
-  // Print final forces on all particles
-  std::cout << "[ELC] === Final forces after add_force() ===" << std::endl;
-  for (auto const &p : particles) {
-    std::cout << std::setprecision(15)
-              << "[ELC] Particle id=" << p.id()
-              << ": Fx=" << p.force()[0]
-              << ", Fy=" << p.force()[1]
-              << ", Fz=" << p.force()[2]
-              << std::endl;
-  }
-  std::cout << "[ELC] === add_force() end ===" << std::endl;
 }
 
 double ElectrostaticLayerCorrection::calc_energy() const {
@@ -1100,7 +979,6 @@ double ElectrostaticLayerCorrection::calc_energy() const {
   auto const &box_geo = *system.box_geo;
   auto const particles = system.cell_structure->local_particles();
 
-  std::cout << "[ELC] === calc_energy() begin ===" << std::endl;
 
   auto const dipole_e = dipole_energy();
   auto const z_e = z_energy();
@@ -1129,12 +1007,6 @@ double ElectrostaticLayerCorrection::calc_energy() const {
     distribute(4);
     auto const contrib = PoQ_energy(omega, n_localpart);
     energy += contrib;
-    std::cout << std::setprecision(15)
-              << "[ELC] calc_energy: PoQ P p=" << p
-              << " omega=" << omega
-              << " contrib=" << contrib
-              << " energy_running=" << energy
-              << std::endl;
   }
 
   for (std::size_t q = 1;
@@ -1146,12 +1018,7 @@ double ElectrostaticLayerCorrection::calc_energy() const {
     distribute(4);
     auto const contrib = PoQ_energy(omega, n_localpart);
     energy += contrib;
-    std::cout << std::setprecision(15)
-              << "[ELC] calc_energy: PoQ Q q=" << q
-              << " omega=" << omega
-              << " contrib=" << contrib
-              << " energy_running=" << energy
-              << std::endl;
+   
   }
 
   for (std::size_t p = 1;
@@ -1173,22 +1040,12 @@ double ElectrostaticLayerCorrection::calc_energy() const {
       distribute(8);
       auto const contrib = PQ_energy(omega, n_localpart);
       energy += contrib;
-      std::cout << std::setprecision(15)
-                << "[ELC] calc_energy: PQ p=" << p << " q=" << q
-                << " omega=" << omega
-                << " contrib=" << contrib
-                << " energy_running=" << energy
-                << std::endl;
     }
   }
 
   /* we count both i<->j and j<->i, so return just half of it */
   auto const final_energy = 0.5 * energy;
-  std::cout << std::setprecision(15)
-            << "[ELC] calc_energy: total (before *0.5)=" << energy
-            << ", final (0.5*total)=" << final_energy
-            << std::endl;
-  std::cout << "[ELC] === calc_energy() end ===" << std::endl;
+ 
 
   return final_energy;
 }
@@ -1451,7 +1308,6 @@ void modify_p3m_sums(elc_data const &elc, CoulombP3M &solver,
 double ElectrostaticLayerCorrection::long_range_energy() const {
   auto const &system = get_system();
 
-  std::cout << "[ELC] === long_range_energy() begin ===" << std::endl;
 
   auto const energy = std::visit(
       [this, &system](auto const &solver_ptr) {
@@ -1521,11 +1377,10 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
   auto const total = energy + elc_correction;
 
   std::cout << std::setprecision(15)
-            << "[ELC] long_range_energy: P3M_subtotal=" << energy
-            << ", ELC_correction (calc_energy)=" << elc_correction
-            << ", grand_total=" << total
+            << "[ELC] E_far_p3m = " << energy
+            << ", E_far_corr = " << elc_correction
+            << ", E_far = E_far_p3m + E_far_corr = " << total
             << std::endl;
-  std::cout << "[ELC] === long_range_energy() end ===" << std::endl;
 
   return total;
 }
@@ -1533,7 +1388,6 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
 void ElectrostaticLayerCorrection::add_long_range_forces() const {
   auto const &system = get_system();
 
-  std::cout << "[ELC] === add_long_range_forces() begin ===" << std::endl;
 
   std::visit(
       [this, &system](auto const &solver_ptr) {
@@ -1552,18 +1406,6 @@ void ElectrostaticLayerCorrection::add_long_range_forces() const {
         }
         solver.add_long_range_forces();
 
-        // Print forces after P3M long range
-        std::cout << "[ELC] Forces after solver.add_long_range_forces():"
-                  << std::endl;
-        for (auto const &p : particles) {
-          std::cout << std::setprecision(15)
-                    << "[ELC]   Particle id=" << p.id()
-                    << ": Fx=" << p.force()[0]
-                    << ", Fy=" << p.force()[1]
-                    << ", Fz=" << p.force()[2]
-                    << std::endl;
-        }
-
         if (elc.dielectric_contrast_on) {
           modify_p3m_sums<ChargeProtocol::REAL>(elc, solver, p_q_pos_range);
         }
@@ -1571,19 +1413,6 @@ void ElectrostaticLayerCorrection::add_long_range_forces() const {
       base_solver);
 
   add_force();
-
-  // Print final forces after ELC add_force
-  auto const particles = system.cell_structure->local_particles();
-  std::cout << "[ELC] Final forces after add_long_range_forces():" << std::endl;
-  for (auto const &p : particles) {
-    std::cout << std::setprecision(15)
-              << "[ELC]   Particle id=" << p.id()
-              << ": Fx=" << p.force()[0]
-              << ", Fy=" << p.force()[1]
-              << ", Fz=" << p.force()[2]
-              << std::endl;
-  }
-  std::cout << "[ELC] === add_long_range_forces() end ===" << std::endl;
 }
 
 #endif // ESPRESSO_P3M

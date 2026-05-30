@@ -1,23 +1,16 @@
-* reverse engineer elc based on elc.cpp code + output (make it print contribs,etc)
-  *
-* reverse engineer elc based on elc.cpp output only
+#### notes
 
-
-
-
-
-* port elc.cpp to python
-  * insert contrib print statements in elc.cpp: DONE
-  * map cpp contribs to py contribs, what belongs where, use as "ground truths"
-  * iteratively fix indicidual custom.py contribs until cpp contrib matched
-  *
-* IDEA: why does LLM: "convert elc.cpp to python" not work?
-  * can i do it contrib-wise (e.g. "convert e\_near from elc-cpp to python?)
-*
-
-
+* elc.cpp computation structure is very different from mine (even calcs forces when asking for energy, 1400 lines, etc)
 
 # Action Tree
+
+* improve/fix custom\_elc with elc.cpp output only (no cpp code): YES TODO
+  * insert contrib print statements in elc.cpp: DONE
+  * map cpp contribs to py contribs, what belongs where, use as "ground truths" DONE
+  * iteratively fix indicidual custom.py contribs
+  *
+
+#### Old Etotal Framework Action Tree
 
 fix near energy, "a/b\_zshift\_" contains error spike at pos.z=lz/2
 
