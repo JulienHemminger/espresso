@@ -64,5 +64,6 @@ Action Tree
 
 * fix E_far
     * use Gemini, with tyagi + custom.py: NO, 10 tries 
+    * use AI arena (claude, chatgpt), with tyagi + custom.py: NO, 2 tries
     * cursor composer?
 """
