@@ -10,39 +10,7 @@ import espressomd
 import numpy as np
 from elcic.energy.legacy_contrib_framework.CUSTOM.custom import get_elcic_energy
 from elcic.energy.legacy_contrib_framework.param_lerp_plot_2d import run_lerp_plot
-from elc.energy.legacy_elc_energy import get_legacy_energy
 from elcic.energy.legacy_contrib_framework.get_legacy_contribs import get_legacy_contribs
-
-"""
-eps = 1e-1
-lz = 10
-start_params = {
-    "lx": 10.0,
-    "ly": 10.0,
-    "gap_size": 10.0,
-    "prefactor": 1.0,
-    "delta_mid_top": -1.0,
-    "delta_mid_bot": -1.0,
-    "charges": [+1.0, -1.0],
-    "pw_error": 1e-8,
-    "positions": [np.array([6, 5, eps]), np.array([3, 2, eps])],    
-}
-start_params["lz"] = start_params["gap_size"] + lz
-
-lz = 40
-end_params = {
-    "lx": 50.0,
-    "ly": 50.0,
-    "gap_size": 20.0,
-    "prefactor": 1.0,
-    "delta_mid_top": +1.0,
-    "delta_mid_bot": +1.0,
-    "charges": [+1.0, -1.0],
-    "pw_error": 1e-8,
-    "positions": [np.array([6, 5, lz-eps]), np.array([3, 2, lz-eps])],    
-}
-end_params["lz"] = start_params["gap_size"] + lz
-"""
 
 start_params = {
     "lx": 10.0,
@@ -94,4 +62,7 @@ Action Tree
 * break it doen to E_near_p3m or E_near_corr: {DONE}
 
 
+* fix E_far
+    * use Gemini, with tyagi + custom.py: NO, 10 tries 
+    * cursor composer?
 """
