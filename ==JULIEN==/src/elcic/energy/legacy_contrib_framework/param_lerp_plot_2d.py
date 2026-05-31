@@ -99,17 +99,21 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
 
     # --- Print Summary for t=1 (last result) ---
     if get_legacy_energy and results["legacy"]:
-        print(f"{'Name':<12} | {'Legacy':<10} | {'Custom':<10} | {'Error (abs)'}")
-        print("-" * 50)
-        leg_final = results["legacy"][-1]
-        cus_final = results["custom"][-1]
-        
-        for key in cus_final.keys():
-            if key in leg_final:
-                val_l = leg_final[key]
-                val_c = cus_final[key]
-                error = abs(val_l - val_c)
-                print(f"{key:<12} | {val_l:<15.10f} | {val_c:<15.10f} | {error:<15.10f}")
+        for i in range(steps):
+            t = t_values[i]
+            params = lerp_dict(start_params, end_params, t)
+            print(f"Parameters={params}")
+            print(f"{'Name':<12} | {'Legacy':<10} | {'Custom':<10} | {'Error (abs)'}")
+            print("-" * 50)
+            leg_final = results["legacy"][i]
+            cus_final = results["custom"][i]
+            
+            for key in cus_final.keys():
+                if key in leg_final:
+                    val_l = leg_final[key]
+                    val_c = cus_final[key]
+                    error = abs(val_l - val_c)
+                    print(f"{key:<12} | {val_l:<15.10f} | {val_c:<15.10f} | {error:<15.10f}")
 
     # --- Prepare Data ---
     # Convert list of dicts to a dict of numpy arrays

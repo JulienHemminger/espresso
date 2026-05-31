@@ -66,4 +66,9 @@ Action Tree
     * use Gemini, with tyagi + custom.py: NO, 10 tries 
     * use AI arena (claude, chatgpt), with tyagi + custom.py: NO, 2 tries
     * cursor composer?
+
+* fix E_near; NO, 10 tries
+* fix all: : NO, 2 tries
+
+* TODO i could to "by hand": setup lerp lz test, find errors (in indiv contribs)
 """
