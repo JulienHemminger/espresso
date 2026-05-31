@@ -43,8 +43,7 @@ end_params = {
 }
 end_params["lz"] = start_params["gap_size"] + lz
 """
-eps = 4 # somehow legacy throws errors for eps=2, 3
-lz = 10
+
 start_params = {
     "lx": 10.0,
     "ly": 10.0,
@@ -54,13 +53,24 @@ start_params = {
     "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    "positions": [np.array([6, 5, eps]), np.array([3, 2, eps])],    
+    "positions": [np.array([6, 5, 4]), np.array([3, 2, 4])], # legacy fails for part.z <= 3    
 }
-start_params["lz"] = start_params["gap_size"] + lz
+start_params["lz"] = start_params["gap_size"] + 10
 
 
-end_params = copy.deepcopy(start_params)
-end_params["delta_mid_bot"] = 1.0
+end_params = {
+    "lx": 50.0,
+    "ly": 50.0,
+    "gap_size": 15.0, # legacy runs with: 14, 15, fails with 16, 20
+    "prefactor": 1.0,
+    "delta_mid_top": +1.0,
+    "delta_mid_bot": +1.0,
+    "charges": [+1.0, -1.0],
+    "pw_error": 1e-8,
+    "positions": [np.array([6, 5, 30]), np.array([3, 2, 30])], # legacy runs for part.z = 4, 24, fails for part.z = 3, 34, 39    
+}
+end_params["lz"] = start_params["gap_size"] + 40
+
 
 
 
@@ -75,14 +85,13 @@ system.cell_system.skin = (
 run_lerp_plot(system=system, start_params=start_params, end_params=end_params, get_custom_energy=get_elcic_energy, get_legacy_energy=get_legacy_contribs, steps=4)
 
 
-
-"""
+DONE = None
+f"""
 Action Tree
-* fix custom.py for this single test
-* add range of test (lerp) and plots (now im at my old err=1e-4): DONE
-* swap E_near and E_far in legacy contribs, i thing theres a bug on the C++ side: DONE
+* fix custom.py for this single test: {DONE}
+* add range of test (lerp) and plots (now im at my old err=1e-4): {DONE}
+* swap E_near and E_far in legacy contribs, i thing theres a bug on the C++ side: {DONE}
+* break it doen to E_near_p3m or E_near_corr: {DONE}
 
-* TODO why do i get errors for some params?
-* TODO fix E_near
-    * can/should i break it doen to E_near_p3m or E_near_corr.
+
 """
