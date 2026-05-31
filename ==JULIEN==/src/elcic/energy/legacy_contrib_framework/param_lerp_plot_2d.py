@@ -94,6 +94,8 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
         if get_legacy_energy:
             legacy_res = get_legacy_energy(system, params)
             results["legacy"].append(legacy_res)
+        else:
+            legacy_res = None
         custom_res = get_custom_energy(system, params)
         results["custom"].append(custom_res)
 

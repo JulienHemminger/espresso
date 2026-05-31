@@ -70,5 +70,6 @@ Action Tree
 * fix E_near; NO, 10 tries
 * fix all: : NO, 2 tries
 
-* TODO i could to "by hand": setup lerp lz test, find errors (in indiv contribs)
+* map individual contribs/methods from elc.cpp to custom.py
+* i could to "by hand": setup lerp lz test, find errors (in indiv contribs)
 """
