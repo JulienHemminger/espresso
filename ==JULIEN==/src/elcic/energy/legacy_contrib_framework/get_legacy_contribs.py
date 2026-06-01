@@ -55,20 +55,26 @@ def get_legacy_contribs(system, params) -> dict:
     # Parsing logic
     def _parse_elc_output(log_text):
         data = {}
-        pattern = r"E_far_p3m\s*=\s*(?P<p3m>[-+]?\d*\.\d+),\s*E_far_corr\s*=\s*(?P<corr>[-+]?\d*\.\d+),\s*E_far\s*=\s*.*=\s*(?P<far>[-+]?\d*\.\d+)"
+        # Matches lines like: [ELC] E_near_L0_L0 = -0.27256698373464
+        # Supports optional signs, decimals, and scientific notation
+        pattern = r"\[ELC\]\s*(?P<key>\w+)\s*=\s*(?P<value>[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
         
-        match = re.search(pattern, log_text)
-        if match:
-            data.update({
-                'E_near_p3m': float(match.group('p3m')),
-                'E_near_corr': float(match.group('corr')),
-                'E_near': float(match.group('far'))
-            })
+        matches = re.finditer(pattern, log_text)
+        for match in matches:
+            key = match.group('key')
+            val = float(match.group('value'))
+            data[key] = val
+            
         return data
 
     legacy_contribs = _parse_elc_output(output)
-    assert math.isclose(legacy_contribs['E_near'], legacy_contribs['E_near_p3m']+legacy_contribs['E_near_corr'])
+    
+    # Ensure our required parsed components are present before assertion
+    if 'E_near' in legacy_contribs and 'E_far' in legacy_contribs and 'E_total' in legacy_contribs:
+        assert math.isclose(legacy_contribs['E_total'], legacy_contribs['E_near'] + legacy_contribs['E_far'], rel_tol=1e-9)
+    else:
+        raise ValueError("Could not parse all required ELC energy contributions from the output.")
 
+    # Your original return dict schema (with E_total matched to the actual returned float)
     legacy_contribs['E_total'] = total_energy
-    legacy_contribs['E_far'] = legacy_contribs['E_total'] - legacy_contribs['E_near']
     return legacy_contribs

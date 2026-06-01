@@ -78,4 +78,11 @@ Action Tree
     * fix E_far (elc.cpp: "<< ", E_far = E_far_p3m + E_far_corr = " << total") TODO
 
 * i could to "by hand": setup lerp lz test, find errors (in indiv contribs)
+
+* go the other way
+    * refac elc.cpp (simpler more readable, barebones, remove checks, remove optimizations such as sincos cache, etc)
+        * inject print statements for contribs in elc.cpp
+        * map elc.cpp to elc.py
+
+        * note: this path is a nice and testable path
 """

@@ -20,17 +20,17 @@ from elcic.energy.legacy_contrib_framework.param_lerp_plot_2d import run_lerp_pl
 from elcic.energy.legacy_contrib_framework.get_legacy_contribs import get_legacy_contribs
 
 params = {
-    "lx": 10.0,
-    "ly": 10.0,
-    "gap_size": 10.0,
+    "lx": 30.0,
+    "ly": 30.0,
+    "gap_size": 20.0,
     "prefactor": 1.0,
-    "delta_mid_top": -1.0,
-    "delta_mid_bot": -1.0,
+    "delta_mid_top": +1.0,
+    "delta_mid_bot": +1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    "positions": [np.array([6, 5, 4]), np.array([3, 2, 4])], # legacy fails for part.z <= 3    
+    "positions": [np.array([4, 5, 6]), np.array([1, 2, 3])], # legacy fails for part.z <= 3    
 }
-params["lz"] = params["gap_size"] + 10
+params["lz"] = params["gap_size"] + 30
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -43,22 +43,11 @@ system.part.clear()
 system.box_l = [params["lx"], params["ly"], params["lz"]]
 for i in range(len(params["charges"])):
     system.part.add(pos=params["positions"][i], q=params["charges"][i])
-
-
+print("=======================")
+print(params)
 print(f"E_return = {get_legacy_energy(system, params)}")
 
 """
 ELC] E_total = -0.276515461166035
-E_return = -0.2765154822643574
-"""
-
-"""
-[ELC] E_near_L0_L0 = -0.27256698373464
-[ELC] E_near_self = 0
-[ELC] E_near_LT_LT = -0.27256698373464
-[ELC] E_near_L1_L1 = 0
-[ELC] E_near = -0.27256698373464
-[ELC] E_far = -0.00394847743139499
-[ELC] E_total = -0.276515461166035
 E_return = -0.2765154822643574
 """
