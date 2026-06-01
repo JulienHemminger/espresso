@@ -47,3 +47,15 @@ for i in range(len(params["charges"])):
 
 print(f"E_return = {get_legacy_energy(system, params)}")
 
+"""
+ELC] E_total = -0.276515461166035
+E_return = -0.2765154822643574
+"""
+
+"""
+[ELC] E_near_LT_LT = -0.27256698373464
+[ELC] E_near_L1_L1 = 0
+[ELC] E_near = -0.27256698373464
+[ELC] E_total = -0.276515461166035
+E_return = -0.2765154822643574
+"""

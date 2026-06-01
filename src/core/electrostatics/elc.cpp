@@ -1222,25 +1222,34 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
           return solver.long_range_energy();
         }
 
-        auto energy = 0.;
-        energy += 0.5 * solver.long_range_energy();
-        energy +=
-            0.5 * elc.dielectric_layers_self_energy(solver, box_geo, particles);
+        auto E_near = 0.;
+        double E_LT_LT = 0.0;   // Φ(L_T, L_T)
+        double E_L1_L1 = 0.0;   // Φ(L_±1, L_±1)
+        double E_L0_L0 = 0.0;   // Φ(L_0, L_0)
+
+        E_near += 0.5 * solver.long_range_energy();
+        E_near +=
+0.5 * elc.dielectric_layers_self_energy(solver, box_geo, particles);
 
         // assign both original and image charges
         charge_assign<ChargeProtocol::BOTH>(elc, solver, p_q_pos_range);
         modify_p3m_sums<ChargeProtocol::BOTH>(elc, solver, p_q_pos_range);
-        energy += 0.5 * solver.long_range_energy();
+        E_LT_LT = solver.long_range_energy(); // Save Φ(L_T, L_T)
+        std::cout << std::setprecision(15) << "[ELC] E_near_LT_LT = " << E_LT_LT << std::endl;
+        E_near += 0.5 * E_LT_LT;
 
         // assign only the image charges now
         charge_assign<ChargeProtocol::IMAGE>(elc, solver, p_q_pos_range);
         modify_p3m_sums<ChargeProtocol::IMAGE>(elc, solver, p_q_pos_range);
-        energy -= 0.5 * solver.long_range_energy();
+        E_L1_L1 = solver.long_range_energy(); // Save Φ(L_±1, L_±1)
+        std::cout << std::setprecision(15) << "[ELC] E_near_L1_L1 = " << E_L1_L1 << std::endl;
+        E_near -= 0.5 * E_L1_L1;
 
         // restore modified sums
         modify_p3m_sums<ChargeProtocol::REAL>(elc, solver, p_q_pos_range);
 
-        return energy;
+        std::cout << std::setprecision(15) << "[ELC] E_near = " << E_near << std::endl;
+        return E_near;
       },
       base_solver);
   auto const E_total = energy + calc_energy();
