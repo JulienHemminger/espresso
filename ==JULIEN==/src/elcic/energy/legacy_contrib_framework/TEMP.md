@@ -2,9 +2,9 @@ $E_{\text{total}} = \frac{1}{2}\left(\Phi(L_i, L_0) + \Phi(L_0, L_0)\right)$
 
 $E_{\text{total}} = \frac{1}{2}\Phi(L_0, L_T) + \frac{1}{2}\Phi(L_0, L_{\pm2})$ = 1/2\*_E_\_near + 1/2\*E\_far
 
-E\_near = $\Phi(L_0, L_T)$ =&#x20;
+E_near_ _$= \Phi(L_0, L_T) = \frac{1}{2}\left(\Phi(L_T, L_T) - \Phi(L_{\pm1}, L_{\pm1}) + \Phi(L_0, L_0)\right)$_ _= 1/2 \* ( a - b + E_\_real\_self)
 
-E\_far = $\Phi(L_0, L_{\pm2})$ =
+E\_far = $\Phi(L_0, L_{\pm2})$ (computed with far formula)
 
 
 

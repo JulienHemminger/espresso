@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2022 The ESPResSo project
+ * Copyright (C) 2010-2026 The ESPResSo project
  * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
  *   Max-Planck-Institute for Polymer Research, Theory Group
  *
@@ -37,22 +37,22 @@
 #include "errorhandling.hpp"
 #include "system/System.hpp"
 
-#include <utils/Vector.hpp>
 #include <utils/math/sqr.hpp>
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 #include <Kokkos_Core.hpp>
-#endif
 
 #include <boost/mpi/collectives/all_reduce.hpp>
 #include <boost/range/combine.hpp>
 
 #include <algorithm>
+#include <iostream>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <functional>
 #include <numbers>
+#include <stdexcept>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -319,51 +319,30 @@ double ElectrostaticLayerCorrection::dipole_energy() const {
 
   // Yeh + Berkowitz term @cite yeh99a
   auto energy = 2. * pref * (Utils::sqr(gblcblk[2]) + gblcblk[2] * gblcblk[3]);
-  std::cout << std::setprecision(15)
-            << "[ELC] Dipole energy: Yeh-Berkowitz term = " << energy
-            << std::endl;
+
   if (!elc.neutralize) {
     // SUBTRACT the energy of the P3M homogeneous neutralizing background
-    auto const neutralize_contrib = 2. * pref *
+    energy += 2. * pref *
               (-gblcblk[0] * gblcblk[4] -
                (.25 - .5 / 3.) * Utils::sqr(gblcblk[0] * lz));
-    energy += neutralize_contrib;
-    std::cout << std::setprecision(15)
-              << "[ELC] Dipole energy: neutralizing background subtraction = "
-              << neutralize_contrib << std::endl;
   }
 
   if (elc.dielectric_contrast_on) {
     if (elc.const_pot) {
       // zero potential difference contribution
-      auto const zero_pot_contrib = pref / elc.box_h * lz * Utils::sqr(gblcblk[6]);
-      energy += zero_pot_contrib;
-      std::cout << std::setprecision(15)
-                << "[ELC] Dipole energy: const_pot zero-potential-difference contrib = "
-                << zero_pot_contrib << std::endl;
+      energy += pref / elc.box_h * lz * Utils::sqr(gblcblk[6]);
       // external potential shift contribution
-      auto const ext_pot_contrib = -2. * elc.pot_diff / elc.box_h * gblcblk[6];
-      energy += ext_pot_contrib;
-      std::cout << std::setprecision(15)
-                << "[ELC] Dipole energy: const_pot external potential shift contrib = "
-                << ext_pot_contrib << std::endl;
+      energy -= 2. * elc.pot_diff / elc.box_h * gblcblk[6];
     }
 
     /* counter the P3M homogeneous background contribution to the
        boundaries. We never need that, since a homogeneous background
        spanning the artificial boundary layers is aphysical. */
-    auto const boundary_contrib =
+    energy +=
         pref * (-(gblcblk[1] * gblcblk[4] + gblcblk[0] * gblcblk[5]) -
                 (1. - 2. / 3.) * gblcblk[0] * gblcblk[1] * Utils::sqr(lz));
-    energy += boundary_contrib;
-    std::cout << std::setprecision(15)
-              << "[ELC] Dipole energy: dielectric boundary P3M background counter = "
-              << boundary_contrib << std::endl;
   }
 
-  std::cout << std::setprecision(15)
-            << "[ELC] Dipole energy total (node 0 only) = "
-            << (this_node == 0 ? energy : 0.) << std::endl;
   return this_node == 0 ? energy : 0.;
 }
 
@@ -464,12 +443,6 @@ double ElectrostaticLayerCorrection::z_energy() const {
   distribute(size);
 
   auto const energy = gblcblk[1] * gblcblk[2] - gblcblk[0] * gblcblk[3];
-  std::cout << std::setprecision(15)
-            << "[ELC] z_energy raw (gblcblk[1]*gblcblk[2] - gblcblk[0]*gblcblk[3]) = "
-            << energy
-            << ", z_energy (node 0 only) = "
-            << ((this_node == 0) ? -pref * energy : 0.)
-            << std::endl;
   return (this_node == 0) ? -pref * energy : 0.;
 }
 
@@ -926,14 +899,7 @@ double ElectrostaticLayerCorrection::calc_energy() const {
   auto const &system = get_system();
   auto const &box_geo = *system.box_geo;
   auto const particles = system.cell_structure->local_particles();
-  auto const dipole_e = dipole_energy();
-  auto const z_e = z_energy();
-  auto energy = dipole_e + z_e;
-  std::cout << std::setprecision(15)
-            << "[ELC] calc_energy: dipole_energy=" << dipole_e
-            << ", z_energy=" << z_e
-            << ", sum so far=" << energy
-            << std::endl;
+  auto energy = dipole_energy() + z_energy();
   auto const n_freqs = prepare_sc_cache(particles, box_geo, elc.far_cut);
   auto const n_scxcache = std::get<0>(n_freqs);
   auto const n_scycache = std::get<1>(n_freqs);
@@ -994,22 +960,23 @@ double ElectrostaticLayerCorrection::tune_far_cut() const {
   auto const box_l_y_inv = box_geo.length_inv()[1];
   auto const min_inv_boxl = std::min(box_l_x_inv, box_l_y_inv);
   auto const box_l_z = box_geo.length()[2];
+  auto const h = elc.box_h;
   // adjust lz according to dielectric layer method
-  auto const lz =
-      (elc.dielectric_contrast_on) ? elc.box_h + elc.space_layer : box_l_z;
+  auto const lz = (elc.dielectric_contrast_on) ? h + elc.space_layer : box_l_z;
 
   auto tuned_far_cut = min_inv_boxl;
   double err;
   do {
+    // following equation 18 in arnold02d
     auto const pref = 2. * std::numbers::pi * tuned_far_cut;
     auto const sum = pref + 2. * (box_l_x_inv + box_l_y_inv);
-    auto const den = -expm1(-pref * lz);
-    auto const num1 = exp(pref * (elc.box_h - lz));
-    auto const num2 = exp(-pref * (elc.box_h + lz));
+    auto const den = expm1(pref * lz);
+    auto const num1 = exp(pref * h);
+    auto const num2 = 1. / num1; // exp(-pref * h);
 
     err = 0.5 / den *
-          (num1 * (sum + 1. / (lz - elc.box_h)) / (lz - elc.box_h) +
-           num2 * (sum + 1. / (lz + elc.box_h)) / (lz + elc.box_h));
+          (num1 / (lz - h) * (sum + 1. / (lz - h)) +
+           num2 / (lz + h) * (sum + 1. / (lz + h)));
 
     tuned_far_cut += min_inv_boxl;
   } while (err > elc.maxPWerror and tuned_far_cut < maximal_far_cut);
@@ -1161,12 +1128,8 @@ void charge_assign(elc_data const &elc, CoulombP3M &solver,
   solver.prepare_fft_mesh(protocol == ChargeProtocol::BOTH or
                           protocol == ChargeProtocol::IMAGE);
 
-#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   // multi-threading -> cache sizes must be equal to the number of particles
-  auto const include_neutral_particles = Kokkos::num_threads() > 1;
-#else
-  auto constexpr include_neutral_particles = false;
-#endif
+  auto constexpr include_neutral_particles = true;
 
   for (auto zipped : p_q_pos_range) {
     auto const p_q = boost::get<0>(zipped);
@@ -1256,62 +1219,33 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
         solver.charge_assign();
 
         if (!elc.dielectric_contrast_on) {
-          auto const e = solver.long_range_energy();
-          std::cout << std::setprecision(15)
-                    << "[ELC] long_range_energy (no dielectric contrast): "
-                    << "P3M long_range_energy=" << e << std::endl;
-          return e;
+          return solver.long_range_energy();
         }
 
         auto energy = 0.;
-        auto const e_half_p3m = 0.5 * solver.long_range_energy();
-        energy += e_half_p3m;
-        std::cout << std::setprecision(15)
-                  << "[ELC] long_range_energy: 0.5*P3M_real=" << e_half_p3m
-                  << std::endl;
-
-        auto const e_self = 0.5 * elc.dielectric_layers_self_energy(solver, box_geo, particles);
-        energy += e_self;
-        std::cout << std::setprecision(15)
-                  << "[ELC] long_range_energy: 0.5*dielectric_layers_self_energy="
-                  << e_self << std::endl;
+        energy += 0.5 * solver.long_range_energy();
+        energy +=
+            0.5 * elc.dielectric_layers_self_energy(solver, box_geo, particles);
 
         // assign both original and image charges
         charge_assign<ChargeProtocol::BOTH>(elc, solver, p_q_pos_range);
         modify_p3m_sums<ChargeProtocol::BOTH>(elc, solver, p_q_pos_range);
-        auto const e_both = 0.5 * solver.long_range_energy();
-        energy += e_both;
-        std::cout << std::setprecision(15)
-                  << "[ELC] long_range_energy: +0.5*P3M_BOTH (real+image)="
-                  << e_both << std::endl;
+        energy += 0.5 * solver.long_range_energy();
 
         // assign only the image charges now
         charge_assign<ChargeProtocol::IMAGE>(elc, solver, p_q_pos_range);
         modify_p3m_sums<ChargeProtocol::IMAGE>(elc, solver, p_q_pos_range);
-        auto const e_image = 0.5 * solver.long_range_energy();
-        energy -= e_image;
-        std::cout << std::setprecision(15)
-                  << "[ELC] long_range_energy: -0.5*P3M_IMAGE=" << e_image
-                  << std::endl;
+        energy -= 0.5 * solver.long_range_energy();
 
         // restore modified sums
         modify_p3m_sums<ChargeProtocol::REAL>(elc, solver, p_q_pos_range);
-        std::cout << std::setprecision(15)
-                  << "[ELC] long_range_energy: subtotal (P3M parts)=" << energy
-                  << std::endl;
+
         return energy;
       },
       base_solver);
-  auto const elc_correction = calc_energy();
-  auto const total = energy + elc_correction;
-
-  std::cout << std::setprecision(15)
-            << "[ELC] E_far_p3m = " << energy
-            << ", E_far_corr = " << elc_correction
-            << ", E_far = E_far_p3m + E_far_corr = " << total
-            << std::endl;
-
-  return total;
+  auto const E_total = energy + calc_energy();
+  std::cout << std::setprecision(15) << "[ELC] E_total = " << E_total << std::endl;
+  return E_total;
 }
 
 void ElectrostaticLayerCorrection::add_long_range_forces() const {
