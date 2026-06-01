@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2026 The ESPResSo project
+ * Copyright (C) 2010-2022 The ESPResSo project
  * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
  *   Max-Planck-Institute for Polymer Research, Theory Group
  *
@@ -37,9 +37,12 @@
 #include "errorhandling.hpp"
 #include "system/System.hpp"
 
+#include <utils/Vector.hpp>
 #include <utils/math/sqr.hpp>
 
+#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
 #include <Kokkos_Core.hpp>
+#endif
 
 #include <boost/mpi/collectives/all_reduce.hpp>
 #include <boost/range/combine.hpp>
@@ -50,12 +53,8 @@
 #include <cstddef>
 #include <functional>
 #include <numbers>
-#include <stdexcept>
-#include <utility>
 #include <variant>
 #include <vector>
-#include <iostream>   // added for print statements
-#include <iomanip>    // added for std::setprecision
 
 /** \name Product decomposition data organization
  *  For the cell blocks it is assumed that the lower blocks part is in the
@@ -131,7 +130,6 @@ static std::vector<SCCache> calc_sc_cache(ParticleRange const &particles,
 static std::pair<std::size_t, std::size_t>
 prepare_sc_cache(ParticleRange const &particles, BoxGeometry const &box_geo,
                  double far_cut) {
-  // TODO possibly unused function
   assert(far_cut >= 0.);
   auto const n_freq_x =
       static_cast<std::size_t>(std::ceil(far_cut * box_geo.length()[0]) + 1.);
@@ -256,25 +254,15 @@ void ElectrostaticLayerCorrection::add_dipole_force() const {
     auto const field_induced = gblcblk[1];
     auto const field_applied = elc.pot_diff / elc.box_h;
     field_tot -= field_applied + field_induced;
-
   }
 
-
-
   for (auto &p : particles) {
-    // Save force before dipole contribution
-    auto fz_before = p.force()[2];
-
     p.force()[2] -= field_tot * p.q();
 
-    double neutralize_contrib = 0.;
     if (!elc.neutralize) {
       // SUBTRACT the forces of the P3M homogeneous neutralizing background
-      neutralize_contrib = gblcblk[2] * p.q() * (p.pos()[2] - shift);
-      p.force()[2] += neutralize_contrib;
+      p.force()[2] += gblcblk[2] * p.q() * (p.pos()[2] - shift);
     }
-
-
   }
 }
 
@@ -329,21 +317,16 @@ double ElectrostaticLayerCorrection::dipole_energy() const {
 
   distribute(size);
 
- 
-
   // Yeh + Berkowitz term @cite yeh99a
   auto energy = 2. * pref * (Utils::sqr(gblcblk[2]) + gblcblk[2] * gblcblk[3]);
-
   std::cout << std::setprecision(15)
             << "[ELC] Dipole energy: Yeh-Berkowitz term = " << energy
             << std::endl;
-
   if (!elc.neutralize) {
     // SUBTRACT the energy of the P3M homogeneous neutralizing background
-    auto const neutralize_contrib =
-        2. * pref *
-        (-gblcblk[0] * gblcblk[4] -
-         (.25 - .5 / 3.) * Utils::sqr(gblcblk[0] * lz));
+    auto const neutralize_contrib = 2. * pref *
+              (-gblcblk[0] * gblcblk[4] -
+               (.25 - .5 / 3.) * Utils::sqr(gblcblk[0] * lz));
     energy += neutralize_contrib;
     std::cout << std::setprecision(15)
               << "[ELC] Dipole energy: neutralizing background subtraction = "
@@ -358,7 +341,6 @@ double ElectrostaticLayerCorrection::dipole_energy() const {
       std::cout << std::setprecision(15)
                 << "[ELC] Dipole energy: const_pot zero-potential-difference contrib = "
                 << zero_pot_contrib << std::endl;
-
       // external potential shift contribution
       auto const ext_pot_contrib = -2. * elc.pot_diff / elc.box_h * gblcblk[6];
       energy += ext_pot_contrib;
@@ -382,7 +364,6 @@ double ElectrostaticLayerCorrection::dipole_energy() const {
   std::cout << std::setprecision(15)
             << "[ELC] Dipole energy total (node 0 only) = "
             << (this_node == 0 ? energy : 0.) << std::endl;
-
   return this_node == 0 ? energy : 0.;
 }
 
@@ -482,16 +463,13 @@ double ElectrostaticLayerCorrection::z_energy() const {
   }
   distribute(size);
 
-
   auto const energy = gblcblk[1] * gblcblk[2] - gblcblk[0] * gblcblk[3];
-
   std::cout << std::setprecision(15)
             << "[ELC] z_energy raw (gblcblk[1]*gblcblk[2] - gblcblk[0]*gblcblk[3]) = "
             << energy
             << ", z_energy (node 0 only) = "
             << ((this_node == 0) ? -pref * energy : 0.)
             << std::endl;
-
   return (this_node == 0) ? -pref * energy : 0.;
 }
 
@@ -545,10 +523,8 @@ void ElectrostaticLayerCorrection::add_z_force() const {
 
     distribute(size);
 
-
     for (auto &p : particles) {
-      auto const fz_contrib = gblcblk[0] * p.q();
-      p.force()[2] += fz_contrib;
+      p.force()[2] += gblcblk[0] * p.q();
     }
   }
 }
@@ -667,23 +643,14 @@ template <PoQ axis> void add_PoQ_force(ParticleRange const &particles) {
   std::size_t ic = 0;
   for (auto &p : particles) {
     auto &force = p.force();
-
-    auto const f_lateral =
-        partblk[size * ic + POQESM] * gblcblk[POQECP] -
-        partblk[size * ic + POQECM] * gblcblk[POQESP] +
-        partblk[size * ic + POQESP] * gblcblk[POQECM] -
-        partblk[size * ic + POQECP] * gblcblk[POQESM];
-
-    auto const f_z =
-        partblk[size * ic + POQECM] * gblcblk[POQECP] +
-        partblk[size * ic + POQESM] * gblcblk[POQESP] -
-        partblk[size * ic + POQECP] * gblcblk[POQECM] -
-        partblk[size * ic + POQESP] * gblcblk[POQESM];
-
-    force[i] += f_lateral;
-    force[2] += f_z;
-
-
+    force[i] += partblk[size * ic + POQESM] * gblcblk[POQECP] -
+                partblk[size * ic + POQECM] * gblcblk[POQESP] +
+                partblk[size * ic + POQESP] * gblcblk[POQECM] -
+                partblk[size * ic + POQECP] * gblcblk[POQESM];
+    force[2] += partblk[size * ic + POQECM] * gblcblk[POQECP] +
+                partblk[size * ic + POQESM] * gblcblk[POQESP] -
+                partblk[size * ic + POQECP] * gblcblk[POQECM] -
+                partblk[size * ic + POQESP] * gblcblk[POQESM];
     ++ic;
   }
 }
@@ -699,9 +666,7 @@ static double PoQ_energy(double omega, std::size_t n_part) {
               partblk[size * ic + POQESP] * gblcblk[POQESM];
   }
 
-  auto const result = energy / omega;
-
-  return result;
+  return energy / omega;
 }
 /**@}*/
 
@@ -854,41 +819,30 @@ static void add_PQ_force(std::size_t index_p, std::size_t index_q, double omega,
   std::size_t ic = 0;
   for (auto &p : particles) {
     auto &force = p.force();
-
-    auto const fx_contrib =
-        pref_x * (partblk[size * ic + PQESCM] * gblcblk[PQECCP] +
-                  partblk[size * ic + PQESSM] * gblcblk[PQECSP] -
-                  partblk[size * ic + PQECCM] * gblcblk[PQESCP] -
-                  partblk[size * ic + PQECSM] * gblcblk[PQESSP] +
-                  partblk[size * ic + PQESCP] * gblcblk[PQECCM] +
-                  partblk[size * ic + PQESSP] * gblcblk[PQECSM] -
-                  partblk[size * ic + PQECCP] * gblcblk[PQESCM] -
-                  partblk[size * ic + PQECSP] * gblcblk[PQESSM]);
-
-    auto const fy_contrib =
-        pref_y * (partblk[size * ic + PQECSM] * gblcblk[PQECCP] +
-                  partblk[size * ic + PQESSM] * gblcblk[PQESCP] -
-                  partblk[size * ic + PQECCM] * gblcblk[PQECSP] -
-                  partblk[size * ic + PQESCM] * gblcblk[PQESSP] +
-                  partblk[size * ic + PQECSP] * gblcblk[PQECCM] +
-                  partblk[size * ic + PQESSP] * gblcblk[PQESCM] -
-                  partblk[size * ic + PQECCP] * gblcblk[PQECSM] -
-                  partblk[size * ic + PQESCP] * gblcblk[PQESSM]);
-
-    auto const fz_contrib =
-        (partblk[size * ic + PQECCM] * gblcblk[PQECCP] +
-         partblk[size * ic + PQECSM] * gblcblk[PQECSP] +
-         partblk[size * ic + PQESCM] * gblcblk[PQESCP] +
-         partblk[size * ic + PQESSM] * gblcblk[PQESSP] -
-         partblk[size * ic + PQECCP] * gblcblk[PQECCM] -
-         partblk[size * ic + PQECSP] * gblcblk[PQECSM] -
-         partblk[size * ic + PQESCP] * gblcblk[PQESCM] -
-         partblk[size * ic + PQESSP] * gblcblk[PQESSM]);
-
-    force[0] += fx_contrib;
-    force[1] += fy_contrib;
-    force[2] += fz_contrib;
-
+    force[0] += pref_x * (partblk[size * ic + PQESCM] * gblcblk[PQECCP] +
+                          partblk[size * ic + PQESSM] * gblcblk[PQECSP] -
+                          partblk[size * ic + PQECCM] * gblcblk[PQESCP] -
+                          partblk[size * ic + PQECSM] * gblcblk[PQESSP] +
+                          partblk[size * ic + PQESCP] * gblcblk[PQECCM] +
+                          partblk[size * ic + PQESSP] * gblcblk[PQECSM] -
+                          partblk[size * ic + PQECCP] * gblcblk[PQESCM] -
+                          partblk[size * ic + PQECSP] * gblcblk[PQESSM]);
+    force[1] += pref_y * (partblk[size * ic + PQECSM] * gblcblk[PQECCP] +
+                          partblk[size * ic + PQESSM] * gblcblk[PQESCP] -
+                          partblk[size * ic + PQECCM] * gblcblk[PQECSP] -
+                          partblk[size * ic + PQESCM] * gblcblk[PQESSP] +
+                          partblk[size * ic + PQECSP] * gblcblk[PQECCM] +
+                          partblk[size * ic + PQESSP] * gblcblk[PQESCM] -
+                          partblk[size * ic + PQECCP] * gblcblk[PQECSM] -
+                          partblk[size * ic + PQESCP] * gblcblk[PQESSM]);
+    force[2] += (partblk[size * ic + PQECCM] * gblcblk[PQECCP] +
+                 partblk[size * ic + PQECSM] * gblcblk[PQECSP] +
+                 partblk[size * ic + PQESCM] * gblcblk[PQESCP] +
+                 partblk[size * ic + PQESSM] * gblcblk[PQESSP] -
+                 partblk[size * ic + PQECCP] * gblcblk[PQECCM] -
+                 partblk[size * ic + PQECSP] * gblcblk[PQECSM] -
+                 partblk[size * ic + PQESCP] * gblcblk[PQESCM] -
+                 partblk[size * ic + PQESSP] * gblcblk[PQESSM]);
     ic++;
   }
 }
@@ -907,10 +861,7 @@ static double PQ_energy(double omega, std::size_t n_part) {
               partblk[size * ic + PQESCP] * gblcblk[PQESCM] +
               partblk[size * ic + PQESSP] * gblcblk[PQESSM];
   }
-
-  auto const result = energy / omega;
-
-  return result;
+  return energy / omega;
 }
 /**@}*/
 
@@ -924,7 +875,6 @@ void ElectrostaticLayerCorrection::add_force() const {
   auto const n_scycache = std::get<1>(n_freqs);
   partblk.resize(particles.size() * 8);
 
-
   add_dipole_force();
   add_z_force();
 
@@ -934,7 +884,6 @@ void ElectrostaticLayerCorrection::add_force() const {
        p <= n_scxcache;
        p++) {
     auto const omega = c_2pi * box_geo.length_inv()[0] * static_cast<double>(p);
-    
     setup_PoQ<PoQ::P>(elc, prefactor, p, omega, particles, box_geo);
     distribute(4);
     add_PoQ_force<PoQ::P>(particles);
@@ -973,23 +922,18 @@ void ElectrostaticLayerCorrection::add_force() const {
 }
 
 double ElectrostaticLayerCorrection::calc_energy() const {
-
   auto constexpr c_2pi = 2. * std::numbers::pi;
   auto const &system = get_system();
   auto const &box_geo = *system.box_geo;
   auto const particles = system.cell_structure->local_particles();
-
-
   auto const dipole_e = dipole_energy();
   auto const z_e = z_energy();
   auto energy = dipole_e + z_e;
-
   std::cout << std::setprecision(15)
             << "[ELC] calc_energy: dipole_energy=" << dipole_e
             << ", z_energy=" << z_e
             << ", sum so far=" << energy
             << std::endl;
-
   auto const n_freqs = prepare_sc_cache(particles, box_geo, elc.far_cut);
   auto const n_scxcache = std::get<0>(n_freqs);
   auto const n_scycache = std::get<1>(n_freqs);
@@ -1005,8 +949,7 @@ double ElectrostaticLayerCorrection::calc_energy() const {
     auto const omega = c_2pi * box_geo.length_inv()[0] * static_cast<double>(p);
     setup_PoQ<PoQ::P>(elc, prefactor, p, omega, particles, box_geo);
     distribute(4);
-    auto const contrib = PoQ_energy(omega, n_localpart);
-    energy += contrib;
+    energy += PoQ_energy(omega, n_localpart);
   }
 
   for (std::size_t q = 1;
@@ -1016,9 +959,7 @@ double ElectrostaticLayerCorrection::calc_energy() const {
     auto const omega = c_2pi * box_geo.length_inv()[1] * static_cast<double>(q);
     setup_PoQ<PoQ::Q>(elc, prefactor, q, omega, particles, box_geo);
     distribute(4);
-    auto const contrib = PoQ_energy(omega, n_localpart);
-    energy += contrib;
-   
+    energy += PoQ_energy(omega, n_localpart);
   }
 
   for (std::size_t p = 1;
@@ -1038,16 +979,11 @@ double ElectrostaticLayerCorrection::calc_energy() const {
                Utils::sqr(box_geo.length_inv()[1] * static_cast<double>(q)));
       setup_PQ(elc, prefactor, p, q, omega, particles, box_geo);
       distribute(8);
-      auto const contrib = PQ_energy(omega, n_localpart);
-      energy += contrib;
+      energy += PQ_energy(omega, n_localpart);
     }
   }
-
   /* we count both i<->j and j<->i, so return just half of it */
-  auto const final_energy = 0.5 * energy;
- 
-
-  return final_energy;
+  return 0.5 * energy;
 }
 
 double ElectrostaticLayerCorrection::tune_far_cut() const {
@@ -1058,23 +994,22 @@ double ElectrostaticLayerCorrection::tune_far_cut() const {
   auto const box_l_y_inv = box_geo.length_inv()[1];
   auto const min_inv_boxl = std::min(box_l_x_inv, box_l_y_inv);
   auto const box_l_z = box_geo.length()[2];
-  auto const h = elc.box_h;
   // adjust lz according to dielectric layer method
-  auto const lz = (elc.dielectric_contrast_on) ? h + elc.space_layer : box_l_z;
+  auto const lz =
+      (elc.dielectric_contrast_on) ? elc.box_h + elc.space_layer : box_l_z;
 
   auto tuned_far_cut = min_inv_boxl;
   double err;
   do {
-    // following equation 18 in arnold02d
     auto const pref = 2. * std::numbers::pi * tuned_far_cut;
     auto const sum = pref + 2. * (box_l_x_inv + box_l_y_inv);
-    auto const den = expm1(pref * lz);
-    auto const num1 = exp(pref * h);
-    auto const num2 = 1. / num1; // exp(-pref * h);
+    auto const den = -expm1(-pref * lz);
+    auto const num1 = exp(pref * (elc.box_h - lz));
+    auto const num2 = exp(-pref * (elc.box_h + lz));
 
     err = 0.5 / den *
-          (num1 / (lz - h) * (sum + 1. / (lz - h)) +
-           num2 / (lz + h) * (sum + 1. / (lz + h)));
+          (num1 * (sum + 1. / (lz - elc.box_h)) / (lz - elc.box_h) +
+           num2 * (sum + 1. / (lz + elc.box_h)) / (lz + elc.box_h));
 
     tuned_far_cut += min_inv_boxl;
   } while (err > elc.maxPWerror and tuned_far_cut < maximal_far_cut);
@@ -1120,7 +1055,6 @@ void ElectrostaticLayerCorrection::sanity_checks_dielectric_contrasts() const {
 }
 
 void ElectrostaticLayerCorrection::adapt_solver() {
-  // TODO possibly unused function
   std::visit(
       [this](auto &solver) {
         set_prefactor(solver->prefactor);
@@ -1143,7 +1077,6 @@ void ElectrostaticLayerCorrection::recalc_box_h() {
 }
 
 void ElectrostaticLayerCorrection::recalc_space_layer() {
-  // TODO possibly unused function
   if (elc.dielectric_contrast_on) {
     auto const p3m_r_cut = std::visit(
         [](auto &solver) { return solver->p3m_params.r_cut; }, base_solver);
@@ -1182,7 +1115,7 @@ elc_data::elc_data(double maxPWerror, double gap_size, double far_cut,
       // set the space_layer to be 1/3 of the gap size, so that box = layer
       space_layer{(dielectric_contrast_on) ? gap_size / 3. : 0.},
       space_box{gap_size - ((dielectric_contrast_on) ? 2. * space_layer : 0.)} {
-  // TODO possibly unused function
+
   auto const delta_range = 1. + std::sqrt(round_error_prec);
   if (far_cut <= 0. and not far_calculated) {
     throw std::domain_error("Parameter 'far_cut' must be > 0");
@@ -1225,12 +1158,15 @@ template <ChargeProtocol protocol, typename combined_ranges>
 void charge_assign(elc_data const &elc, CoulombP3M &solver,
                    combined_ranges const &p_q_pos_range) {
 
-  // TODO possibly unused function
   solver.prepare_fft_mesh(protocol == ChargeProtocol::BOTH or
                           protocol == ChargeProtocol::IMAGE);
 
+#ifdef ESPRESSO_SHARED_MEMORY_PARALLELISM
   // multi-threading -> cache sizes must be equal to the number of particles
-  auto constexpr include_neutral_particles = true;
+  auto const include_neutral_particles = Kokkos::num_threads() > 1;
+#else
+  auto constexpr include_neutral_particles = false;
+#endif
 
   for (auto zipped : p_q_pos_range) {
     auto const p_q = boost::get<0>(zipped);
@@ -1262,7 +1198,6 @@ template <ChargeProtocol protocol, typename combined_range>
 void modify_p3m_sums(elc_data const &elc, CoulombP3M &solver,
                      combined_range const &p_q_pos_range) {
 
-  // TODO possibly unused function
   auto local_n = std::size_t{0u};
   auto local_q2 = 0.0;
   auto local_q = 0.0;
@@ -1307,8 +1242,6 @@ void modify_p3m_sums(elc_data const &elc, CoulombP3M &solver,
 
 double ElectrostaticLayerCorrection::long_range_energy() const {
   auto const &system = get_system();
-
-
   auto const energy = std::visit(
       [this, &system](auto const &solver_ptr) {
         auto &solver = *solver_ptr;
@@ -1331,7 +1264,6 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
         }
 
         auto energy = 0.;
-
         auto const e_half_p3m = 0.5 * solver.long_range_energy();
         energy += e_half_p3m;
         std::cout << std::setprecision(15)
@@ -1364,15 +1296,12 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
 
         // restore modified sums
         modify_p3m_sums<ChargeProtocol::REAL>(elc, solver, p_q_pos_range);
-
         std::cout << std::setprecision(15)
                   << "[ELC] long_range_energy: subtotal (P3M parts)=" << energy
                   << std::endl;
-
         return energy;
       },
       base_solver);
-
   auto const elc_correction = calc_energy();
   auto const total = energy + elc_correction;
 
@@ -1387,8 +1316,6 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
 
 void ElectrostaticLayerCorrection::add_long_range_forces() const {
   auto const &system = get_system();
-
-
   std::visit(
       [this, &system](auto const &solver_ptr) {
         auto const particles = system.cell_structure->local_particles();
@@ -1405,13 +1332,11 @@ void ElectrostaticLayerCorrection::add_long_range_forces() const {
           solver.charge_assign();
         }
         solver.add_long_range_forces();
-
         if (elc.dielectric_contrast_on) {
           modify_p3m_sums<ChargeProtocol::REAL>(elc, solver, p_q_pos_range);
         }
       },
       base_solver);
-
   add_force();
 }
 
