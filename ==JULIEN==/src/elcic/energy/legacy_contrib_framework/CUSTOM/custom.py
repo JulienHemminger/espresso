@@ -1,303 +1,144 @@
 import espressomd
 import espressomd.electrostatics
-import json
 import numpy as np
-import os
-import re
-import sys
-import time as _time
 
-from elc.energy.legacy_elc_energy import get_legacy_energy
+def _get_chi_components(fx, fy, f, pos, qs, sign=1):
+    arg_x, arg_y, arg_z = 2.0 * np.pi * fx, 2.0 * np.pi * fy, 2.0 * np.pi * f
+    xs, ys, zs = pos.T
+    
+    ez = np.exp(sign * 2.0 * np.pi * f * zs[:, None])
+    
+    cx = np.cos(arg_x * xs[:, None])
+    sx = np.sin(arg_x * xs[:, None])
+    cy = np.cos(arg_y * ys[:, None])
+    sy = np.sin(arg_y * ys[:, None])
 
-# #region agent log
-_DBG_LOG = "/home/main/Documents/Career/1_Studium/espresso/.cursor/debug-05bf22.log"
+    return [np.sum(qs[:, None] * ez * c1 * c2, axis=0) 
+            for c1, c2 in [(cx, cy), (sx, cy), (cx, sy), (sx, sy)]]
+
+def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
+    lx, ly, lz = box
+    delta = db * dt
+    f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
+
+    p_range = np.arange(-np.ceil(f_max * lx), np.ceil(f_max * lx) + 1)
+    q_range = np.arange(-np.ceil(f_max * ly), np.ceil(f_max * ly) + 1)
+    P, Q = np.meshgrid(p_range, q_range)
+    P, Q = P.flatten(), Q.flatten()
+
+    mask = (P != 0) | (Q != 0)
+    fx, fy = P[mask] / lx, Q[mask] / ly
+    f = np.sqrt(fx**2 + fy**2)
+    f_mask = f <= f_max
+    fx, fy, f = fx[f_mask], fy[f_mask], f[f_mask]
+
+    chi0_p = _get_chi_components(fx, fy, f, ps, qs, sign=1)
+    chi0_m = _get_chi_components(fx, fy, f, ps, qs, sign=-1)
+
+    def l_pq_sum(z_dist, delta_coeff):
+        exp_term = np.exp(-2.0 * np.pi * f * z_dist)
+        denom = 1.0 - delta * np.exp(-4.0 * np.pi * f * lz)
+        return delta_coeff * exp_term / denom
+
+    m_top = ps[:, 2] > 0
+    chi_p2_m = [np.zeros_like(f) for _ in range(4)]
+    
+    if np.any(m_top):
+        chi_local = _get_chi_components(fx, fy, f, ps[m_top], qs[m_top], sign=0)
+        t = l_pq_sum(2*lz - ps[m_top, 2, None], dt)
+        term_sum = np.sum(t, axis=0)
+        chi_p2_m = [chi_p2_m[i] + chi_local[i] * term_sum for i in range(4)]
+
+    pref = 0.5 / (lx * ly)
+    e_far = 0.0
+    for c0_p, cp2_m in zip(chi0_p, chi_p2_m):
+        e_far += pref * np.sum((1.0 / f) * c0_p * cp2_m)
+        
+    return e_far
 
 
-def _dbg(loc, msg, data, hid):
-    def _ser(v):
-        if isinstance(v, (np.integer,)):
-            return int(v)
-        if isinstance(v, (np.floating,)):
-            return float(v)
-        if isinstance(v, np.ndarray):
-            return v.tolist()
-        return v
+def _get_config_energy(system, p_set, q_set, prefactor, accuracy, lz):
+    if len(q_set) == 0:
+        return 0.0, 0.0
 
-    data = {k: _ser(v) for k, v in data.items()}
-    with open(_DBG_LOG, "a") as f:
-        f.write(
-            json.dumps(
-                {
-                    "sessionId": "05bf22",
-                    "timestamp": int(_time.time() * 1000),
-                    "location": loc,
-                    "message": msg,
-                    "data": data,
-                    "hypothesisId": hid,
-                    "runId": "post-fix",
-                }
-            )
-            + "\n"
-        )
-
-
-# #endregion
-
-
-def _capture_legacy_near(system, params):
-    read_fd, write_fd = os.pipe()
-    orig_out, orig_err = os.dup(sys.stdout.fileno()), os.dup(sys.stderr.fileno())
-    try:
-        os.dup2(write_fd, sys.stdout.fileno())
-        os.dup2(write_fd, sys.stderr.fileno())
-        total = get_legacy_energy(system, params)
-        sys.stdout.flush()
-    finally:
-        os.dup2(orig_out, sys.stdout.fileno())
-        os.dup2(orig_err, sys.stderr.fileno())
-        os.close(write_fd)
-        captured = b""
-        while True:
-            chunk = os.read(read_fd, 4096)
-            if not chunk:
-                break
-            captured += chunk
-        os.close(read_fd)
-        os.close(orig_out)
-        os.close(orig_err)
-
-    text = captured.decode("utf-8", errors="replace")
-    pattern = (
-        r"E_far_p3m\s*=\s*(?P<p3m>[-+]?\d*\.\d+),\s*"
-        r"E_far_corr\s*=\s*(?P<corr>[-+]?\d*\.\d+),\s*"
-        r"E_far\s*=\s*.*=\s*(?P<near>[-+]?\d*\.\d+)"
+    lx, ly = system.box_l[0], system.box_l[1]
+    p_wrapped = p_set.copy()
+    p_wrapped[:, 0] = np.mod(p_wrapped[:, 0], lx)
+    p_wrapped[:, 1] = np.mod(p_wrapped[:, 1], ly)
+    p_wrapped[:, 2] = np.mod(p_wrapped[:, 2], lz)
+    
+    system.part.clear()
+    system.box_l = [lx, ly, lz]
+    system.part.add(pos=p_wrapped, q=q_set)
+    
+    p3m = espressomd.electrostatics.P3M(
+        prefactor=prefactor, accuracy=accuracy, check_neutrality=False, verbose=False
     )
-    match = re.search(pattern, text)
-    if not match:
-        # #region agent log
-        _dbg("custom.py:legacy_capture", "parse failed", {"tail": text[-500:]}, "I")
-        # #endregion
-        raise RuntimeError("Failed to parse legacy ELC near components")
-
-    return {
-        "E_total": total,
-        "E_near_p3m": float(match.group("p3m")),
-        "E_near_corr": float(match.group("corr")),
-        "E_near": float(match.group("near")),
-    }
+    system.electrostatics.solver = p3m
+    system.integrator.run(0)
+    e_3d = system.analysis.energy()["total"]
+    
+    xi0, xi1 = np.sum(q_set), np.sum(q_set * p_wrapped[:, 2])
+    fac = 2.0 * np.pi / (lx * ly * lz)
+    if np.isclose(xi0, 0.0, atol=1e-12):
+        e_corr = prefactor * fac * (xi1**2)
+    else:
+        e_corr = 0.0
+    
+    system.electrostatics.clear()
+    return e_3d, e_corr
 
 
 def get_elcic_energy(system, params: dict):
+    """
+    Computes electrostatic energy for 2D+h system with TOP/BOTTOM dielectric interfaces using ELCIC.
+    """
     box = np.array(system.box_l)
-    lx, ly, lz_full = box[0], box[1], box[2]
-    gap = params["gap_size"]
-    pw_error = params["pw_error"]
+    lz_full = box[2]
+    gap, eps = params["gap_size"], params["pw_error"]
     pref = params.get("prefactor", 1.0)
-    db = params["delta_mid_bot"]
-    dt = params["delta_mid_top"]
-    delta = np.clip(db * dt, -0.99999, 0.99999)
-
+    db, dt = params["delta_mid_bot"], params["delta_mid_top"]
     lz = lz_full - gap
+    
+    parts = system.part.all()
+    qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
+
     lambda_ = np.clip(params.get("lambda", lz / 2), 1e-3, lz / 2)
 
-    parts = system.part.all()
-    q_arr = parts.q.copy()
-    pos_arr = parts.pos.copy()
-
-    L0_neg1, L0_0, L0_pos1, L0 = [], [], [], []
-    for q_i, p_i in zip(q_arr, pos_arr):
-        L0.append((q_i, p_i.copy()))
-        if p_i[2] <= lambda_:
-            L0_neg1.append((q_i, p_i.copy()))
-        elif p_i[2] <= lz - lambda_:
-            L0_0.append((q_i, p_i.copy()))
-        else:
-            L0_pos1.append((q_i, p_i.copy()))
-
-    L_neg1 = [(q_i * db, np.array([p[0], p[1], -p[2]])) for q_i, p in L0_neg1]
-    L_pos1 = [
-        (q_i * dt, np.array([p[0], p[1], 2 * lz - p[2]])) for q_i, p in L0_pos1
-    ]
+    mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_) 
+    mask_top = (ps_orig[:, 2] > (lz - lambda_)) & (ps_orig[:, 2] <= lz) 
+    mask_mid = (ps_orig[:, 2] >= lambda_) & (ps_orig[:, 2] <= (lz - lambda_)) 
 
 
-    shift_z = lambda_
-    box_z_T = lz + 3 * lambda_
-    gap_T = lambda_
+    ps_p1 = ps_orig[mask_top].copy()
+    ps_p1[:, 2] = 2 * lz - ps_p1[:, 2]  
+    qs_p1 = qs_orig[mask_top] * dt  
 
-    def shifted(lst):
-        return [(qi, np.array([pi[0], pi[1], pi[2] + shift_z])) for qi, pi in lst]
+    ps_m1 = ps_orig[mask_bot].copy()
+    ps_m1[:, 2] = -ps_m1[:, 2] 
+    qs_m1 = qs_orig[mask_bot] * db  
 
-    def calc_elc_energy(charge_pos, box_z_val, gap_val):
-        if not charge_pos:
-            return 0.0
-        system.electrostatics.clear()
-        system.part.clear()
-        system.box_l = [lx, ly, box_z_val]
-        for qi, pi in charge_pos:
-            system.part.add(pos=pi, q=qi)
-        p3m = espressomd.electrostatics.P3M(
-            prefactor=pref,
-            accuracy=pw_error,
-            check_neutrality=False,
-            verbose=False,
-        )
-        elc = espressomd.electrostatics.ELC(
-            actor=p3m, gap_size=gap_val, maxPWerror=pw_error
-        )
-        system.electrostatics.solver = elc
-        system.integrator.run(0)
-        return system.analysis.energy()["total"]
-
-    E_LT = calc_elc_energy(shifted(L_neg1 + L0 + L_pos1), box_z_T, gap_T)
-    E_Lpm1 = calc_elc_energy(shifted(L_neg1 + L_pos1), box_z_T, gap_T)
-    E_L0 = calc_elc_energy(shifted(L0), box_z_T, gap_T)
-    e_near_elcic = 0.5 * (E_LT - E_Lpm1 + E_L0)
-
-    def L_pq(z, f_pq):
-        return np.exp(-2 * np.pi * f_pq * z) / (
-            1.0 - delta * np.exp(-4 * np.pi * lz * f_pq)
-        )
-
-    def I_z(z):
-        return (1.0 / (1.0 - delta)) * (z + 2 * lz * delta / (1.0 - delta))
-
-    ux, uy = 1.0 / lx, 1.0 / ly
-    K_cut = int(
-        params.get(
-            "K_cut",
-            max(10, int(np.ceil(lx * uy * (-np.log(pw_error)) / (2 * np.pi * gap)))),
-        )
-    )
-
-    xi_L0_0 = sum(qi for qi, _ in L0)
-    xi_L0_1 = sum(qi * pi[2] for qi, pi in L0)
-
-    xi_L_minus2_0, xi_L_minus2_1 = 0.0, 0.0
-    for qi, pi in L0_neg1:
-        xi_L_minus2_0 += (qi / (1 - delta)) * (db * delta + delta)
-        xi_L_minus2_1 += (qi / (1 - delta)) * (
-            -db * delta * I_z(2 * lz + pi[2]) - delta * I_z(2 * lz - pi[2])
-        )
-    for qi, pi in L0_0 + L0_pos1:
-        xi_L_minus2_0 += (qi / (1 - delta)) * (db + delta)
-        xi_L_minus2_1 += (qi / (1 - delta)) * (
-            -db * I_z(pi[2]) - delta * I_z(2 * lz - pi[2])
-        )
-
-    xi_L_plus2_0, xi_L_plus2_1 = 0.0, 0.0
-    for qi, pi in L0_pos1:
-        xi_L_plus2_0 += (qi / (1 - delta)) * (dt * delta + delta)
-        xi_L_plus2_1 += (qi / (1 - delta)) * (
-            dt * delta * I_z(4 * lz - pi[2]) + delta * I_z(2 * lz + pi[2])
-        )
-    for qi, pi in L0_0 + L0_neg1:
-        xi_L_plus2_0 += (qi / (1 - delta)) * (dt + delta)
-        xi_L_plus2_1 += (qi / (1 - delta)) * (
-            dt * I_z(2 * lz - pi[2]) + delta * I_z(2 * lz + pi[2])
-        )
-
-    sum_pq_plus2 = 0.0
-    sum_pq_minus2 = 0.0
-
-    for p in range(-K_cut, K_cut + 1):
-        for q_idx in range(-K_cut, K_cut + 1):
-            if p == 0 and q_idx == 0:
-                continue
-            f_pq = np.sqrt((p * ux) ** 2 + (q_idx * uy) ** 2)
-            wp = 2 * np.pi * p * ux
-            wq = 2 * np.pi * q_idx * uy
-
-            cc0_p = sc0_p = cs0_p = ss0_p = 0.0
-            cc0_m = sc0_m = cs0_m = ss0_m = 0.0
-            for qi, pi in L0:
-                cp, sp = np.cos(wp * pi[0]), np.sin(wp * pi[0])
-                cq, sq = np.cos(wq * pi[1]), np.sin(wq * pi[1])
-                val_p = qi * np.exp(2 * np.pi * f_pq * pi[2])
-                val_m = qi * np.exp(-2 * np.pi * f_pq * pi[2])
-                cc0_p += val_p * cp * cq
-                sc0_p += val_p * sp * cq
-                cs0_p += val_p * cp * sq
-                ss0_p += val_p * sp * sq
-                cc0_m += val_m * cp * cq
-                sc0_m += val_m * sp * cq
-                cs0_m += val_m * cp * sq
-                ss0_m += val_m * sp * sq
-
-            cc_m2 = sc_m2 = cs_m2 = ss_m2 = 0.0
-            for qi, pi in L0_neg1:
-                val = qi * (
-                    db * delta * L_pq(2 * lz + pi[2], f_pq)
-                    + delta * L_pq(2 * lz - pi[2], f_pq)
-                )
-                cp, sp = np.cos(wp * pi[0]), np.sin(wp * pi[0])
-                cq, sq = np.cos(wq * pi[1]), np.sin(wq * pi[1])
-                cc_m2 += val * cp * cq
-                sc_m2 += val * sp * cq
-                cs_m2 += val * cp * sq
-                ss_m2 += val * sp * sq
-            for qi, pi in L0_0 + L0_pos1:
-                val = qi * (
-                    db * L_pq(pi[2], f_pq) + delta * L_pq(2 * lz - pi[2], f_pq)
-                )
-                cp, sp = np.cos(wp * pi[0]), np.sin(wp * pi[0])
-                cq, sq = np.cos(wq * pi[1]), np.sin(wq * pi[1])
-                cc_m2 += val * cp * cq
-                sc_m2 += val * sp * cq
-                cs_m2 += val * cp * sq
-                ss_m2 += val * sp * sq
-
-            cc_p2 = sc_p2 = cs_p2 = ss_p2 = 0.0
-            for qi, pi in L0_pos1:
-                val = qi * (
-                    dt * delta * L_pq(4 * lz - pi[2], f_pq)
-                    + delta * L_pq(2 * lz + pi[2], f_pq)
-                )
-                cp, sp = np.cos(wp * pi[0]), np.sin(wp * pi[0])
-                cq, sq = np.cos(wq * pi[1]), np.sin(wq * pi[1])
-                cc_p2 += val * cp * cq
-                sc_p2 += val * sp * cq
-                cs_p2 += val * cp * sq
-                ss_p2 += val * sp * sq
-            for qi, pi in L0_0 + L0_neg1:
-                val = qi * (
-                    dt * L_pq(2 * lz - pi[2], f_pq)
-                    + delta * L_pq(2 * lz + pi[2], f_pq)
-                )
-                cp, sp = np.cos(wp * pi[0]), np.sin(wp * pi[0])
-                cq, sq = np.cos(wq * pi[1]), np.sin(wq * pi[1])
-                cc_p2 += val * cp * cq
-                sc_p2 += val * sp * cq
-                cs_p2 += val * cp * sq
-                ss_p2 += val * sp * sq
-
-            sum_pq_plus2 += (
-                cc_p2 * cc0_p + sc_p2 * sc0_p + cs_p2 * cs0_p + ss_p2 * ss0_p
-            ) / f_pq
-            sum_pq_minus2 += (
-                cc0_m * cc_m2 + sc0_m * sc_m2 + cs0_m * cs_m2 + ss0_m * ss_m2
-            ) / f_pq
-
-    Phi_plus2_half = 0.5 * ux * uy * sum_pq_plus2 - np.pi * ux * uy * (
-        xi_L_plus2_1 * xi_L0_0 - xi_L_plus2_0 * xi_L0_1
-    )
-    Phi_minus2_half = 0.5 * ux * uy * sum_pq_minus2 - np.pi * ux * uy * (
-        xi_L0_1 * xi_L_minus2_0 - xi_L0_0 * xi_L_minus2_1
-    )
-    e_far_elcic = pref * (Phi_plus2_half + Phi_minus2_half)
-    e_total_elcic = e_near_elcic + e_far_elcic
-
-    system.part.clear()
-    system.box_l = [lx, ly, lz_full]
-    for qi, pi in L0:
-        system.part.add(pos=pi, q=qi)
-
+    ps_lt = np.vstack([ps_orig, ps_p1, ps_m1])
+    qs_lt = np.concatenate([qs_orig, qs_p1, qs_m1])
     
+    ps_pm1 = np.vstack([ps_p1, ps_m1])
+    qs_pm1 = np.concatenate([qs_p1, qs_m1])
 
-  
+    e_l0_3d, e_l0_corr = _get_config_energy(system, ps_orig, qs_orig, pref, eps, lz_full)
+    e_lt_3d, e_lt_corr = _get_config_energy(system, ps_lt, qs_lt, pref, eps, lz_full)
+    e_pm1_3d, e_pm1_corr = _get_config_energy(system, ps_pm1, qs_pm1, pref, eps, lz_full)
+
+    e_near_3d = 0.5 * (e_lt_3d - e_pm1_3d + e_l0_3d)
+    e_near_corr = 0.5 * (e_lt_corr - e_pm1_corr + e_l0_corr)
+
+    e_near = e_near_3d + e_near_corr
+    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
+    e_total = e_near + e_far
+
     return {
-        "E_total": e_total_elcic,
-        "E_near": e_near_elcic,
-        "E_near_p3m": 0,
-        "E_near_corr": 0,
-        "E_far": e_far_elcic,
+        "E_total": e_total,
+        "E_near": e_near,
+        "E_near_p3m": e_near_3d,
+        "E_near_corr": e_near_corr,
+        "E_far": e_far,
     }

@@ -59,17 +59,23 @@ Action Tree
 * fix custom.py for this single test: {DONE}
 * add range of test (lerp) and plots (now im at my old err=1e-4): {DONE}
 * swap E_near and E_far in legacy contribs, i thing theres a bug on the C++ side: {DONE}
-* break it doen to E_near_p3m or E_near_corr: {DONE}
+* break it down to E_near_p3m or E_near_corr: {DONE}
+* check if the way elc.cpp splits up contribs(Etotal=Enear+Efar. Enear=Enearcorr+Eneardipole) correct? {DONE}
+* check if the elc-cpp contribs are correct (or is e.g. error in Enear balancing the error in Efar) {DONE}
+    * TODO whats with E_near <-> E_far swapping?
+        * in cpp:  E_far = E_far_p3m + E_far_corr = 
+        * in py: E_near=E_near_p3m+E_near_corr
 
 
-* fix E_far
+* paper+llm fix E_near; NO, 10 tries
+* paper+llm fix all: : NO, 2 tries
+* paper+llm fix E_far
     * use Gemini, with tyagi + custom.py: NO, 10 tries 
     * use AI arena (claude, chatgpt), with tyagi + custom.py: NO, 2 tries
-    * cursor composer?
-
-* fix E_near; NO, 10 tries
-* fix all: : NO, 2 tries
+    * cursor composer: NO, two tries
 
 * map individual contribs/methods from elc.cpp to custom.py
+    * fix E_far (elc.cpp: "<< ", E_far = E_far_p3m + E_far_corr = " << total") TODO
+
 * i could to "by hand": setup lerp lz test, find errors (in indiv contribs)
 """

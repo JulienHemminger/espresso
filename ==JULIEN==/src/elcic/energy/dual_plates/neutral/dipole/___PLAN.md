@@ -1,8 +1,6 @@
 #### notes
 
-* elc.cpp computation structure is very different from mine (even calcs forces when asking for energy, 1400 lines, etc)
-* is the way elc.cpp splits up contribs(Etotal=Enear+Efar. Enear=Enearcorr+Eneardipole) correct?
-* are the elc-cpp contribs correct (or is e.g. error in Enear balancing the error in Efar)
+* elc.cpp computation structure is very different from mine (even calcs forces when asking for energy, 1400 lines, etc
 
 # Action Tree
 
