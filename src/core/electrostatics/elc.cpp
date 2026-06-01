@@ -45,11 +45,11 @@
 #include <boost/range/combine.hpp>
 
 #include <algorithm>
-#include <iostream>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <iostream>
 #include <numbers>
 #include <stdexcept>
 #include <utility>
@@ -1205,7 +1205,7 @@ void modify_p3m_sums(elc_data const &elc, CoulombP3M &solver,
 
 double ElectrostaticLayerCorrection::long_range_energy() const {
   auto const &system = get_system();
-  auto const energy = std::visit(
+  auto const E_near = std::visit(
       [this, &system](auto const &solver_ptr) {
         auto &solver = *solver_ptr;
         auto const particles = system.cell_structure->local_particles();
@@ -1223,37 +1223,53 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
         }
 
         auto E_near = 0.;
-        double E_LT_LT = 0.0;   // Φ(L_T, L_T)
-        double E_L1_L1 = 0.0;   // Φ(L_±1, L_±1)
-        double E_L0_L0 = 0.0;   // Φ(L_0, L_0)
+        double E_LT_LT = 0.0; // Φ(L_T, L_T)
+        double E_L1_L1 = 0.0; // Φ(L_±1, L_±1)
+        double E_L0_L0 = 0.0; // Φ(L_0, L_0)
 
-        E_near += 0.5 * solver.long_range_energy();
-        E_near +=
-0.5 * elc.dielectric_layers_self_energy(solver, box_geo, particles);
+        E_L0_L0 = solver.long_range_energy(); // Save Φ(L_0, L_0)
+        std::cout << std::setprecision(15) << "[ELC] E_near_L0_L0 = " << E_L0_L0
+                  << std::endl;
+        E_near += 0.5 * E_L0_L0;
+
+        double E_near_self =
+            elc.dielectric_layers_self_energy(solver, box_geo, particles);
+        std::cout << std::setprecision(15)
+                  << "[ELC] E_near_self = " << E_near_self << std::endl;
+        E_near += 0.5 * E_near_self;
 
         // assign both original and image charges
         charge_assign<ChargeProtocol::BOTH>(elc, solver, p_q_pos_range);
         modify_p3m_sums<ChargeProtocol::BOTH>(elc, solver, p_q_pos_range);
         E_LT_LT = solver.long_range_energy(); // Save Φ(L_T, L_T)
-        std::cout << std::setprecision(15) << "[ELC] E_near_LT_LT = " << E_LT_LT << std::endl;
+        std::cout << std::setprecision(15) << "[ELC] E_near_LT_LT = " << E_LT_LT
+                  << std::endl;
         E_near += 0.5 * E_LT_LT;
 
         // assign only the image charges now
         charge_assign<ChargeProtocol::IMAGE>(elc, solver, p_q_pos_range);
         modify_p3m_sums<ChargeProtocol::IMAGE>(elc, solver, p_q_pos_range);
         E_L1_L1 = solver.long_range_energy(); // Save Φ(L_±1, L_±1)
-        std::cout << std::setprecision(15) << "[ELC] E_near_L1_L1 = " << E_L1_L1 << std::endl;
+        std::cout << std::setprecision(15) << "[ELC] E_near_L1_L1 = " << E_L1_L1
+                  << std::endl;
         E_near -= 0.5 * E_L1_L1;
 
         // restore modified sums
         modify_p3m_sums<ChargeProtocol::REAL>(elc, solver, p_q_pos_range);
 
-        std::cout << std::setprecision(15) << "[ELC] E_near = " << E_near << std::endl;
+        
         return E_near;
       },
       base_solver);
-  auto const E_total = energy + calc_energy();
-  std::cout << std::setprecision(15) << "[ELC] E_total = " << E_total << std::endl;
+
+  std::cout << std::setprecision(15) << "[ELC] E_near = " << E_near
+                  << std::endl;
+  auto const E_far = calc_energy();
+  std::cout << std::setprecision(15) << "[ELC] E_far = " << E_far
+                  << std::endl;
+  auto const E_total = E_near + E_far;
+  std::cout << std::setprecision(15) << "[ELC] E_total = " << E_total
+            << std::endl;
   return E_total;
 }
 
