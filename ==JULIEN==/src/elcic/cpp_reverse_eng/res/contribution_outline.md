@@ -2,13 +2,9 @@ $E_{\text{total}} = \frac{1}{2}\left(\Phi(L_i, L_0) + \Phi(L_0, L_0)\right)$
 
 $E_{\text{total}} = \frac{1}{2}\Phi(L_0, L_T) + \frac{1}{2}\Phi(L_0, L_{\pm2})$ = 1/2\*_E_\_near + 1/2\*E\_far
 
-E_near_ _$= \Phi(L_0, L_T) = \frac{1}{2}\left(\Phi(L_T, L_T) - \Phi(L_{\pm1}, L_{\pm1}) + \Phi(L_0, L_0)\right)$_ _= 1/2 \* ( a - b + E_\_real\_self)
+E\_near\_\_ _$= \Phi(L_0, L_T) = \frac{1}{2}\left(\Phi(L_T, L_T) - \Phi(L_{\pm1}, L_{\pm1}) + \Phi(L_0, L_0)\right)$_ _= 1/2 \* ( E\_near\_LT\_LT - E\_near\_L1\_L1 + E_\_real\_self)
 
 E\_far = $\Phi(L_0, L_{\pm2})$ (computed with far formula)
-
-
-
-
 
 The Electrostatic Layer Correction with Image Charges (ELCIC) method computes the total electrostatic energy ($E_{\text{total}}$) of a $2D+h$ slab system bounded by two planar dielectric interfaces by combining several distinct contributions.
 

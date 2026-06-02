@@ -1,3 +1,24 @@
+/*
+ * Copyright (C) 2010-2026 The ESPResSo project
+ * Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010
+ *   Max-Planck-Institute for Polymer Research, Theory Group
+ *
+ * This file is part of ESPResSo.
+ *
+ * ESPResSo is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ESPResSo is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <config/config.hpp>
 
 #ifdef ESPRESSO_P3M
@@ -164,7 +185,15 @@ static void distribute(std::size_t size) {
                          std::plus<>());
 }
 
-void ElectrostaticLayerCorrection::check_gap(Particle const &p) const {}
+void ElectrostaticLayerCorrection::check_gap(Particle const &p) const {
+  if (p.q() != 0.) {
+    auto const z = p.pos()[2];
+    if (z < 0. or z > elc.box_h) {
+      runtimeErrorMsg() << "Particle " << p.id() << " entered ELC gap "
+                        << "region by " << ((z < 0.) ? z : z - elc.box_h);
+    }
+  }
+}
 
 /*****************************************************************/
 /* dipole terms */
@@ -965,9 +994,32 @@ static auto calc_total_charge(CellStructure const &cell_structure) {
   return boost::mpi::all_reduce(comm_cart, local_q, std::plus<>());
 }
 
-void ElectrostaticLayerCorrection::sanity_checks_periodicity() const {}
+void ElectrostaticLayerCorrection::sanity_checks_periodicity() const {
+  auto const &box_geo = *get_system().box_geo;
+  if (!box_geo.periodic(0) || !box_geo.periodic(1) || !box_geo.periodic(2)) {
+    throw std::runtime_error("ELC: requires periodicity (True, True, True)");
+  }
+}
 
-void ElectrostaticLayerCorrection::sanity_checks_dielectric_contrasts() const {}
+void ElectrostaticLayerCorrection::sanity_checks_dielectric_contrasts() const {
+  if (elc.dielectric_contrast_on) {
+    auto const &cell_structure = *get_system().cell_structure;
+    auto const precision_threshold = std::sqrt(round_error_prec);
+    auto const total_charge = std::abs(calc_total_charge(cell_structure));
+    if (total_charge >= precision_threshold) {
+      if (elc.const_pot) {
+        // Disable this line to make ELC work again with non-neutral systems
+        // and metallic boundaries
+        throw std::runtime_error("ELC does not currently support non-neutral "
+                                 "systems with a dielectric contrast.");
+      }
+      // ELC with non-neutral systems and no fully metallic boundaries
+      // does not work
+      throw std::runtime_error("ELC does not work for non-neutral systems and "
+                               "non-metallic dielectric contrast.");
+    }
+  }
+}
 
 void ElectrostaticLayerCorrection::adapt_solver() {
   std::visit(
