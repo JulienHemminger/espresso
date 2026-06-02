@@ -100,3 +100,15 @@ assert all(
 
 
 
+"""
+Action Tree
+* find the entry point when i call espresso.ELC in python
+
+* print contribs and params on C++ side
+
+* one by one, recreate contribs in python unil i have working custom.py
+
+
+* do the same with forces
+
+"""
