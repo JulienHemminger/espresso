@@ -162,7 +162,7 @@ def get_elcic_energy(system, params: dict):
     print(f"DEBUG: Calculated E_near: {e_near:.4f}")
 
     # 3. Far-Field Energy (ensure this accounts for BOTH interfaces in your implementation)
-    e_far = 0 #pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
+    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
 
     e_total = e_near + e_far
 

@@ -93,10 +93,11 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
         # Capture full dictionaries
         if get_legacy_energy:
             legacy_res = get_legacy_energy(system, params)
+            print(f"{legacy_res=}")
             results["legacy"].append(legacy_res)
-        else:
-            legacy_res = None
+
         custom_res = get_custom_energy(system, params)
+        print(f"{custom_res=}")
         results["custom"].append(custom_res)
 
     # --- Print Summary for t=1 (last result) ---
@@ -110,30 +111,32 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
             leg_final = results["legacy"][i]
             cus_final = results["custom"][i]
             
-            for key in cus_final.keys():
-                if key in leg_final:
-                    val_l = leg_final[key]
-                    val_c = cus_final[key]
+            for custom_key in cus_final.keys():
+                legacy_key = next((lk for lk in leg_final.keys() if lk.lower() == custom_key.lower()), None)
+                if legacy_key:
+                    val_l = float(leg_final[legacy_key])
+                    val_c = float(cus_final[custom_key])
                     error = abs(val_l - val_c)
-                    print(f"{key:<12} | {val_l:<15.10f} | {val_c:<15.10f} | {error:<15.10f}")
+                    print(f"{custom_key:<12} | {val_l:<15.10f} | {val_c:<15.10f} | {error:<15.10f}")
 
     # --- Prepare Data ---
-    # Convert list of dicts to a dict of numpy arrays
-    custom_data = {k: np.array([d[k] for d in results["custom"]]) for k in results["custom"][0].keys()}
+    # Convert list of dicts to a dict of clean float numpy arrays (handles np.float64 objects safely)
+    custom_data = {k: np.array([float(d[k]) for d in results["custom"]], dtype=float) for k in results["custom"][0].keys()}
     
     # --- Plotting ---
     fig, ax = plt.subplots(figsize=(12, 6))
     
     if get_legacy_energy and len(results["legacy"]) > 0:
-        legacy_data = {k: np.array([d[k] for d in results["legacy"]]) for k in results["legacy"][0].keys()}
+        legacy_data = {k: np.array([float(d[k]) for d in results["legacy"]], dtype=float) for k in results["legacy"][0].keys()}
         
-        # Identify common keys
-        common_keys = [k for k in custom_data.keys() if k in legacy_data.keys()]
-        
-        for key in common_keys:
-            # Calculate absolute difference for the plot
-            diff = np.abs(custom_data[key] - legacy_data[key])
-            ax.plot(t_values, diff, label=f"Difference: {key}", lw=2)
+        # Match keys case-insensitively (e.g., matching 'e_total' from custom with 'E_total' from legacy)
+        for custom_key in custom_data.keys():
+            legacy_key = next((lk for lk in legacy_data.keys() if lk.lower() == custom_key.lower()), None)
+            
+            if legacy_key:
+                # Calculate absolute difference using the clean, mapped float arrays
+                diff = np.abs(custom_data[custom_key] - legacy_data[legacy_key])
+                ax.plot(t_values, diff, label=f"Difference: {custom_key.lower()}", lw=2)
     else:
         # Fallback if no legacy data exists
         for key, val in custom_data.items():

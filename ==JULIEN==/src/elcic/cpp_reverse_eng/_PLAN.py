@@ -1,4 +1,4 @@
-
+YES = None
 DONE, NO = None, None
 f"""
 Action Tree
@@ -18,34 +18,35 @@ Action Tree
         * Con
             * mapping elc.cpp contribs to py contribs is difficult, wonky, shaky
 
-* map individual contribs/methods from elc.cpp to custom.py
-    * fix E_far (elc.cpp: "<< ", E_far = E_far_p3m + E_far_corr = " << total") TODO
-
 * recreate elc.cpp from code + output: TODO
     * REFINEMENT
-        * clean/simplify elc.cpp?
-        * just write py code?
-
-    * CHILDREN
-        * 
-
+        * clean/simplify elc.cpp: {NO}
+            * Con:
+                * i cant simplify that much (around 150lines out of 1.3k. maybe a little sin/cos cache, etc)
+                * testing (build w cmake) always takes long 
 
 
-Action Tree
-* recreate in python elc.cpp from code + output
-* fix the error inherited from elc.cpp(when particles near the diel.interfaces?)
-* extend it for non-neutral, non/metallic where legacy elc doesnt work)
+        * just parse contrib-wise to python code: {YES}
+            * re-create  E_return_of(elc.cpp > ElectrostaticLayerCorrection::long_range_energy()) = ('coulomb', 1)
+                
+                * print long_range_energy()'s input parameters TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOoo
+                * create py template that gets same input parameters
+                * von zw.ergebnis zu zw.ergbenis baue long_range_energy() in py nach
+                    
+                    * ??? aber es wird wahrsch. tiefe dependencies/vernestung (e.g. ich müsste p3m.cpp auch nachbauen oder so) geben ??????????????????????ßßß
+                    * ??? vllt pro zw.ergebnis entscheiden ob ich "code nachbauen" oder "output matchen" mache
 
-* do the same with forces
+            * re-create ('coulomb', 0) and find out where its from, is only 2e-8
+
+            
 
 
+    * CHILDREN       
+        * fix the error inherited from elc.cpp(when particles near the diel.interfaces?)
+        * extend it for non-neutral, non/metallic where legacy elc doesnt work)
 
-??????????????????????????
-* find the entry point when i call espresso.ELC in python
+        * do the same with forces
 
-* print contribs and params on C++ side
-
-* one by one, recreate contribs in python unil i have working custom.py
 """
 
 

@@ -1,51 +1,42 @@
 import sys
 import re
 import os
+import tempfile
 from elc.energy.legacy_elc_energy import get_legacy_energy
 import numpy as np
 import math
 
 def get_legacy_contribs(system, params) -> dict:
     def _get_legacy_energy_with_capture(system, params):
-        # Setup the pipe
-        read_fd, write_fd = os.pipe()
-        
-        # Duplicate current stdout and stderr for later restoration
-        original_stdout_fd = os.dup(sys.stdout.fileno())
-        original_stderr_fd = os.dup(sys.stderr.fileno())
-        
-        try:
-            # Redirect stdout and stderr to the write end of our pipe
-            os.dup2(write_fd, sys.stdout.fileno())
-            os.dup2(write_fd, sys.stderr.fileno())
+        # Create a temporary file to safely capture large outputs without pipe deadlock
+        with tempfile.TemporaryFile(mode='w+b') as tmp_file:
+            # Duplicate current stdout and stderr for later restoration
+            original_stdout_fd = os.dup(sys.stdout.fileno())
+            original_stderr_fd = os.dup(sys.stderr.fileno())
             
-            # Execute the legacy code
-            # We use a try-finally to ensure we restore the streams even if this crashes
-            result = get_legacy_energy(system, params)
-            
-            # Manually flush python stdout before closing/restoring
-            sys.stdout.flush()
-            
-        finally:
-            # Restore original streams
-            os.dup2(original_stdout_fd, sys.stdout.fileno())
-            os.dup2(original_stderr_fd, sys.stderr.fileno())
-            
-            # Close the write end of the pipe, then read the content
-            os.close(write_fd)
-            
-            # Read from the pipe
-            # We use a blocking read or a loop to ensure we catch all output
-            captured_output = b""
-            while True:
-                chunk = os.read(read_fd, 4096)
-                if not chunk:
-                    break
-                captured_output += chunk
+            try:
+                # Redirect stdout and stderr to the temp file
+                os.dup2(tmp_file.fileno(), sys.stdout.fileno())
+                os.dup2(tmp_file.fileno(), sys.stderr.fileno())
                 
-            os.close(read_fd)
-            os.close(original_stdout_fd)
-            os.close(original_stderr_fd)
+                # Execute the legacy code
+                result = get_legacy_energy(system, params)
+                
+                # Manually flush python stdout before closing/restoring
+                sys.stdout.flush()
+                sys.stderr.flush()
+                
+            finally:
+                # Restore original streams safely
+                os.dup2(original_stdout_fd, sys.stdout.fileno())
+                os.dup2(original_stderr_fd, sys.stderr.fileno())
+                
+                os.close(original_stdout_fd)
+                os.close(original_stderr_fd)
+            
+            # Rewind and read the content captured in the temporary file
+            tmp_file.seek(0)
+            captured_output = tmp_file.read()
             
         return result, captured_output.decode('utf-8')
 
@@ -56,7 +47,6 @@ def get_legacy_contribs(system, params) -> dict:
     def _parse_elc_output(log_text):
         data = {}
         # Matches lines like: [ELC] E_near_L0_L0 = -0.27256698373464
-        # Supports optional signs, decimals, and scientific notation
         pattern = r"\[ELC\]\s*(?P<key>\w+)\s*=\s*(?P<value>[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
         
         matches = re.finditer(pattern, log_text)
