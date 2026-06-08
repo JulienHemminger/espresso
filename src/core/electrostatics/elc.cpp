@@ -1205,52 +1205,21 @@ void modify_p3m_sums(elc_data const &elc, CoulombP3M &solver,
 
 double ElectrostaticLayerCorrection::long_range_energy() const {
   auto const &system = get_system();
-  
-  // Debug: System Address
-  std::cout << "[ELC Debug] &system: " << &system << "\n";
-
   auto const E_near = std::visit(
       [this, &system](auto const &solver_ptr) {
         auto &solver = *solver_ptr;
         auto const particles = system.cell_structure->local_particles();
         auto const &box_geo = *system.box_geo;
 
-        // Custom vector printing helper lambda
-        auto print_vector = [](auto const &vec) {
-          return "[" + std::to_string(vec[0]) + ", " + 
-                       std::to_string(vec[1]) + ", " + 
-                       std::to_string(vec[2]) + "]";
-        };
-
-        // Debug: Pointers and Sizes
-        std::cout << "[ELC Debug] &solver: " << &solver << "\n";
-        std::cout << "[ELC Debug] &box_geo: " << &box_geo << "\n";
-        std::cout << "[ELC Debug] local_particles count: " << particles.size() << "\n";
-
         auto p_q_range = ParticlePropertyRange::charge_range(particles);
         auto p_pos_range = ParticlePropertyRange::pos_range(particles);
         auto p_q_pos_range = boost::combine(p_q_range, p_pos_range);
 
-        // Debug: Iterate and print unpacked boost::combine values
-        std::cout << "[ELC Debug] Combined Particle Properties (Charge | Position):\n";
-        for (auto const &tuple : p_q_pos_range) {
-          double q;
-          typename std::decay_t<decltype(p_pos_range)>::value_type pos; 
-          boost::tie(q, pos) = tuple;
-          std::cout << "  - q: " << q << " | pos: " << print_vector(pos) << "\n";
-        }
-
         // assign the original charges (they may not have been assigned yet)
         solver.charge_assign();
 
-        // Debug: Dielectric status
-        std::cout << "[ELC Debug] dielectric_contrast_on: " << std::boolalpha 
-                  << elc.dielectric_contrast_on << std::noboolalpha << "\n";
-
         if (!elc.dielectric_contrast_on) {
-          auto const basic_long_range = solver.long_range_energy();
-          std::cout << "[ELC Debug] Contrast off. Solver long_range_energy: " << basic_long_range << "\n";
-          return basic_long_range;
+          return solver.long_range_energy();
         }
 
         auto E_near = 0.;
@@ -1288,15 +1257,16 @@ double ElectrostaticLayerCorrection::long_range_energy() const {
         // restore modified sums
         modify_p3m_sums<ChargeProtocol::REAL>(elc, solver, p_q_pos_range);
 
+        
         return E_near;
       },
       base_solver);
 
   std::cout << std::setprecision(15) << "[ELC] E_near = " << E_near
-            << std::endl;
+                  << std::endl;
   auto const E_far = calc_energy();
   std::cout << std::setprecision(15) << "[ELC] E_far = " << E_far
-            << std::endl;
+                  << std::endl;
   auto const E_total = E_near + E_far;
   std::cout << std::setprecision(15) << "[ELC] E_total = " << E_total
             << std::endl;

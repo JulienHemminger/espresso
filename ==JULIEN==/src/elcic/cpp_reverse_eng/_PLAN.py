@@ -47,6 +47,21 @@ Action Tree
 
         * do the same with forces
 
+        
+* TODO
+    * cleanup my codebase
+    * are there tools to analyze c++ code (at runtime?)
+    * are there tools to port/embed/.. c++ code to py code or so? 
 """
 
 
+"""
+* einzelen contributions aus elc.cpp auslesen und verwenden um meinen python prototypen genauer zu testen
+    * and die contributions rankommen, sie korrekt zu identifizieren, etc ist schwer und wacklig. außerdem bin ich skeptisch wie hilfreich das sein wird
+
+* nur den fehler |total_legacy_enery - total_custom_energy| anschauen. mach "numerische gradienten" um zu sehen mit welchen parametern der fehler steigt z.b. ly. dann gehe in den code, und teste/prüfe alle stellen die von "ly" abhängen
+    * damit hab ich meinen python prototypen von 1e-2 auf 1e-4 bekommen, aber 
+
+* elc.cpp 1zu1 in python "nachbauen"
+    * hab ich mal kurz probiert, aber im cpp code ist alles so verzweigt und verwebt dass es unmögl. ist elc.cpp in python "nachzubauen"
+"""

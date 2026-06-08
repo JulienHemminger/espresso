@@ -52,6 +52,7 @@
 #include <type_traits>
 #include <utility>
 #include <variant>
+#include <iostream>
 
 struct ElectrostaticLayerCorrection;
 
@@ -302,6 +303,7 @@ struct ElectrostaticLayerCorrection
           },
           base_solver);
     }
+    std::cout << "[DEBUG] pair_energy_correction(idx) return value: " << energy << std::endl;
     return energy;
   }
 
@@ -329,6 +331,7 @@ struct ElectrostaticLayerCorrection
           },
           base_solver);
     }
+    std::cout << "[DEBUG] pair_energy_correction(pos) return value: " << energy << std::endl;
     return energy;
   }
 

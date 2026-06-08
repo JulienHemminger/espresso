@@ -52,12 +52,12 @@ def get_legacy_energy(system, params_dict, timeout_duration_sec=90, timeout_retu
         system.electrostatics.solver = elc_legacy
         system.integrator.run(0)
         
-        energy = system.analysis.energy()["total"]
+        energy_dict = system.analysis.energy()
         system.electrostatics.clear()
         
         # Disable the alarm if we finished on time
         signal.alarm(0)
-        return energy
+        return energy_dict
 
     except TimeoutException:
         print(f"--- WARNING: ELC timed out after {timeout_duration_sec}s. ---")
