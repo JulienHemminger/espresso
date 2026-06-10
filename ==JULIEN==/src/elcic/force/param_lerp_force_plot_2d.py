@@ -75,11 +75,12 @@ def save_plot_with_timestamp(fig, base_directory="/home/main/"):
     fig.savefig(full_path, bbox_inches='tight', dpi=300)
     print(f"Figure successfully saved to: {full_path}")
 
-def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analytical_energy=None, get_legacy_energy=None, steps=20):
-    t_values = np.linspace(0, 1, steps)
-    results = {"legacy": [], "analytical": [], "custom": []}
 
-    # Run Simulation/Evaluation Loop
+def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy_force, get_analytical_force=None, steps=20): 
+    t_values = np.linspace(0, 1, steps)
+    # Store force vectors: list of (2, 3) arrays
+    results = {"legacy": [], "custom": []}
+
     for t in t_values:
         system.electrostatics.clear()
         params = lerp_dict(start_params, end_params, t)
@@ -88,72 +89,47 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
         system.box_l = [params["lx"], params["ly"], params["lz"]]
         for i in range(len(params["charges"])):
             system.part.add(pos=params["positions"][i], q=params["charges"][i])
-
-        print("==============================================")
-        print(f"Parameters = [fixed_params, lz={params["lz"]}]")
-
-
-        if get_legacy_energy:
-            results["legacy"].append(get_legacy_energy(system, params)['total'])
-            
-        if get_analytical_energy: results["analytical"].append(get_analytical_energy(params))
-
-        results["custom"].append(get_custom_energy(system, params))
         
+        # Assume these return np.array of shape (2, 3)
+        res_leg = get_legacy_force(system, params) 
+        res_custom = get_custom_force(system, params) 
         
-        a = results["custom"][-1]["e_total"]
-        b = results["legacy"][-1]
-        print(f"custom_implementation_energy = {a}, error={abs(a-b)}")
-        print(f"ground_truth_energy = {b}")
+        results["legacy"].append(res_leg)
+        results["custom"].append(res_custom)
 
-    # --- Prepare Data ---
-    # Convert list of dicts to a dict of lists for easier plotting
-    custom_data = {k: np.array([d[k] for d in results["custom"]]) for k in results["custom"][0].keys()}
+    # Convert to (steps, 2, 3) arrays
+    data_leg = np.array(results["legacy"])
+    data_cust = np.array(results["custom"])
 
     # --- Plotting ---
     fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
     
-    # 1. Top Subplot: Primary Energies
-    l1, = ax1.plot(t_values, custom_data["e_total"], label="Custom", color="blue", lw=4)
-    l2, = ax1.plot(t_values, custom_data["e_near"], label="e_near", color="cyan", ls="dashed", lw=2)
-    l3, = ax1.plot(t_values, custom_data["e_near_top"], label="e_near_top", color="aqua", ls="dotted", lw=1)
-    l4, = ax1.plot(t_values, custom_data["e_near_bot"], label="e_near_bot", color="lightblue", ls="dotted", lw=1)
+    # 1. Top Subplot: Force Magnitudes (L2 Norm of each particle)
+    for i in range(2):
+        mag_leg = np.linalg.norm(data_leg[:, i, :], axis=1)
+        mag_cust = np.linalg.norm(data_cust[:, i, :], axis=1)
+        
+        ax1.plot(t_values, mag_leg, label=f"Legacy P{i}", ls="--", lw=2)
+        ax1.plot(t_values, mag_cust, label=f"Custom P{i}", lw=2)
     
-    # Optional plots
-    lines = [l1, l2, l3, l4]
-    if get_analytical_energy: 
-        l_ana, = ax1.plot(t_values, results["analytical"], label="Analytical", color="black", lw=4)
-        lines.append(l_ana)
-    if get_legacy_energy: 
-        l_leg, = ax1.plot(t_values, results["legacy"], label="Legacy", color="red", lw=4)
-        lines.append(l_leg)
+    ax1.set_ylabel("Force Magnitude |F|")
+    ax1.legend(fontsize='small')
+    ax1.set_title("Comparison of Force Magnitudes")
 
-    # Secondary axis
-    ax1_twin = ax1.twinx()
-    l_far, = ax1_twin.plot(t_values, custom_data["e_far"], label="e_far (Secondary)", color="teal", ls="dashed", lw=2)
-    lines.append(l_far)
-    
-    # Combine handles and labels
-    labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc='best', fontsize='small')
-
-    # 2. Bottom Subplot: Error/Difference
-    if get_analytical_energy:
-        ax3.plot(t_values, np.abs(custom_data["e_total"] - np.array(results["analytical"])), label="Error: Total-Ana", color="blue")
-        if get_legacy_energy: ax3.plot(t_values, np.abs(np.array(results["legacy"]) - np.array(results["analytical"])), label="Error: Leg-Ana", color="red")
-    elif get_legacy_energy:
-        ax3.plot(t_values, np.abs(custom_data["e_total"] - np.array(results["legacy"])), label="Diff: Total-Leg", color="purple")
+    # 2. Bottom Subplot: Error (Norm of the difference vector per particle)
+    # diff_vector = F_custom - F_legacy
+    diff = data_cust - data_leg
+    for i in range(2):
+        err = np.linalg.norm(diff[:, i, :], axis=1)
+        ax3.plot(t_values, err, label=f"Err P{i}")
     
     ax3.set_yscale("log")
-    ax3.set_ylabel("Absolute Error")
+    ax3.set_ylabel("Force Error ($|F_{cust} - F_{leg}|$)")
     ax3.set_xlabel(r"Interpolation Parameter $t$")
     ax3.legend()
-    ax3.grid(True, alpha=0.3)
+    ax3.grid(True, which="both", alpha=0.3)
 
-
-    fig.text(0.85, 0.5, get_param_label(start_params, end_params), verticalalignment='center', fontsize=8,
-             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3), transform=fig.transFigure)
-
+    # ... [Keep save_plot_with_timestamp and fig.text code] ...
     plt.tight_layout(rect=(0, 0, 0.82, 1))
-    save_plot_with_timestamp(fig)
+    save_plot_with_timestamp(fig) 
     plt.show()
