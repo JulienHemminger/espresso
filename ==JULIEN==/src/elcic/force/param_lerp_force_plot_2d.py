@@ -75,7 +75,6 @@ def save_plot_with_timestamp(fig, base_directory="/home/main/"):
     fig.savefig(full_path, bbox_inches='tight', dpi=300)
     print(f"Figure successfully saved to: {full_path}")
 
-
 def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy_force, get_analytical_force=None, steps=20): 
     t_values = np.linspace(0, 1, steps)
     # Store force vectors: list of (2, 3) arrays
@@ -109,20 +108,44 @@ def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy
         mag_leg = np.linalg.norm(data_leg[:, i, :], axis=1)
         mag_cust = np.linalg.norm(data_cust[:, i, :], axis=1)
         
-        ax1.plot(t_values, mag_leg, label=f"Legacy P{i}", ls="--", lw=2)
-        ax1.plot(t_values, mag_cust, label=f"Custom P{i}", lw=2)
+        # --- Visualization Fixes for Overlapping Lines ---
+        # Legacy line: Plotted underneath, thicker, dashed, with spaced out circular markers
+        ax1.plot(t_values, mag_leg, 
+                 label=f"Legacy P{i}", 
+                 ls="--", 
+                 lw=4,                 # Thicker line width acting as a base
+                 alpha=0.7,            # Semi-transparent
+                 marker="o", 
+                 markersize=6, 
+                 markevery=(0, 4))     # Marker every 4 steps starting at index 0
+        
+        # Custom line: Plotted on top, thinner, solid, with interleaved 'x' markers
+        ax1.plot(t_values, mag_cust, 
+                 label=f"Custom P{i}", 
+                 ls="-",
+                 lw=2,                 # Thinner line width sits inside the thick line
+                 alpha=0.9, 
+                 marker="x", 
+                 markersize=7, 
+                 markevery=(2, 4))     # Marker every 4 steps starting at index 2 (offset)
     
     ax1.set_ylabel("Force Magnitude |F|")
-    ax1.legend(fontsize='small')
+    ax1.legend(fontsize='small', loc='upper right')
     ax1.set_title("Comparison of Force Magnitudes")
+    ax1.grid(True, which="both", alpha=0.3)
 
     # 2. Bottom Subplot: Error (Norm of the difference vector per particle)
-    # diff_vector = F_custom - F_legacy
     diff = data_cust - data_leg
     print(f"Force Error = {diff}")
     for i in range(2):
         err = np.linalg.norm(diff[:, i, :], axis=1)
-        ax3.plot(t_values, err, label=f"Err P{i}")
+        # Added distinct markers here too in case error profiles match exactly
+        ax3.plot(t_values, err, 
+                 label=f"Err P{i}", 
+                 lw=2, 
+                 marker="d" if i == 0 else "s", 
+                 markersize=5, 
+                 markevery=2)
     
     ax3.set_yscale("log")
     ax3.set_ylabel("Force Error ($|F_{cust} - F_{leg}|$)")
@@ -130,7 +153,11 @@ def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy
     ax3.legend()
     ax3.grid(True, which="both", alpha=0.3)
 
-    # ... [Keep save_plot_with_timestamp and fig.text code] ...
+    # Add text box configuration
+    param_text = get_param_label(start_params, end_params)
+    fig.text(0.84, 0.5, param_text, fontsize=10, family='monospace',
+             verticalalignment='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+
     plt.tight_layout(rect=(0, 0, 0.82, 1))
     save_plot_with_timestamp(fig) 
     plt.show()
