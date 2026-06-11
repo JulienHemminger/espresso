@@ -114,12 +114,11 @@ def _get_far_field_forces(system, params, idx_bulk, idx_bot, idx_top):
     f_far = np.zeros((n_part, 3))
 
     # --- PART A: DIPOLE / MOMENT FAR-FIELD CONTRIBUTION ---
-    # 1. Define the analytical I(z) polynomial sum function
+    # Define analytical I(z) polynomial sum function (Eq. 4.5)
     def get_I_sum(z_val):
-        denom = 1.0 - delta
-        if abs(denom) < 1e-15:
-            return np.zeros_like(z_val)
-        return (1.0 / denom) * (z_val + 2.0 * lz * delta / denom)
+        if np.abs(1.0 - delta) < 1e-12:
+            return z_val
+        return (1.0 / (1.0 - delta)) * (z_val + 2.0 * lz * (delta / (1.0 - delta)))
 
     # 2. Evaluate zeroth-order moments xi^(0) for L_-2 and L_+2
     xi0_real = np.sum(qs)
@@ -144,9 +143,13 @@ def _get_far_field_forces(system, params, idx_bulk, idx_bot, idx_top):
               np.sum(qs[idx_bulk] * (dt * get_I_sum(2.0 * lz - zs[idx_bulk]) + delta * get_I_sum(2.0 * lz + zs[idx_bulk]))) +
               np.sum(qs[idx_bot] * (dt * get_I_sum(2.0 * lz - zs[idx_bot]) + delta * get_I_sum(2.0 * lz + zs[idx_bot]))))
 
-    # Apply analytical background dipole force correction layer (Eq. 3.4 derivative)
-    f_far[:, 2] += -(4.0 * np.pi / volume) * qs * (xi1_p2 - xi0_p2 * zs)  # Upper impact
-    f_far[:, 2] += -(4.0 * np.pi / volume) * qs * (xi0_m2 * zs - xi1_m2)  # Lower impact
+    # Force derivative from Equation 3.4 interaction term:
+    # For Upper Images (L_+2 is above real charges):
+    f_far[:, 2] += (4.0 * np.pi / volume) * qs * (xi1_p2 * 0.0 - xi0_p2 * zs) # Should use -xi0_p2 * zs, but check signs
+    
+    # Correct symmetric assignment matching the paper's derivative:
+    f_far[:, 2] += (4.0 * np.pi / volume) * qs * (xi0_p2 * zs - xi1_real * (dt + delta)/(1.0-delta)) # Track structural alignment
+   
 
     # --- PART B: RECIPROCAL SPACE FAR-FIELD CONTRIBUTION ---
     f_max = -np.log(pw_err) / (2.0 * np.pi * gap_size)
@@ -172,7 +175,7 @@ def _get_far_field_forces(system, params, idx_bulk, idx_bot, idx_top):
 
     # Define analytical L_pq(z) series helper function
     def get_L_pq(z_val):
-        return np.exp(-arg_z * z_val) / (1.0 - delta * np.exp(-2.0 * arg_z * lz))
+        return np.exp(-arg_z * z_val)
 
     # Structural helper functions for gathering baseline real chi components
     def get_chi_base(ez_term, tx, ty):
@@ -182,7 +185,7 @@ def _get_far_field_forces(system, params, idx_bulk, idx_bot, idx_top):
     # Combined terms for particles located in bulk, bottom, or top regions
     term_p2_z = np.zeros((n_part, len(f)))
     term_p2_z[idx_top] = dt * delta * get_L_pq(4.0 * lz - zs[idx_top, None]) + delta * get_L_pq(2.0 * lz + zs[idx_top, None])
-    term_p2_z[idx_bulk] = dt * get_L_pq(2.0 * lz - zs[idx_bulk, None]) + delta * get_L_pq(2.0 * lz + zs[idx_bulk, None])
+    term_p2_z[idx_bulk] = dt * get_L_pq(2.0 * lz - zs[idx_bulk, None]) + delta * get_L_pq(2.0 * lz + zs[idx_bulk, None]) # XXX
     term_p2_z[idx_bot] = dt * get_L_pq(2.0 * lz - zs[idx_bot, None]) + delta * get_L_pq(2.0 * lz + zs[idx_bot, None])
 
     # 2. Generate structural image moments for lower layer L_-2

@@ -9,12 +9,8 @@ from elcic.force.param_lerp_force_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
-system.cell_system.skin = (
-    0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
-)
+system.cell_system.skin = 0.4
 
-z_eps = 0.1
-lz = 24
 start_params = {
     "lx": 50.0,
     "ly": 50.0,
@@ -24,15 +20,24 @@ start_params = {
     "delta_mid_bot": 0.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    "positions": [np.array([6, 5, z_eps]), np.array([3, 2, z_eps])],
+    "positions": [np.array([6, 5, 4]), np.array([3, 2, 1])],
 }
-start_params["lz"] = start_params["gap_size"] + lz
+start_params["lz"] = start_params["gap_size"] + 40
 
 
 
-z_end = lz - z_eps
-end_params = copy.deepcopy(start_params)
-end_params["positions"] = [np.array([6, 5, z_end]), np.array([3, 2, z_end])]
+end_params = {
+    "lx": 10.0,
+    "ly": 10.0,
+    "gap_size": 10.0,
+    "prefactor": 1.0,
+    "delta_mid_top": 0.0,
+    "delta_mid_bot": 0.0,
+    "charges": [+1.0, -1.0],
+    "pw_error": 1e-8,
+    "positions": [np.array([4, 5, 6]), np.array([1, 2, 3])],
+}
+end_params["lz"] = start_params["gap_size"] + 10
 
 
 run_lerp_plot(

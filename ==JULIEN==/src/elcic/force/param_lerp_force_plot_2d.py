@@ -153,7 +153,7 @@ def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy
 
     # 2. Bottom Subplot: Error (Norm of the difference vector per particle)
     diff = data_cust - data_leg
-    print(f"Force Error = {diff}")
+    print(f"Force Error = {diff} - is only satisfactory if all are below 1e-8")
     for i in range(2):
         err = np.linalg.norm(diff[:, i, :], axis=1)
         # Added distinct markers here too in case error profiles match exactly
