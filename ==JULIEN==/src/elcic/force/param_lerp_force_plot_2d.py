@@ -119,6 +119,7 @@ def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy
     # 2. Bottom Subplot: Error (Norm of the difference vector per particle)
     # diff_vector = F_custom - F_legacy
     diff = data_cust - data_leg
+    print(f"Force Error = {diff}")
     for i in range(2):
         err = np.linalg.norm(diff[:, i, :], axis=1)
         ax3.plot(t_values, err, label=f"Err P{i}")

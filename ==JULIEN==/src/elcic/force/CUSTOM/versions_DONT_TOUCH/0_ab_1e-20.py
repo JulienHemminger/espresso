@@ -85,47 +85,7 @@ def _get_elc_correction(system, params):
 
 def get_elcic_forces(system, params: dict):
     prefactor = params['prefactor']
-    
-    # --- 1. CLASSIFICATION & VIRTUAL PARTICLE CREATION ---
-    # (For Step 2, this will find 0 image particles, but structure it now)
-    real_particles = system.part.all()
-    n_real = len(real_particles)
-    
-    # TODO for Step 3/4/5: 
-    # Determine lambda, check if any real particle z is near boundaries,
-    # and system.part.add(...) virtual image charges with scaled charges.
-    
-    # Keep track of how many total particles exist now (real + virtual)
-    # total_particles = system.part.all()
-    
-    # --- 2. PIPELINE EXECUTION ON THE EXPANDED SYSTEM ---
-    # _get_f_3d executes P3M on whatever is currently inside `system`
-    f_3d_total = _get_f_3d(system, params)
-    
-    # _get_elc_correction computes analytical ELC on whatever is inside `system`
-    f_elc_total = _get_elc_correction(system, params)
-    
-    # Combine near-field forces
-    f_near_total = f_3d_total + prefactor * f_elc_total
-    
-    # --- 3. FORCE FILTERING ---
-    # Discard forces acting on virtual particles. We only care about 0:n_real
-    f_near_real = f_near_total[:n_real, :]
-    
-    # --- 4. CLEANUP VIRTUAL PARTICLES ---
-    # TODO for Step 3/4/5: Remove the added virtual particles from the ESPResSo system
-    # so they don't corrupt the next integration step or duplicate in next evaluations.
-    # e.g., for p in virtual_particles: p.remove()
-    
-    # --- 5. FAR-FIELD ANALYTICAL CORRECTION ---
-    # For Step 2, you will implement the background infinite-image formula here.
-    # It acts ONLY on the real particles using their coordinates.
-    f_far_real = np.zeros((n_real, 3)) 
-    
-    if params["delta_mid_top"] != 0.0 or params["delta_mid_bot"] != 0.0:
-        # TODO for Step 2: Implement the O(N) Far-Field vector sums here
-        # f_far_real += compute_far_field_forces(real_particles, params)
-        pass
 
-    # Total physical force acting on the real system
-    return f_near_real + f_far_real
+    f_3d = _get_f_3d(system, params)
+    f_elc_correction = _get_elc_correction(system, params)
+    return f_3d + prefactor * f_elc_correction
