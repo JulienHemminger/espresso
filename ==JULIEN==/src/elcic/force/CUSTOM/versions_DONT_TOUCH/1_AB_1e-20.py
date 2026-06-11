@@ -84,36 +84,45 @@ def _get_elc_correction(system, params):
     return f_elc_recip + f_corr_moments
 
 def get_elcic_forces(system, params: dict):
+    print(f"get_elcic_forces(system, {params=})")
     """
     Step 2A: The 'No-Op' Structural Scaffold.
     Introduces spatial classification and index mapping pipelines.
     Guarantees mathematical equivalence to pure ELC when boundary sets are empty.
     """
-    prefactor = params['prefactor']
+    box = np.array(system.box_l)
+    lz_full = box[2]
+    eps = params["pw_error"]
+    prefactor = params.get("prefactor", 1.0)
+    db, dt = params["delta_mid_bot"], params["delta_mid_top"]
     gap_size = params['gap_size']
-    
-    # Define the ELCIC spatial crossover parameter lambda.
-    # For testing, lambda must be less than half of the gap size.
-    # If not explicitly provided in params, default to a safe value.
-    lambda_cutoff = params.get('lambda_cutoff', 2.0)
-    if lambda_cutoff >= 0.5 * gap_size:
-        lambda_cutoff = 0.1 * gap_size
+    lz = lz_full - gap_size  # Top interface position (gap is between z=0 and z=lz)
 
     # --- PART 1: CHRONICLE AND CLASSIFY REAL PARTICLES ---
-    real_particles = system.part.all()
-    n_real = len(real_particles)
+    parts = system.part.all()
+    qs, ps = parts.q.copy(), parts.pos.copy()
+    n_real = len(parts)
+    zs = np.array([p.pos[2] for p in parts])
     
-    # Extract positions to perform geometric conditional mask filtering
-    zs = np.array([p.pos[2] for p in real_particles])
-    qs = np.array([p.q for p in real_particles])
+    # Near-field cutoff: only particles within lambda of an interface get image charges
+    lambda_ = np.clip(params.get("lambda", lz / 2), 1e-3, lz / 2)
+
+    # Define near-field regions for each interface using explicit indices
+    idx_bot = np.where((zs >= 0.0) & (zs < lambda_))[0]
+    idx_top = np.where((zs > (lz - lambda_)) & (zs <= lz))[0]
+    idx_bulk = np.where((zs >= lambda_) & (zs <= (lz - lambda_)))[0]
+
+    # --- DEBUG: Print particle distribution ---
+    print(f"DEBUG: Total particles: {n_real}, {lambda_=}")
+    print(f"DEBUG: Index counts - Bot: {len(idx_bot)}, Top: {len(idx_top)}, Bulk: {len(idx_bulk)}")
+    print(f"{idx_bot=}")
+    print(f"{idx_bulk=}")
+    print(f"{idx_top=}")
     
-    # Track assignments into explicit index arrays for downstream logic validation
-    idx_bot = np.where(zs <= lambda_cutoff)[0]
-    idx_top = np.where(zs >= (gap_size - lambda_cutoff))[0]
-    idx_bulk = np.where((zs > lambda_cutoff) & (zs < (gap_size - lambda_cutoff)))[0]
-    
-    # Assert sanity check: every particle must be accounted for uniquely
-    assert len(idx_bot) + len(idx_top) + len(idx_bulk) == n_real, "Particle classification mismatch!"
+    # Assert sanity check: every particle must be accounted for uniquely across groups
+    total_classified = len(idx_bot) + len(idx_top) + len(idx_bulk)
+    assert total_classified == n_real, f"Particle classification mismatch! {n_real=}, {total_classified=}"
+
 
     # --- PART 2: EXPANDED "NEAR-FIELD" SUPER-SYSTEM STUB ---
     # In Steps 3 and 4, virtual image particles will be appended here.

@@ -2,42 +2,25 @@ import numpy as np
 import espressomd
 import espressomd.electrostatics
 
-def _get_f_3d(system, params: dict, active_particles_indices=None):
-    """
-    Computes standard 3D periodic forces using ESPResSo's P3M.
-    NOTE FOR CURSOR: In ELCIC Near-field, 'system' will contain the real particles 
-    PLUS the temporary primary image charges layer. Ensure you read forces from 
-    the right particle instances.
-    """
+def _get_f_3d(system, params: dict):
     prefactor = params['prefactor']
-    pw_err = params.get('pw_error', 1e-8)
+    pw_err = 1e-8
     
-    # Run P3M integration
+    lx, ly, lz = system.box_l
+    particles = system.part.all()
+
+    # 1. 3D Periodic Forces from P3M
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor, accuracy=pw_err, check_neutrality=False, verbose=False
     )
     system.electrostatics.solver = p3m
     system.integrator.run(0)
-    
-    # If active_particles_indices is specified, extract only those forces
-    particles = system.part.all()
-    if active_particles_indices is not None:
-        f_3d = np.array([particles[idx].f for idx in active_particles_indices])
-    else:
-        f_3d = np.array([p.f for p in particles])
-    
-    # Clean up solver to allow reuse/re-instantiation safely
-    system.electrostatics.clear()
+    f_3d = np.array([p.f for p in particles])
     return f_3d
 
-def _get_elc_correction(system, params, active_particles_indices=None):
-    """
-    Computes the regular reciprocal and moment space corrections.
-    NOTE FOR CURSOR: For ELCIC Near-field, the coordinates and charges fed here
-    must include the real particles AND the explicit primary images (L_T).
-    """
+def _get_elc_correction(system, params):
     gap_size = params['gap_size']
-    pw_err = params.get('pw_error', 1e-8)
+    pw_err = 1e-8
     
     lx, ly, lz = system.box_l
     particles = system.part.all()
@@ -46,15 +29,15 @@ def _get_elc_correction(system, params, active_particles_indices=None):
     xs, ys, zs = particles.pos.T
     volume = lx * ly * lz
 
-    # Moments calculation
+    # 2. Moments calculation
     xi0 = np.sum(qs)
     xi1 = np.sum(qs * zs)
 
-    # Non-Neutral / Dipole Force Correction
+    # 3. Non-Neutral / Dipole Force Correction
     f_corr_moments = np.zeros((n_part, 3))
     f_corr_moments[:, 2] = -(4.0 * np.pi / volume) * qs * (xi1 - xi0 * zs)
 
-    # Reciprocal Space ELC Correction
+    # 4. Reciprocal Space ELC Correction
     f_max = -np.log(pw_err) / (2.0 * np.pi * gap_size)
     p_max = int(np.ceil(f_max * lx))
     q_max = int(np.ceil(f_max * ly))
@@ -97,68 +80,85 @@ def _get_elc_correction(system, params, active_particles_indices=None):
         f_elc_recip[:, 1] += (qs[:, None] * (ex_p * tx * dty * chi_m[i] + ex_m * tx * dty * chi_p[i]) @ term_pref)
         f_elc_recip[:, 2] += (qs[:, None] * arg_z * (ex_p * tx * ty * chi_m[i] - ex_m * tx * ty * chi_p[i]) @ term_pref)
 
-    total_elc = f_elc_recip + f_corr_moments
-    
-    if active_particles_indices is not None:
-        return total_elc[active_particles_indices]
-    return total_elc
+    # Total Force Assembly
+    return f_elc_recip + f_corr_moments
 
-
-def _compute_elcic_far_forces(system, params: dict, lambda_param: float):
+def get_elcic_forces(system, params: dict):
+    print(f"get_elcic_forces(system, {params=})")
     """
-    PLACEHOLDER FOR CURSOR: Implement the analytical far formula forces here.
-    This calculates forces on real particles (L_0) exerted by far images (L_+2, L_-2, etc.)
-    
-    Dielectric prefactors:
-        delta_t = params['delta_mid_top']
-        delta_b = params['delta_mid_bot']
-    Slab boundaries are at z = 0 (bottom) and z = gap_size (top).
-    
-    Mathematical Structure factors to implement for far images:
-        Implement the geometric progression sums over the infinite series of images
-        using the exponential product decompositions detailed in the prompt equations.
+    Step 2A: The 'No-Op' Structural Scaffold.
+    Introduces spatial classification and index mapping pipelines.
+    Guarantees mathematical equivalence to pure ELC when boundary sets are empty.
     """
-    lx, ly, lz = system.box_l
+    box = np.array(system.box_l)
+    lz_full = box[2]
+    eps = params["pw_error"]
+    prefactor = params.get("prefactor", 1.0)
+    db, dt = params["delta_mid_bot"], params["delta_mid_top"]
     gap_size = params['gap_size']
-    delta_t = params['delta_mid_top']
-    delta_b = params['delta_mid_bot']
-    pw_err = params.get('pw_error', 1e-8)
+    lz = lz_full - gap_size  # Top interface position (gap is between z=0 and z=lz)
+
+    # --- PART 1: CHRONICLE AND CLASSIFY REAL PARTICLES ---
+    parts = system.part.all()
+    qs, ps = parts.q.copy(), parts.pos.copy()
+    n_real = len(parts)
+    zs = np.array([p.pos[2] for p in parts])
     
-    particles = system.part.all()
-    n_part = len(particles)
-    qs = particles.q
-    xs, ys, zs = particles.pos.T
+    # Near-field cutoff: only particles within lambda of an interface get image charges
+    lambda_ = np.clip(params.get("lambda", lz / 2), 1e-3, lz / 2)
+
+    # Define near-field regions for each interface using explicit indices
+    idx_bot = np.where((zs >= 0.0) & (zs < lambda_))[0]
+    idx_top = np.where((zs > (lz - lambda_)) & (zs <= lz))[0]
+    idx_bulk = np.where((zs >= lambda_) & (zs <= (lz - lambda_)))[0]
+
+    # --- DEBUG: Print particle distribution ---
+    print(f"DEBUG: Total particles: {n_real}, {lambda_=}")
+    print(f"DEBUG: Index counts - Bot: {len(idx_bot)}, Top: {len(idx_top)}, Bulk: {len(idx_bulk)}")
+    print(f"{idx_bot=}")
+    print(f"{idx_bulk=}")
+    print(f"{idx_top=}")
     
-    f_far = np.zeros((n_part, 3))
-    
-    # --- TODO: CURSOR IMPLEMENTS THE FAR BLUEPRINT HERE ---
-    
-    return f_far
+    # Assert sanity check: every particle must be accounted for uniquely across groups
+    total_classified = len(idx_bot) + len(idx_top) + len(idx_bulk)
+    assert total_classified == n_real, f"Particle classification mismatch! {n_real=}, {total_classified=}"
 
 
-def get_elcic_forces(system, params: dict, lambda_param: float = 5.0):
-    """
-    Main ELCIC Force Orchestrator.
-    Gradually extend this routine across the roadmap steps.
-    """
-    prefactor = params['prefactor']
-    gap_size = params['gap_size']
-    delta_t = params['delta_mid_top']
-    delta_b = params['delta_mid_bot']
+    # --- PART 2: EXPANDED "NEAR-FIELD" SUPER-SYSTEM STUB ---
+    # In Steps 3 and 4, virtual image particles will be appended here.
+    # For Step 2A, no virtual particles are added. The system is unchanged.
+    virtual_particles_added = []
     
-    # 1. TODO: Step 2+ Particle Classification
-    # Group real particles into L_0,0, L_0,+1, L_0,-1 based on distance to boundaries (0 and gap_size)
+    # We explicitly determine total active counts to ensure array-slicing logic
+    # is robust against modifications to ESPResSo's particle storage.
+    all_active_particles = system.part.all()
+    n_total = len(all_active_particles)
+
+    # --- PART 3: SOLVE COULOMB INTERACTIONS ON THE ACTIVE SYSTEM ---
+    # Run the core 3D background grid P3M solver
+    f_3d_total = _get_f_3d(system, params)
     
-    # 2. TODO: Step 3+ Construct the virtual Super-system L_T = L_-1 U L_0 U L_+1
-    # Create a temporary simulation system context, populate primary image charges
-    # with scaled charges (q * delta) and mirror positions.
+    # Evaluate the analytical 2D reciprocal space correction layer
+    f_elc_total = _get_elc_correction(system, params)
     
-    # 3. Compute Near Forces using existing ELC workflow on the expanded system context
-    # (For Step 1, this just processes the default system)
-    f_near = _get_f_3d(system, params) + prefactor * _get_elc_correction(system, params)
-    
-    # 4. TODO: Step 2+ Compute Analytical Far Forces
-    f_far = _compute_elcic_far_forces(system, params, lambda_param)
-    
-    # Total combined force return vector
-    return f_near + f_far
+    # Linear combination of the total baseline near-field forces
+    f_near_total = f_3d_total + prefactor * f_elc_total
+
+    # --- PART 4: FORCE FILTERING & VIRTUAL LAYER EXTRACTION ---
+    # Array slicing isolates the physical real particles [0 : n_real].
+    # Forces applied to virtual image indices are cleanly truncated out.
+    f_near_real = f_near_total[:n_real, :]
+
+    # --- PART 5: CLEANUP SUBROUTINE STUB ---
+    # In later stages, virtual particles must be systematically unlinked from
+    # ESPResSo's state. For Step 2A, this array loop is empty.
+    for p_virtual in virtual_particles_added:
+        p_virtual.remove()
+
+    # --- PART 6: ANALYTICAL FAR-FIELD INVARIANT CORRECTION STUB ---
+    # This block computes background polarization matrix effects from image chains L_±2...
+    # For Step 2A, it is a clean zero array matrix.
+    f_far_real = np.zeros((n_real, 3))
+
+    # Final superposition of physical components
+    return f_near_real + f_far_real

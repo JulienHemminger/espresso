@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 # Configuration for easier maintenance
-NESSECARY_KEYS = ["lx", "ly", "lz", "gap_size", "pw_error", "prefactor"]
+NESSECARY_KEYS = ["lx", "ly", "lz", "gap_size", "pw_error", "prefactor", "lambda"]
 OPTIONAL_KEYS = ["delta_mid_top", "delta_mid_bot"]
 
 def lerp(a, b, t):
