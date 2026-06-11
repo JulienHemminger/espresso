@@ -104,30 +104,47 @@ def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy
     fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
     
     # 1. Top Subplot: Force Magnitudes (L2 Norm of each particle)
+    
+    # Define a explicit visual mapping to maximize contrast
+    # (Color, Linestyle, Marker, Marker_Start_Offset)
+    style_mapping = {
+        # Particle 0: Blues / Cool tones
+        "legacy_0": {"color": "#1f77b4", "ls": "--", "marker": "o", "offset": 0}, # Thick dashed blue with circles
+        "custom_0": {"color": "#17becf", "ls": "-",  "marker": "x", "offset": 2}, # Thin solid cyan with crosses
+        
+        # Particle 1: Oranges / Warm tones
+        "legacy_1": {"color": "#d62728", "ls": ":",  "marker": "s", "offset": 1}, # Thick dotted red with squares
+        "custom_1": {"color": "#ff7f0e", "ls": "-.", "marker": "^", "offset": 3}, # Thin dash-dot orange with triangles
+    }
+
     for i in range(2):
         mag_leg = np.linalg.norm(data_leg[:, i, :], axis=1)
         mag_cust = np.linalg.norm(data_cust[:, i, :], axis=1)
         
-        # --- Visualization Fixes for Overlapping Lines ---
-        # Legacy line: Plotted underneath, thicker, dashed, with spaced out circular markers
+        leg_style = style_mapping[f"legacy_{i}"]
+        cust_style = style_mapping[f"custom_{i}"]
+        
+        # Legacy Line: Thick backdrop line
         ax1.plot(t_values, mag_leg, 
                  label=f"Legacy P{i}", 
-                 ls="--", 
-                 lw=4,                 # Thicker line width acting as a base
-                 alpha=0.7,            # Semi-transparent
-                 marker="o", 
+                 color=leg_style["color"],
+                 ls=leg_style["ls"], 
+                 lw=4,                 
+                 alpha=0.6,            
+                 marker=leg_style["marker"], 
                  markersize=6, 
-                 markevery=(0, 4))     # Marker every 4 steps starting at index 0
+                 markevery=(leg_style["offset"], 4))     
         
-        # Custom line: Plotted on top, thinner, solid, with interleaved 'x' markers
+        # Custom Line: Sits cleanly inside the legacy line
         ax1.plot(t_values, mag_cust, 
                  label=f"Custom P{i}", 
-                 ls="-",
-                 lw=2,                 # Thinner line width sits inside the thick line
+                 color=cust_style["color"],
+                 ls=cust_style["ls"], 
+                 lw=2,                 
                  alpha=0.9, 
-                 marker="x", 
-                 markersize=7, 
-                 markevery=(2, 4))     # Marker every 4 steps starting at index 2 (offset)
+                 marker=cust_style["marker"], 
+                 markersize=6, 
+                 markevery=(cust_style["offset"], 4))
     
     ax1.set_ylabel("Force Magnitude |F|")
     ax1.legend(fontsize='small', loc='upper right')

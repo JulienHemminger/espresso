@@ -84,48 +84,72 @@ def _get_elc_correction(system, params):
     return f_elc_recip + f_corr_moments
 
 def get_elcic_forces(system, params: dict):
+    """
+    Step 2A: The 'No-Op' Structural Scaffold.
+    Introduces spatial classification and index mapping pipelines.
+    Guarantees mathematical equivalence to pure ELC when boundary sets are empty.
+    """
     prefactor = params['prefactor']
+    gap_size = params['gap_size']
     
-    # --- 1. CLASSIFICATION & VIRTUAL PARTICLE CREATION ---
-    # (For Step 2, this will find 0 image particles, but structure it now)
+    # Define the ELCIC spatial crossover parameter lambda.
+    # For testing, lambda must be less than half of the gap size.
+    # If not explicitly provided in params, default to a safe value.
+    lambda_cutoff = params.get('lambda_cutoff', 2.0)
+    if lambda_cutoff >= 0.5 * gap_size:
+        lambda_cutoff = 0.1 * gap_size
+
+    # --- PART 1: CHRONICLE AND CLASSIFY REAL PARTICLES ---
     real_particles = system.part.all()
     n_real = len(real_particles)
     
-    # TODO for Step 3/4/5: 
-    # Determine lambda, check if any real particle z is near boundaries,
-    # and system.part.add(...) virtual image charges with scaled charges.
+    # Extract positions to perform geometric conditional mask filtering
+    zs = np.array([p.pos[2] for p in real_particles])
+    qs = np.array([p.q for p in real_particles])
     
-    # Keep track of how many total particles exist now (real + virtual)
-    # total_particles = system.part.all()
+    # Track assignments into explicit index arrays for downstream logic validation
+    idx_bot = np.where(zs <= lambda_cutoff)[0]
+    idx_top = np.where(zs >= (gap_size - lambda_cutoff))[0]
+    idx_bulk = np.where((zs > lambda_cutoff) & (zs < (gap_size - lambda_cutoff)))[0]
     
-    # --- 2. PIPELINE EXECUTION ON THE EXPANDED SYSTEM ---
-    # _get_f_3d executes P3M on whatever is currently inside `system`
+    # Assert sanity check: every particle must be accounted for uniquely
+    assert len(idx_bot) + len(idx_top) + len(idx_bulk) == n_real, "Particle classification mismatch!"
+
+    # --- PART 2: EXPANDED "NEAR-FIELD" SUPER-SYSTEM STUB ---
+    # In Steps 3 and 4, virtual image particles will be appended here.
+    # For Step 2A, no virtual particles are added. The system is unchanged.
+    virtual_particles_added = []
+    
+    # We explicitly determine total active counts to ensure array-slicing logic
+    # is robust against modifications to ESPResSo's particle storage.
+    all_active_particles = system.part.all()
+    n_total = len(all_active_particles)
+
+    # --- PART 3: SOLVE COULOMB INTERACTIONS ON THE ACTIVE SYSTEM ---
+    # Run the core 3D background grid P3M solver
     f_3d_total = _get_f_3d(system, params)
     
-    # _get_elc_correction computes analytical ELC on whatever is inside `system`
+    # Evaluate the analytical 2D reciprocal space correction layer
     f_elc_total = _get_elc_correction(system, params)
     
-    # Combine near-field forces
+    # Linear combination of the total baseline near-field forces
     f_near_total = f_3d_total + prefactor * f_elc_total
-    
-    # --- 3. FORCE FILTERING ---
-    # Discard forces acting on virtual particles. We only care about 0:n_real
-    f_near_real = f_near_total[:n_real, :]
-    
-    # --- 4. CLEANUP VIRTUAL PARTICLES ---
-    # TODO for Step 3/4/5: Remove the added virtual particles from the ESPResSo system
-    # so they don't corrupt the next integration step or duplicate in next evaluations.
-    # e.g., for p in virtual_particles: p.remove()
-    
-    # --- 5. FAR-FIELD ANALYTICAL CORRECTION ---
-    # For Step 2, you will implement the background infinite-image formula here.
-    # It acts ONLY on the real particles using their coordinates.
-    f_far_real = np.zeros((n_real, 3)) 
-    
-    if params["delta_mid_top"] != 0.0 or params["delta_mid_bot"] != 0.0:
-        # TODO for Step 2: Implement the O(N) Far-Field vector sums here
-        # f_far_real += compute_far_field_forces(real_particles, params)
-        pass
 
-    # Total physical force acting on the real system
+    # --- PART 4: FORCE FILTERING & VIRTUAL LAYER EXTRACTION ---
+    # Array slicing isolates the physical real particles [0 : n_real].
+    # Forces applied to virtual image indices are cleanly truncated out.
+    f_near_real = f_near_total[:n_real, :]
+
+    # --- PART 5: CLEANUP SUBROUTINE STUB ---
+    # In later stages, virtual particles must be systematically unlinked from
+    # ESPResSo's state. For Step 2A, this array loop is empty.
+    for p_virtual in virtual_particles_added:
+        p_virtual.remove()
+
+    # --- PART 6: ANALYTICAL FAR-FIELD INVARIANT CORRECTION STUB ---
+    # This block computes background polarization matrix effects from image chains L_±2...
+    # For Step 2A, it is a clean zero array matrix.
+    f_far_real = np.zeros((n_real, 3))
+
+    # Final superposition of physical components
     return f_near_real + f_far_real

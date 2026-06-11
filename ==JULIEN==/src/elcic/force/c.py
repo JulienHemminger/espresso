@@ -18,8 +18,8 @@ start_params = {
     "ly": 50.0,
     "gap_size": 20.0,
     "prefactor": 1.0,
-    "delta_mid_top": 0.8,
-    "delta_mid_bot": -0.5,
+    "delta_mid_top": 0,
+    "delta_mid_bot": 0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
     "positions": [np.array([6, 5, 10]), np.array([3, 2, 10])],
@@ -27,20 +27,9 @@ start_params = {
 start_params["lz"] = start_params["gap_size"] + 40
 
 
-
-end_params = {
-    "lx": 10.0,
-    "ly": 10.0,
-    "gap_size": 10.0,
-    "prefactor": 1.0,
-    "delta_mid_top": 0.8,
-    "delta_mid_bot": -0.5,
-    "charges": [+1.0, -1.0],
-    "pw_error": 1e-8,
-    "positions": [np.array([4, 5, 10]), np.array([1, 2, 10])],
-}
-end_params["lz"] = start_params["gap_size"] + 10
-
+end_params = copy.deepcopy(start_params)
+end_params["delta_mid_bot"] = -0.5
+#end_params["delta_mid_top"] = +0.8
 
 run_lerp_plot(
     system=system,
@@ -60,6 +49,7 @@ use AI tools
     * dont make LLm rewite entire function, make it contrib-ized: NO, 5 tries
     * prompt "only add bottom plate reflection" ? 
     * series of carefully selected tests TRY THIS: https://gemini.google.com/app/554fa14f93a80c7b
+       
 
 
     
