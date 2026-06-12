@@ -15,7 +15,7 @@ system.cell_system.skin = 0.4
 lz = 40
 eps = 1e-3
 start_params = {
-    "lx": 50.0,
+    "lx": 50.0, 
     "ly": 50.0,
     "gap_size": 20.0,
     "prefactor": 1.0,

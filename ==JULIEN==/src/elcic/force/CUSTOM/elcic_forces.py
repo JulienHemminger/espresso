@@ -115,50 +115,18 @@ def get_elcic_forces(system, params: dict):
     # --- DEBUG: Print particle distribution ---
     print(f"DEBUG: Total particles: {n_real}, {lambda_=}")
     print(f"DEBUG: Index counts - Bot: {len(idx_bot)}, Top: {len(idx_top)}, Bulk: {len(idx_bulk)}")
-    print(f"{idx_bot=}")
-    print(f"{idx_bulk=}")
-    print(f"{idx_top=}")
+    print(f"DEBUG: {idx_bot=}")
+    print(f"DEBUG: {idx_bulk=}")
+    print(f"DEBUG: {idx_top=}")
     
-    # Assert sanity check: every particle must be accounted for uniquely across groups
     total_classified = len(idx_bot) + len(idx_top) + len(idx_bulk)
     assert total_classified == n_real, f"Particle classification mismatch! {n_real=}, {total_classified=}"
 
 
-    # --- PART 2: EXPANDED "NEAR-FIELD" SUPER-SYSTEM STUB ---
-    # In Steps 3 and 4, virtual image particles will be appended here.
-    # For Step 2A, no virtual particles are added. The system is unchanged.
-    virtual_particles_added = []
-    
-    # We explicitly determine total active counts to ensure array-slicing logic
-    # is robust against modifications to ESPResSo's particle storage.
-    all_active_particles = system.part.all()
-    n_total = len(all_active_particles)
-
-    # --- PART 3: SOLVE COULOMB INTERACTIONS ON THE ACTIVE SYSTEM ---
-    # Run the core 3D background grid P3M solver
     f_3d_total = _get_f_3d(system, params)
     
-    # Evaluate the analytical 2D reciprocal space correction layer
     f_elc_total = _get_elc_correction(system, params)
     
-    # Linear combination of the total baseline near-field forces
-    f_near_total = f_3d_total + prefactor * f_elc_total
+    f_near = f_3d_total + prefactor * f_elc_total
 
-    # --- PART 4: FORCE FILTERING & VIRTUAL LAYER EXTRACTION ---
-    # Array slicing isolates the physical real particles [0 : n_real].
-    # Forces applied to virtual image indices are cleanly truncated out.
-    f_near_real = f_near_total[:n_real, :]
-
-    # --- PART 5: CLEANUP SUBROUTINE STUB ---
-    # In later stages, virtual particles must be systematically unlinked from
-    # ESPResSo's state. For Step 2A, this array loop is empty.
-    for p_virtual in virtual_particles_added:
-        p_virtual.remove()
-
-    # --- PART 6: ANALYTICAL FAR-FIELD INVARIANT CORRECTION STUB ---
-    # This block computes background polarization matrix effects from image chains L_±2...
-    # For Step 2A, it is a clean zero array matrix.
-    f_far_real = np.zeros((n_real, 3))
-
-    # Final superposition of physical components
-    return f_near_real + f_far_real
+    return f_near
