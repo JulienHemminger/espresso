@@ -49,5 +49,9 @@ run_lerp_plot(
     get_custom_force=get_elcic_forces,
     get_legacy_force=get_legacy_forces,
     get_analytical_force=None,
-    steps=2,
+    steps=12,
 )
+
+# TLDR: stuck at abour err=1e-3. LLM seems delusional. Its convinced the error stems from the "f_corr_moments" section
+
+# next idea: idk, maybe again a more step-wise, section-per-section approach?

@@ -128,10 +128,11 @@ def get_elcic_forces(system, params: dict):
         )
 
     # --- Step 3: Complete Non-Neutral/Slab Background Alignment ---
+   # --- Step 3: Corrected Non-Neutral/Slab Background Alignment ---
     f_corr_moments = np.zeros((n_real, 3))
     
     # Fundamental global moments
-    xi0 = np.sum(qs)        # Net charge of the real particles
+    xi0 = np.sum(qs)        # Net charge of the system
     xi1 = np.sum(qs * zs)   # Net dipole moment along z
     
     # 1. Primary dielectric layer progression matching term
@@ -143,16 +144,14 @@ def get_elcic_forces(system, params: dict):
             * (xi1 * (1.0 + delta_prod) - xi0 * zs * (1.0 - delta_prod))
         )
 
-    # 2. Complete 3D Periodic Box Background Subtraction (Force Derivative)
-    # This accounts for BOTH the linear coordinate drift AND any non-neutral 
-    # layer slicing constraints from the full box volume.
+    # 2. Volume-shift adjustments
+    # These terms must scale proportionally to net-charge asymmetry (xi0).
+    # For charge-neutral systems (xi0 = 0), these background forces must be zero.
     volume_factor = lx * ly * lz_full
     
-    # Standard ELC linear field correction
+    # Linear and constant alignment updates
     f_corr_moments[:, 2] += (4.0 * np.pi / volume_factor) * qs * zs * xi0
-    
-    # Constant volume shift correction for segmented neutrality frames
-    f_corr_moments[:, 2] -= (4.0 * np.pi / volume_factor) * qs * (xi1 - (lz_full / 2.0) * xi0)
+    f_corr_moments[:, 2] -= (4.0 * np.pi / volume_factor) * qs * (xi1 - (lz_full / 2.0)) * xi0
 
 
     f_elcic_corr = prefactor * (f_elcic_recip + f_corr_moments)
