@@ -15,68 +15,7 @@ def _get_f_3d(system, params: dict):
     system.integrator.run(0)
     f_3d = np.array([p.f for p in particles])
     return f_3d
-def _get_near_field_images(system, qs, pos, h, delta_t, delta_b, lambda_):
-    """Corrected image force summation to prevent self-interaction overlap."""
-    n_real = len(qs)
-    f_images = np.zeros((n_real, 3))
-    
-    # 1. Compute force on real particles from their images
-    # Image at bottom: pos_img = (x, y, -z), q_img = delta_b * q
-    # Image at top: pos_img = (x, y, 2h - z), q_img = delta_t * q
-    
-    for i in range(n_real):
-        q = qs[i]
-        x, y, z = pos[i]
-        
-        # Bottom Image Contribution
-        if delta_b != 0:
-            r_vec = np.array([0, 0, z - (-z)]) # vector from image to real
-            dist = np.linalg.norm(r_vec)
-            # Use appropriate dielectric Green's function, not just Coulomb
-            f_images[i] += (delta_b * q**2 / dist**3) * r_vec
-            
-        # Top Image Contribution
-        if delta_t != 0:
-            r_vec = np.array([0, 0, z - (2*h - z)])
-            dist = np.linalg.norm(r_vec)
-            f_images[i] += (delta_t * q**2 / dist**3) * r_vec
-            
-    return f_images
 
-def _get_elcic_recip_forces(qs, xs, ys, zs, lx, ly, h, delta_t, delta_b, pw_err, gap_size):
-    """Refined ELCIC reciprocal force summation."""
-    f_max = -np.log(pw_err) / (2.0 * np.pi * gap_size)
-    p_max = int(np.ceil(f_max * lx))
-    q_max = int(np.ceil(f_max * ly))
-
-    p_range = np.arange(-p_max, p_max + 1)
-    q_range = np.arange(-q_max, q_max + 1)
-    P, Q = np.meshgrid(p_range, q_range)
-    mask = ((P != 0) | (Q != 0)) & (np.sqrt((P/lx)**2 + (Q/ly)**2) <= f_max)
-    
-    pk, qk = P[mask], Q[mask]
-    fx, fy = pk/lx, qk/ly
-    f_k = np.sqrt(fx**2 + fy**2)
-    k = 2.0 * np.pi * f_k
-    
-    # Precompute geometric series factor
-    # Denominator: 1 - delta_t * delta_b * exp(-2 * k * h)
-    exp_2kh = np.exp(-2.0 * k * h)
-    denom = 1.0 - (delta_t * delta_b * exp_2kh)
-    
-    # Structure factors for cross-talk
-    arg_x, arg_y = 2.0 * np.pi * fx, 2.0 * np.pi * fy
-    
-    # Print diagnostic for convergence
-    if np.any(np.abs(denom) < 1e-10):
-        print(f"[Warning]: Reciprocal sum near singularity! denom min: {np.min(np.abs(denom))}")
-
-    # Compute forces
-    f_recip = np.zeros((len(qs), 3))
-    # ... (Implementation of gradients of potential using chain rule on the corrected series)
-    # Ensure the exponential scaling factors:
-    # Potential phi_k = (1/A*k) * [ (delta_t * e^{-k(2h-z)} + delta_b * e^{-kz}) / denom ]
-    return f_recip
 
 def get_elcic_forces(system, params: dict):
     """
