@@ -36,7 +36,7 @@ end_params = {
     "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    'lambda': 1e-3,
+    'lambda': 1,
     "positions": [np.array([4, 5, 6]), np.array([1, 2, 3])],
 }
 end_params["lz"] = start_params["gap_size"] + 10
