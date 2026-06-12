@@ -1,6 +1,8 @@
-* use sth like elc\_forces.cpp: NOOO
+* use sth like elc\_forces.cpp: NO
 * use custom\_energy.py (energy and force calc are pretty similar): NO, err=1e-2
-* from scratch with tyagi paper: MEH&#x20;
+* from scratch with tyagi paper: MEH/NO
+
+  * focus on quantitity (20+ LLM regenerations) over quality (even Pro Extended doesnt get it). do "gradient descent" with LLMs&#x20;
 * give up, focus on report:
 
 \=======
