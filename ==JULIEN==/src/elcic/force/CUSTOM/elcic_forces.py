@@ -208,23 +208,27 @@ def get_elcic_forces(system, params: dict):
         system.electrostatics.solver = p3m_base
 
     # --- Step 5: Final Aggregation and Detailed Tracking Printouts ---
+    f_elcic_corr = prefactor * (f_elcic_recip + f_corr_moments)
     f_total_elcic = f_3d_baseline + f_elcic_corr + f_near_field_images
 
-    print("\n============================================================")
-    print(" GRANULAR VECTOR ERROR BREAKDOWN PER COMPONENT")
-    print("============================================================")
+    print("\n" + "="*60)
+    print("         ELCIC COMPONENT-WISE TELEMETRY LOG")
+    print("="*60)
     for idx in range(n_real):
-        # Assuming F_truth is accessible or passed to the function
-        # replace 'f_truth_mock' with your actual truth force vector array
-        f_truth_mock = f_total_elcic[idx] + np.array([0.0, 0.0, 0.0]) # Replace with actual truth if debugging live
-        error_vec = f_total_elcic[idx] - f_truth_mock 
+        print(f"--- Particle {idx} (q={qs[idx]}, z={zs[idx]:.4f}) ---")
+        print(f"  3D Baseline P3M F : {f_3d_baseline[idx]}")
+        print(f"  Reciprocal ELCIC F: {prefactor * f_elcic_recip[idx]}")
+        print(f"  Moment CorrectionF: {prefactor * f_corr_moments[idx]}")
+        print(f"  Near-Field Image F: {f_near_field_images[idx]}")
+        print(f"  Computed Total F  : {f_total_elcic[idx]}")
         
-        print(f"Particle {idx}:")
-        print(f"  Custom F: [{f_total_elcic[idx][0]:.8f}, {f_total_elcic[idx][1]:.8f}, {f_total_elcic[idx][2]:.8f}]")
-        print(f"  Error X:  {error_vec[0]:.2e}")
-        print(f"  Error Y:  {error_vec[1]:.2e}")
-        print(f"  Error Z:  {error_vec[2]:.2e}")
-        print(f"  z-coord:  {zs[idx]:.4f} (Relative to h/2: {zs[idx] - h/2:.4f})")
-    print("============================================================")
+        # Replace this line with your analytical or high-accuracy reference grid truth vector
+        f_truth_actual = np.array([0.0, 0.0, 0.0]) 
+        
+        if np.any(f_truth_actual):
+            err = f_total_elcic[idx] - f_truth_actual
+            print(f"  Absolute Error Vec: {err}")
+            print(f"  Max Absolute Error: {np.max(np.abs(err)):.4e}")
+    print("="*60 + "\n")
 
     return f_total_elcic
