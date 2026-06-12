@@ -64,16 +64,11 @@ def save_plot_with_timestamp(fig, base_directory="/home/main/"):
     filename = f"lerp2d_{timestamp}.png"
     
     # Ensure the directory exists (optional, but good practice)
-    if not os.path.exists(base_directory):
-        print(f"Directory {base_directory} not found. Saving to current directory.")
-        full_path = filename
-    else:
-        full_path = os.path.join(base_directory, filename)
+    full_path = os.path.join(base_directory, filename)
     
     # Save the figure
     # bbox_inches='tight' is recommended to prevent clipping of labels/legends
     fig.savefig(full_path, bbox_inches='tight', dpi=300)
-    print(f"Figure successfully saved to: {full_path}")
 
 def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy_force, get_analytical_force=None, steps=20): 
     t_values = np.linspace(0, 1, steps)
@@ -153,9 +148,9 @@ def run_lerp_plot(system, start_params, end_params, get_custom_force, get_legacy
 
     # 2. Bottom Subplot: Error (Norm of the difference vector per particle)
     diff = data_cust - data_leg
-    print(f"Force Error = {diff} - is only satisfactory if all are below 1e-8")
     for i in range(2):
         err = np.linalg.norm(diff[:, i, :], axis=1)
+        print(f"For particle {i}, Max. Force Error "+"|F_{custom} - F_{truth}| = "+f"{np.max(err)} - is only satisfactory if below 1e-8")
         # Added distinct markers here too in case error profiles match exactly
         ax3.plot(t_values, err, 
                  label=f"Err P{i}", 
