@@ -1,3 +1,10 @@
+* use sth like elc\_forces.cpp: NOOO
+* use custom\_energy.py (energy and force calc are pretty similar): NO, err=1e-2
+* from scratch with tyagi paper: MEH&#x20;
+* give up, focus on report:
+
+\=======
+
 $\mathbf{F}_i = \mathbf{F}_i^{\text{3D base}} + \mathbf{F}_i^{\text{ELC (no dielectrics)}} + \mathbf{F}_i^{\text{near images}} + \mathbf{F}_i^{\text{far images}}$
 
 * regular ELC
@@ -60,8 +67,6 @@ $\mathbf{F}_i^{\text{near}} = \mathbf{F}_i^{(L_T)},\qquad i\in L_0$
 L0​–L±1L±1​ + L0L0​–L0L0​ to be handled via a standard 3D solver + ELC (near interactions);
 
 L0​–L±2L±2​ to be handled by the far‑formula factorization.
-
-
 
 Step 5: F\_far
 

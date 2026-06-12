@@ -21,7 +21,7 @@ start_params = {
     "prefactor": 1.0,
     "delta_mid_top": 0.0,
     "delta_mid_bot": -0.5,
-    "charges": [+1.0, +1.0],
+    "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
     "lambda": lz/4,
     "positions": [np.array([6, 5, 0+eps]), np.array([3, 2, 0+eps])],
@@ -42,3 +42,8 @@ run_lerp_plot(
     get_analytical_force=None,
     steps=5,
 )
+
+"""
+2_C_print_seems_correct_but_err1e-3: err=1e-1 to 1e-7
+1_AB_1e-20.py: err=1e-1 to 1e-7
+"""
