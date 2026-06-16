@@ -54,4 +54,11 @@ run_lerp_plot(
 
 # TLDR: stuck at abour err=1e-3. LLM seems delusional. Its convinced the error stems from the "f_corr_moments" section
 
-# next idea: idk, maybe again a more step-wise, section-per-section approach?
+
+"""
+Action Tree
+* idk, maybe again a more step-wise, section-per-section approach: NO
+
+* only wary one param (e.g. gap_size), see if error correlates, fix code: TODO
+* give up: MAYBE
+"""
