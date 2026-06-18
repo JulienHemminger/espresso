@@ -90,6 +90,8 @@ def direct_sum_energy(system, n_max=100, prefactor=1.0, eps=1.0, eps0=1.0):
     Brute-force Coulomb energy for 2D periodic systems with non-neutral correction.
 
     Includes the Delta E term to handle systems where sum(q) != 0.
+
+    U = q1 * q2 / r
     """
     positions = system.part.all().pos
     charges = system.part.all().q
