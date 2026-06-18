@@ -1,88 +1,75 @@
 import numpy as np
 from scipy.special import erf, erfc
+import numpy as np
+from scipy.special import erf, erfc
 
 
 def get_ewald_energy_2d(system, n_max=100, prefactor=1.0):
-    positions = system.part.all().pos  # Shape (N, 3)
-    charges = system.part.all().q  # Shape (N,)
+    pos = np.asarray(system.part.all().pos, dtype=np.float64)
+    q = np.asarray(system.part.all().q, dtype=np.float64)
 
-    # 2. Get box dimensions (assuming a rectangular box)
-    lx = system.box_l[0]
-    ly = system.box_l[1]
+    lx, ly = system.box_l[0], system.box_l[1]
+    area = lx * ly
+    eta = np.sqrt(np.pi) / min(lx, ly)
 
-    eta = None
-    n_real = n_max
-    n_recip = n_max
-    pos = np.asarray(positions, dtype=np.float64)
-    q = np.asarray(charges, dtype=np.float64)
-    A = lx * ly
+    dr = pos[:, None, :] - pos[None, :, :]
+    q_pairs = q[:, None] * q[None, :]
 
-    if eta is None:
-        # Balance real/reciprocal convergence
-        eta = np.sqrt(np.pi) / min(lx, ly)
+    # Real space component
+    grid_range = np.arange(-n_max, n_max + 1)
+    nx, ny = np.meshgrid(grid_range, grid_range, indexing="ij")
+    rx_shifts = nx.flatten() * lx
+    ry_shifts = ny.flatten() * ly
 
-    # Pair separation vectors: dr[a, b] = pos[a] - pos[b]
-    dr = pos[:, None, :] - pos[None, :, :]  # (N, N, 3)
-    qq = q[:, None] * q[None, :]  # (N, N)
+    e_real = 0.0
+    for rx, ry in zip(rx_shifts, ry_shifts):
+        r_vec = dr + np.array([rx, ry, 0.0])
+        dist = np.linalg.norm(r_vec, axis=2)
 
-    # ---- Real-space sum ----
-    E_real = 0.0
-    for nx in range(-n_real, n_real + 1):
-        for ny in range(-n_real, n_real + 1):
-            R = np.array([nx * lx, ny * ly, 0.0])
-            rvec = dr + R  # (N, N, 3)
-            dist = np.linalg.norm(rvec, axis=2)  # (N, N)
+        if rx == 0.0 and ry == 0.0:
+            np.fill_diagonal(dist, np.inf)
 
-            if nx == 0 and ny == 0:
-                np.fill_diagonal(dist, np.inf)  # exclude self
+        e_real += np.sum(q_pairs * erfc(eta * dist) / dist)
+    e_real *= 0.5
 
-            contrib = qq * erfc(eta * dist) / dist
-            E_real += np.sum(contrib)
-    E_real *= 0.5
+    # Reciprocal space component
+    kx_base = 2.0 * np.pi / lx
+    ky_base = 2.0 * np.pi / ly
+    mx, my = np.meshgrid(grid_range, grid_range, indexing="ij")
+    mx, my = mx.flatten(), my.flatten()
 
-    # ---- Reciprocal-space sum (G != 0) ----
-    gx0 = 2.0 * np.pi / lx
-    gy0 = 2.0 * np.pi / ly
-    drho = dr[:, :, :2]  # in-plane (N, N, 2)
-    dz = dr[:, :, 2]  # z-separation (N, N)
+    valid_g = (mx != 0) | (my != 0)
+    gx = mx[valid_g] * kx_base
+    gy = my[valid_g] * ky_base
+    g = np.sqrt(gx**2 + gy**2)
 
-    E_recip = 0.0
-    for mx in range(-n_recip, n_recip + 1):
-        for my in range(-n_recip, n_recip + 1):
-            if mx == 0 and my == 0:
-                continue
-            Gx = mx * gx0
-            Gy = my * gy0
-            G = np.sqrt(Gx**2 + Gy**2)
+    dr_xy = dr[:, :, :2]
+    dz = dr[:, :, 2]
+    abs_dz = np.abs(dz)
 
-            phase = drho[:, :, 0] * Gx + drho[:, :, 1] * Gy  # (N, N)
+    e_recip = 0.0
+    for k in range(len(g)):
+        phase = dr_xy[:, :, 0] * gx[k] + dr_xy[:, :, 1] * gy[k]
+        arg_plus = g[k] / (2.0 * eta) + eta * dz
+        arg_minus = g[k] / (2.0 * eta) - eta * dz
+        h_g = np.exp(g[k] * dz) * erfc(arg_plus) + np.exp(-g[k] * dz) * erfc(
+            arg_minus
+        )
+        e_recip += np.sum(q_pairs * (np.pi / g[k]) * h_g * np.cos(phase))
+    e_recip /= 2.0 * area
 
-            # h(G, dz) = exp(G*dz)*erfc(G/(2*eta) + eta*dz)
-            #           + exp(-G*dz)*erfc(G/(2*eta) - eta*dz)
-            arg_p = G / (2.0 * eta) + eta * dz
-            arg_m = G / (2.0 * eta) - eta * dz
-            h = np.exp(G * dz) * erfc(arg_p) + np.exp(-G * dz) * erfc(arg_m)
+    # Self energy & G = 0 components
+    e_self = -(eta / np.sqrt(np.pi)) * np.sum(q**2)
 
-            E_recip += np.sum(qq * (np.pi / G) * h * np.cos(phase))
-
-    E_recip /= 2.0 * A
-
-    # ---- Self-energy correction ----
-    E_self = -(eta / np.sqrt(np.pi)) * np.sum(q**2)
-
-    # ---- G = 0 term ----
-    # Limit for |dz| -> 0:  |dz|*erf(eta*|dz|) + exp(-(eta*dz)^2)/(eta*sqrt(pi))
-    #                      -> 1/(eta*sqrt(pi))
-    adz = np.abs(dz)
     g0_terms = np.where(
-        adz < 1e-15,
+        abs_dz < 1e-15,
         1.0 / (eta * np.sqrt(np.pi)),
-        adz * erf(eta * adz) + np.exp(-((eta * adz) ** 2)) / (eta * np.sqrt(np.pi)),
+        abs_dz * erf(eta * abs_dz)
+        + np.exp(-((eta * abs_dz) ** 2)) / (eta * np.sqrt(np.pi)),
     )
-    E_G0 = -np.pi / A * np.sum(qq * g0_terms)
+    e_g0 = -(np.pi / area) * np.sum(q_pairs * g0_terms)
 
-    E_total = E_real + E_recip + E_self + E_G0
-    return E_total * prefactor
+    return (e_real + e_recip + e_self + e_g0) * prefactor
 
 
 def direct_sum_energy(system, n_max=100, prefactor=1.0, eps=1.0, eps0=1.0):
