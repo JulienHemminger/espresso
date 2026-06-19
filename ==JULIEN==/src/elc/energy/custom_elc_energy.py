@@ -9,7 +9,7 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     )
     # 1. 3D Periodic Energy from P3M
     system.electrostatics.solver = p3m
-    e_3d = system.analysis.energy()["total"]
+    E_3d = system.analysis.energy()["total"]
 
 
     lx, ly, lz = system.box_l
@@ -59,9 +59,9 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
 
     # The reciprocal energy correction
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
-    e_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
+    E_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
 
-    return (float(prefactor), float(e_recip), float(e_3d), float(E_dipole_w_nonneutr_corr))
+    return (float(prefactor), float(E_recip), float(E_3d), float(E_dipole_w_nonneutr_corr))
 
 
 def get_elc_energy(system, gap_size, pw_error, prefactor=1.0):
