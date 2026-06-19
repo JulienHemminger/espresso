@@ -119,7 +119,7 @@ params = {
     "gap_size": 10.0,
     "prefactor": 1.0,
     "charges": [+1.0, -1.0],
-    "positions": [np.array([3, 2, 1]), np.array([4, 5, 6])], # Z will be overwritten
+    "positions": [np.array([6, 5, 0]), np.array([3, 2, 0])], # Z will be overwritten
     "pw_error": 1e-8,
 }
 
@@ -127,12 +127,11 @@ params = {
 eps = 1e-1
 z_min = 0 + eps
 z_max = params["lz"] - params["gap_size"] - eps
-z_values = np.linspace(z_min, z_max, num=3)
+z_values = np.linspace(z_min, z_max, num=20)
 
 analytical_results = []
 E_3d_list = []
 E_dipole_list = []
-E_recip_list = []
 E_sum_list = []
 
 # 2. Iterate and update particle positions
@@ -155,8 +154,7 @@ for z in z_values:
     E_3d, E_dipole, E_recip = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
     
     E_3d_list.append(E_3d)
-    E_dipole_list.append(E_dipole)
-    E_recip_list.append(E_recip)
+    E_dipole_list.append(E_dipole + E_recip)
     E_sum_list.append(E_3d + E_dipole + E_recip)
 
     print(f"Z={z:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_recip:.4f} | Sum={E_sum_list[-1]:.4f}")
@@ -165,11 +163,10 @@ for z in z_values:
 plt.figure(figsize=(10, 6))
 
 # Plot components
-plt.plot(z_values, E_3d_list, label='E_3d', linestyle=':', color='blue')
-plt.plot(z_values, E_dipole_list, label='E_dipole', linestyle=':', color='orange')
-plt.plot(z_values, E_recip_list, label='E_recip', linestyle=':', color='cyan')
-plt.plot(z_values, E_sum_list, label='Sum (E_3d + E_dipole)', linestyle='-', color='green')
-plt.plot(z_values, analytical_results, label='Analytical', marker='o', linestyle='None')
+plt.plot(z_values, E_3d_list, label='E_3d', linestyle=':', color='cyan')
+plt.plot(z_values, E_dipole_list, label='E_dipole', linestyle=':', color='skyblue')
+plt.plot(z_values, E_sum_list, label='Sum (E_3d + E_dipole)', linestyle='-', color='blue')
+plt.plot(z_values, analytical_results, label='Analytical', marker='o', linestyle='None', color='red')
 
 plt.xlabel("Particle Z Position")
 plt.ylabel("Energy")
@@ -180,7 +177,7 @@ plt.grid(True)
 # Generate custom parameter string
 params_display = params.copy()
 # Format the positions string to show 'z' as a variable
-params_display["positions"] = "[np.array([6, 5, z]), np.array([3, 2, z + 1.0])]"
+params_display["positions"] = "[np.array([6, 5, z]), np.array([3, 2, z])]"
 
 params_str = "Parameters:\n" + "\n".join([f"{k}: {v}" for k, v in params_display.items()])
 
@@ -188,3 +185,5 @@ params_str = "Parameters:\n" + "\n".join([f"{k}: {v}" for k, v in params_display
 plt.figtext(0.75, 0.5, params_str, fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
 
 plt.show()
+
+
