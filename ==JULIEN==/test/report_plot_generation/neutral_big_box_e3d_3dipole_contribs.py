@@ -93,7 +93,17 @@ lz =  1, gap_size = .5, eps = 1e-1
     Z=0.2500 | E_3d=0.0000 | E_dipole=-0.2335 | Sum=-0.2335
     Z=0.4000 | E_3d=0.0000 | E_dipole=-0.2329 | Sum=-0.2329
 
-TODO START VARYYING EPS??
+
+"""
+
+"""
+=== How to get E_recip = 0 ===
+* Massive gap_size ("lz": 20.0, "gap_size": 19.0,): NO, E_recip=-0.002
+* Massive gap_size ("lz": 100.0, "gap_size": 99.0,): NO, E_recip=-0.0017
+* Loose pw_error=1e-2: NO, E_recip=0.02
+
+* The Purely In-Plane Dipole (z1 = z2 = 0): NO,  E_dipole=0.0000 | E_recip=-0.0013
+* The Purely Vertical Dipole (xy1 = xy2): NO, E_dipole=0.0012 | E_recip=0.0069 
 """
 
 
@@ -109,7 +119,7 @@ params = {
     "gap_size": 10.0,
     "prefactor": 1.0,
     "charges": [+1.0, -1.0],
-    "positions": [np.array([6, 5, 0.0]), np.array([3, 2, 0.0])], # Z will be overwritten
+    "positions": [np.array([3, 2, 1]), np.array([4, 5, 6])], # Z will be overwritten
     "pw_error": 1e-8,
 }
 
