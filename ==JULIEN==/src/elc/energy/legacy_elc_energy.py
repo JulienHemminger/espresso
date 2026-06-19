@@ -57,7 +57,7 @@ def get_legacy_energy(system, params_dict, timeout_duration_sec=90, timeout_retu
         
         # Disable the alarm if we finished on time
         signal.alarm(0)
-        return energy_dict
+        return energy_dict["total"]
 
     except TimeoutException:
         print(f"--- WARNING: ELC timed out after {timeout_duration_sec}s. ---")
