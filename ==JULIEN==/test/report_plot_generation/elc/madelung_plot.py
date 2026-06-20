@@ -36,7 +36,8 @@ def run_madelung(system, ions_list, gap_size=1, accuracy=1e-6):
                 system.part.add(pos=[i * spacing, j * spacing, ion_z_pos], q=charge)
 
         ion_count = len(system.part)
-        madelung_2d_ref = -1.6155426267128247 * ion_count / (2.0 * spacing)
+        MADELUNG_CONSTANT_PERFECT_2D_SHEET = 1.6155426267128247 # e.g. perfect 2D sheet of NaCl
+        madelung_2d_ref = -MADELUNG_CONSTANT_PERFECT_2D_SHEET  * ion_count / (2.0 * spacing)
         madelung_refs.append(madelung_2d_ref)
 
         elc_energy = get_elc_energy(system, gap_size, accuracy)

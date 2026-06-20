@@ -20,9 +20,10 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     xi1 = np.sum(qs * zs)
     xi2 = np.sum(qs * zs**2)
     volume = lx * ly * lz
+    E_non_neutral_corr = 2.0 * np.pi / volume * (- xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
 
     E_dipole = 2.0 * np.pi / volume * xi1**2
-    E_dipole_w_nonneutr_corr =  E_dipole + 2.0 * np.pi / volume * (- xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
+    
 
     # 4. Reciprocal Space ELC Term
     f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
@@ -61,7 +62,7 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
     E_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
 
-    return (float(prefactor), float(E_recip), float(E_3d), float(E_dipole_w_nonneutr_corr))
+    return (float(prefactor), float(E_recip), float(E_3d), float(E_dipole + E_non_neutral_corr))
 
 
 def get_elc_energy(system, gap_size, pw_error, prefactor=1.0):
