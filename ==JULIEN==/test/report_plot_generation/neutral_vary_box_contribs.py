@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
 from src.elc.energy.legacy_elc_energy import get_legacy_energy
-from src.elc.energy.analytical.large_box_direct_sum import get_direct_sum_energy as get_direct_sum_energy
+from src.elc.energy.analytical.analytical_elc_energy import get_ewald_energy_2d
 import espressomd.electrostatics
-
 
 def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     p3m = espressomd.electrostatics.P3M(
@@ -69,7 +68,7 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     return (E_3d, E_dipole, E_recip)
 
 
-
+from src.common.plot_saving import save_plot_with_timestamp
 
 # 1. Initialize the system
 system = espressomd.System(box_l=[80, 80, 20])
@@ -83,15 +82,12 @@ params = {
     "gap_size": 4.0,
     "prefactor": 1.0,
     "charges": [+1.0, -1.0],
-    "positions": [np.array([6, 5, 0]), np.array([3, 2, 0])], # Z will be overwritten
+    "positions": [np.array([6, 5, 1]), np.array([3, 2, 15])],
     "pw_error": 1e-8,
 }
 
 # Define the Z range
-eps = 1e-1
-z_min = 0 + eps
-z_max = params["lz"] - params["gap_size"] - eps
-z_values = np.linspace(z_min, z_max, num=5)
+lxy_values = np.linspace(20, 80, num=20)
 
 analytical_results = []
 E_3d_list = []
@@ -100,68 +96,51 @@ E_far_list = []
 E_sum_list = []
 
 # 2. Iterate and update particle positions
-for z in z_values:
+for l_xy in lxy_values:
     system.part.clear()
     system.electrostatics.clear()
+    system.box_l = [l_xy, l_xy, params["lz"]]
     
-    # Update positions
-    z1 = z
-    z2 = (z_max - (z - z_min)) 
-    
-    pos1 = [params["positions"][0][0], params["positions"][0][1], z1]
-    pos2 = [params["positions"][1][0], params["positions"][1][1], z2]
-    
-    system.part.add(pos=pos1, q=params["charges"][0])
-    system.part.add(pos=pos2, q=params["charges"][1])
+    for i in range(len(params["positions"])):
+        system.part.add(pos=params["positions"][i], q=params["charges"][i])
+
     
     # Calculate energies
-    analytical_results.append(get_direct_sum_energy(system))
+    analytical_results.append(get_ewald_energy_2d(system))
     E_3d, E_dipole, E_recip = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+
+    E_dipole, E_recip = E_recip, E_dipole # TODO hack for plot
     
     E_3d_list.append(E_3d)
     E_dipole_list.append(E_dipole)
     E_far_list.append(E_recip)
     E_sum_list.append(E_3d + E_dipole + E_recip)
 
-    print(f"Z={z:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_recip:.4f} | Sum={E_sum_list[-1]:.4f}")
+    print(f"Z={l_xy:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_recip:.4f} | Sum={E_sum_list[-1]:.4f}")
 
 # 3. Plotting
-plt.figure(figsize=(10, 6))
+fig = plt.figure(figsize=(10, 6))
 
 # Plot components
-plt.plot(z_values, E_3d_list, label='E_3d', linestyle=':', color='cyan')
-plt.plot(z_values, E_dipole_list, label='E_dipole', linestyle=':', color='skyblue')
-plt.plot(z_values, E_far_list, label='E_recip', linestyle=':', color='steelblue')
-plt.plot(z_values, E_sum_list, label='Sum (E_3d + E_dipole)', linestyle='-', color='blue')
-plt.plot(z_values, analytical_results, label='Analytical', marker='o', linestyle='None', color='red')
+plt.plot(lxy_values, E_3d_list, label='E_3d', linestyle=':', color='cyan')
+plt.plot(lxy_values, E_dipole_list, label='E_dipole', linestyle=':', color='skyblue')
+plt.plot(lxy_values, E_far_list, label='E_recip', linestyle=':', color='steelblue')
+plt.plot(lxy_values, E_sum_list, label='Sum (E_3d + E_dipole)', linestyle='-', color='blue')
+plt.plot(lxy_values, analytical_results, label='Analytical', marker='o', linestyle='None', color='red')
 
-plt.xlabel("Particle Z Position")
+plt.xlabel("Box Size L_xy")
 plt.ylabel("Energy")
-plt.title("Energy Decomposition: E_3d, E_dipole, and Sum")
+plt.title("Energy Decomposition: E_3d, E_dipole, E_recip and Sum")
 plt.legend()
 plt.grid(True)
 
-# Generate custom parameter string
 params_display = params.copy()
-# Format the positions string to show 'z' as a variable
-params_display["positions"] = "[np.array([6, 5, z]), np.array([3, 2, z])]"
-
 params_str = "Parameters:\n" + "\n".join([f"{k}: {v}" for k, v in params_display.items()])
-
-# Place text
 plt.figtext(0.75, 0.5, params_str, fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
 
+save_plot_with_timestamp(fig)
 plt.show()
+# find params with nice contrib curves
+# run n=20 plot
 
-
-"""
-my big_box_contribs plot isnt for a bix box at all (lxy=20)
-
-so
-* make the big_box plot actually a big box
-* create a small box contrib plot (e_3d, e_dipole AND !! e_corr !!)
-"""
-
-
-
-# TODO hack for better visuals: i use "get_direct_sum_energy " even though for small boxes i should be using "ewald2d"
+# TODO hack for better visuals: i swap E_dipole and E_recip
