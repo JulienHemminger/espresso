@@ -36,7 +36,7 @@ def run_accuracy_convergence(
     )
 
     elc_errors = []
-    contrib_data = {"E_3d)": [], "Yeh-Berkowitz": [], "E_recip": []}
+    contrib_data = {"E_3d": [], "E_dipole": [], "E_recip": []}
 
     for pw_err in pw_errors:
         system.part.clear()
