@@ -52,9 +52,7 @@ def get_ewald_energy_2d(system, n_max=100, prefactor=1.0):
         phase = dr_xy[:, :, 0] * gx[k] + dr_xy[:, :, 1] * gy[k]
         arg_plus = g[k] / (2.0 * eta) + eta * dz
         arg_minus = g[k] / (2.0 * eta) - eta * dz
-        h_g = np.exp(g[k] * dz) * erfc(arg_plus) + np.exp(-g[k] * dz) * erfc(
-            arg_minus
-        )
+        h_g = np.exp(g[k] * dz) * erfc(arg_plus) + np.exp(-g[k] * dz) * erfc(arg_minus)
         e_recip += np.sum(q_pairs * (np.pi / g[k]) * h_g * np.cos(phase))
     e_recip /= 2.0 * area
 
@@ -67,9 +65,9 @@ def get_ewald_energy_2d(system, n_max=100, prefactor=1.0):
         abs_dz * erf(eta * abs_dz)
         + np.exp(-((eta * abs_dz) ** 2)) / (eta * np.sqrt(np.pi)),
     )
-    e_g0 = -(np.pi / area) * np.sum(q_pairs * g0_terms)
+    e_k0 = -(np.pi / area) * np.sum(q_pairs * g0_terms)
 
-    return (e_real + e_recip + e_self + e_g0) * prefactor
+    return prefactor * (e_real + e_recip + e_k0 + e_self)
 
 
 def direct_sum_energy(system, n_max=100, prefactor=1.0, eps=1.0, eps0=1.0):
