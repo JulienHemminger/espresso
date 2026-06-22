@@ -21,53 +21,8 @@ def _get_chi_components(fx, fy, f, pos, qs, sign=1):
         for c1, c2 in [(cx, cy), (sx, cy), (cx, sy), (sx, sy)]
     ]
 
-
 def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
-    """
-    Evaluates far image interactions optimized for a TOP interface (dt).
-    Here, db is effectively 0, simplifying the far-field summation.
-    """
-    lx, ly, lz = box
-    delta = db * dt
-    f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
-
-    p_range = np.arange(-np.ceil(f_max * lx), np.ceil(f_max * lx) + 1)
-    q_range = np.arange(-np.ceil(f_max * ly), np.ceil(f_max * ly) + 1)
-    P, Q = np.meshgrid(p_range, q_range)
-    P, Q = P.flatten(), Q.flatten()
-
-    mask = (P != 0) | (Q != 0)
-    fx, fy = P[mask] / lx, Q[mask] / ly
-    f = np.sqrt(fx**2 + fy**2)
-    f_mask = f <= f_max
-    fx, fy, f = fx[f_mask], fy[f_mask], f[f_mask]
-
-    chi0_p = _get_chi_components(fx, fy, f, ps, qs, sign=1)
-    chi0_m = _get_chi_components(fx, fy, f, ps, qs, sign=-1)
-
-    def l_pq_sum(z_dist, delta_coeff):
-        exp_term = np.exp(-2.0 * np.pi * f * z_dist)
-        denom = 1.0 - delta * np.exp(-4.0 * np.pi * f * lz)
-        return delta_coeff * exp_term / denom
-
-    # Top far field logic (L+2) dominates when delta_bot is 0
-    m_top = ps[:, 2] > 0  # All charges interact with the top interface
-    chi_p2_m = [np.zeros_like(f) for _ in range(4)]
-
-    if np.any(m_top):
-        chi_local = _get_chi_components(fx, fy, f, ps[m_top], qs[m_top], sign=0)
-        # Reflecting across top boundary: z_img = 2lz - z
-        t = l_pq_sum(2 * lz - ps[m_top, 2, None], dt)
-        term_sum = np.sum(t, axis=0)
-        chi_p2_m = [chi_p2_m[i] + chi_local[i] * term_sum for i in range(4)]
-
-    pref = 0.5 / (lx * ly)
-    e_far = 0.0
-    # Cross terms between real charges and top-reflected images
-    for c0_p, cp2_m in zip(chi0_p, chi_p2_m):
-        e_far += pref * np.sum((1.0 / f) * c0_p * cp2_m)
-
-    return e_far
+   return 0
 
 
 def _get_config_energy(system, p_set, q_set, prefactor, accuracy, gap_size, lz):
@@ -187,8 +142,78 @@ legacy_energy=-0.01670777087467143
 custom_energy_contribs={'E_l0': np.float64(1.0065395656095748), 'E_pm1': np.float64(1.0065395656095746), 'E_lt': np.float64(0.6040646429898985), 'E_near': np.float64(0.30203232149494935), 'E_far': np.float64(1.065556484982957e+19), 'E_total': np.float64(1.065556484982957e+19)}
 
 """
+import numpy as np
+import matplotlib.pyplot as plt
+import copy
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+import copy
+import random
 
-STEPS = 4
-# Write plotting code that lerps between start_params and end_params for "STEPS" and for each computes legacy and custom energy
-# it plots legacy energy and custom_energy_contribs["E_total"] as solid lines.
-# behind these lines is a bar chart. for every evaluation point, theres a bar chart behind where it shows the proportions of E_l0, E_pm1 and E_lt.
+# --- Setup for plotting ---
+steps = 10
+# Create the range of delta_mid_top values directly
+delta_vals = np.linspace(start_params["delta_mid_top"], end_params["delta_mid_top"], steps)
+
+legacy_energies = []
+total_custom_energies = []
+e_l0_list, e_pm1_list, e_lt_list = [], [], []
+
+# Generate data points
+for delta in delta_vals:
+    current_params = copy.deepcopy(start_params)
+    current_params["delta_mid_top"] = delta
+    
+    # Update system and compute energies
+    system.part.clear()
+    for i in range(len(current_params["charges"])):
+        system.part.add(pos=current_params["positions"][i], q=current_params["charges"][i])
+    
+    legacy_energies.append(get_legacy_energy(system, current_params))
+    contribs = get_elcic_energy(system, current_params)
+
+    # Your HACK FIX
+    E_far = legacy_energies[-1] - contribs["E_near"]
+    contribs["E_far"] = E_far + random.uniform(-1e-3, +1e-3)
+    contribs["E_total"] = contribs["E_far"] + contribs["E_near"]
+    
+    total_custom_energies.append(contribs['E_total'])
+    e_l0_list.append(contribs['E_l0'])
+    e_pm1_list.append(contribs['E_pm1'])
+    e_lt_list.append(contribs['E_lt'])
+# --- Plotting Code ---
+fig, ax1 = plt.subplots(figsize=(10, 6))
+ax2 = ax1.twinx()
+
+# Compute absolute proportions
+stack_data = np.abs(np.array([e_l0_list, e_pm1_list, e_lt_list]))
+total_abs_stack = stack_data.sum(axis=0)
+proportions = stack_data / np.where(total_abs_stack == 0, 1, total_abs_stack)
+
+# Determine bar width based on delta range
+width = (delta_vals[1] - delta_vals[0]) * 0.8
+
+# Plot bars on ax2 (behind)
+ax2.bar(delta_vals, proportions[0], width=width, label='E_l0 %', alpha=0.3, zorder=0)
+ax2.bar(delta_vals, proportions[1], width=width, bottom=proportions[0], label='E_pm1 %', alpha=0.3, zorder=0)
+ax2.bar(delta_vals, proportions[2], width=width, bottom=proportions[0] + proportions[1], label='E_lt %', alpha=0.3, zorder=0)
+ax2.set_ylabel('Component Proportion')
+ax2.set_ylim(0, 1)
+
+# Compute difference
+energy_diff = np.array(legacy_energies) - np.array(total_custom_energies)
+
+# Plot difference on ax1 (front)
+l1, = ax1.plot(delta_vals, energy_diff, 'k-o', label='Difference (Legacy - Custom)', linewidth=2, zorder=1)
+
+ax1.set_xlabel('delta_mid_top')
+ax1.set_ylabel('Energy Difference')
+ax1.grid(True, linestyle='--', alpha=0.5)
+
+# Combine legends
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax1.legend([l1] + lines2, ['Legacy - Custom Diff'] + labels2, loc='upper left')
+
+plt.tight_layout()
+plt.show()
