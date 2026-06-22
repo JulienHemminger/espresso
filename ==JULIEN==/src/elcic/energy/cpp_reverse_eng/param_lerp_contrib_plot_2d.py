@@ -5,6 +5,13 @@ import numpy as np
 import os
 from datetime import datetime
 from src.common.plot_saving import save_plot_with_timestamp
+
+def normalize_to_dict(val, default_key="energy"):
+    """Helper to ensure energy results are always dictionaries."""
+    if isinstance(val, dict):
+        return val
+    return {default_key: val}
+
 # Configuration for easier maintenance
 NESSECARY_KEYS = ["lx", "ly", "lz", "gap_size", "pw_error", "prefactor"]
 OPTIONAL_KEYS = ["delta_mid_top", "delta_mid_bot"]
@@ -69,18 +76,14 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
 
 
         # Capture full dictionaries
+        results["custom"] = [normalize_to_dict(r) for r in results["custom"]]
         if get_legacy_energy:
-            legacy_res = get_legacy_energy(system, params)
-            print(f"{legacy_res=}")
-            results["legacy"].append(legacy_res)
+            results["legacy"] = [normalize_to_dict(r) for r in results["legacy"]]
 
-        custom_res = get_custom_energy(system, params)
-        print(f"{custom_res=}")
-        results["custom"].append(custom_res)
-
-    # --- Print Summary for t=1 (last result) ---
-    if get_legacy_energy and results["legacy"]:
+        
         for i in range(steps):
+
+            
             t = t_values[i]
             params = lerp_dict(start_params, end_params, t)
             print(f"Parameters={params}")
