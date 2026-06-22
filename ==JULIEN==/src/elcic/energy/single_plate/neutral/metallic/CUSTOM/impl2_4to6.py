@@ -136,48 +136,48 @@ def get_elcic_energy(system, params: dict):
     """
     box = system.box_l
     lz = box[2]
-    gap, eps = params["gap_size"], params["pw_error"]
-    pref = params.get("prefactor", 1.0)
-    db, dt = params["delta_mid_bot"], params["delta_mid_top"]
+    gap_size, eps = params["gap_size"], params["pw_error"]
+    prefactor = params.get("prefactor", 1.0)
+    delta_mid_bot, delta_mid_top = params["delta_mid_bot"], params["delta_mid_top"]
 
     # Cache original state
     parts = system.part.all()
-    qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
+    charges, positions = parts.q.copy(), parts.pos.copy()
 
     # 1. Generate Near-Image Coordinates
-    m_bot = ps_orig[:, 2] <= gap
-    m_top = ps_orig[:, 2] > (lz - gap)
+    mask_bot = positions[:, 2] <= gap_size
+    mask_top = positions[:, 2] > (lz - gap_size)
     
-    ps_m1 = ps_orig[m_bot].copy()
-    ps_m1[:, 2] *= -1
+    positions_mirror_bot = positions[mask_bot].copy()
+    positions_mirror_bot[:, 2] *= -1
+    charges_mirror_top = charges[mask_top] * delta_mid_top
     
-    ps_p1 = ps_orig[m_top].copy()
-    ps_p1[:, 2] = 2 * lz - ps_p1[:, 2]
+    positions_mirror_top = positions[mask_top].copy()
+    positions_mirror_top[:, 2] = 2 * lz - positions_mirror_top[:, 2]
+    charges_mirror_bot = charges[mask_bot] * delta_mid_bot
 
-    qs_m1 = qs_orig[m_bot] * db
-    qs_p1 = qs_orig[m_top] * dt
 
     # 2. Linear Combination for Near-Field (Eq. 4.14)
-    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, gap)
+    e_l0 = _get_config_energy(system, positions, charges, prefactor, eps, gap_size)
     
-    if len(qs_m1) > 0 or len(qs_p1) > 0:
+    if len(charges_mirror_bot) > 0 or len(charges_mirror_top) > 0:
         e_pm1 = _get_config_energy(system, 
-                                   np.vstack([ps_m1, ps_p1]) if len(ps_m1) > 0 and len(ps_p1) > 0 
-                                   else (ps_m1 if len(ps_m1) > 0 else ps_p1),
-                                   np.concatenate([qs_m1, qs_p1]), pref, eps, gap)
+                                   np.vstack([positions_mirror_bot, positions_mirror_top]) if len(positions_mirror_bot) > 0 and len(positions_mirror_top) > 0 
+                                   else (positions_mirror_bot if len(positions_mirror_bot) > 0 else positions_mirror_top),
+                                   np.concatenate([charges_mirror_bot, charges_mirror_top]), prefactor, eps, gap_size)
         e_lt = _get_config_energy(system, 
-                                  np.vstack([ps_orig, ps_m1, ps_p1]) if len(ps_m1) > 0 and len(ps_p1) > 0
-                                  else (np.vstack([ps_orig, ps_m1]) if len(ps_m1) > 0 else np.vstack([ps_orig, ps_p1])),
-                                  np.concatenate([qs_orig, qs_m1, qs_p1]), pref, eps, gap)
+                                  np.vstack([positions, positions_mirror_bot, positions_mirror_top]) if len(positions_mirror_bot) > 0 and len(positions_mirror_top) > 0
+                                  else (np.vstack([positions, positions_mirror_bot]) if len(positions_mirror_bot) > 0 else np.vstack([positions, positions_mirror_top])),
+                                  np.concatenate([charges, charges_mirror_bot, charges_mirror_top]), prefactor, eps, gap_size)
         e_near = 0.5 * (e_lt - e_pm1 + e_l0)
     else:
         e_near = e_l0
 
     # 3. Far-Field Correction
-    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
+    e_far = prefactor * _get_far_field_energy(box, gap_size, eps, charges, positions, delta_mid_bot, delta_mid_top)
 
     # Restore original state
     system.part.clear()
-    system.part.add(pos=ps_orig, q=qs_orig)
+    system.part.add(pos=positions, q=charges)
 
     return e_near + e_far

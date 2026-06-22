@@ -70,34 +70,31 @@ def get_elcic_energy(system, params: dict):
     Computes electrostatic energy for 2D+h system with TOP dielectric interface.
     """
     box = np.array(system.box_l)
-    lz_full = box[2]
-    gap, eps = params["gap_size"], params["pw_error"]
-    pref = params.get("prefactor", 1.0)
-    db, dt = params["delta_mid_bot"], params["delta_mid_top"]
+    lz = box[2]
+    gap_size, eps = params["gap_size"], params["pw_error"]
+    prefactor = params.get("prefactor", 1.0)
+    delta_mid_bot, delta_mid_top = params["delta_mid_bot"], params["delta_mid_top"]
 
-    parts = system.part.all()
-    qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
+    particles = system.part.all()
+    charges, positions = particles.q.copy(), particles.pos.copy()
 
-    # 1. Near-Images for Top Interface
-    # Reflecting charges across the plane z = lz_full - gap
-    ps_p1 = ps_orig.copy()
-    ps_p1[:, 2] = 2 * (lz_full - gap) - ps_p1[:, 2] 
-    qs_p1 = qs_orig * dt
+    # Top Images
+    positions_top_images = positions.copy()
+    positions_top_images[:, 2] = 2 * (lz - gap_size) - positions_top_images[:, 2] 
+    charges_top_images = charges * delta_mid_top
 
     # 2. Near-Field Energy calculation
-    # Using P3M for base energy and local correction
-    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, gap, lz_full)
+    e_l0 = _get_config_energy(system, positions, charges, prefactor, eps, gap_size, lz)
+    e_pm1 = _get_config_energy(system, positions_top_images, charges_top_images, prefactor, eps, gap_size, lz)
     
-    ps_total = np.vstack([ps_orig, ps_p1])
-    qs_total = np.concatenate([qs_orig, qs_p1])
-    
-    e_pm1 = _get_config_energy(system, ps_p1, qs_p1, pref, eps, gap, lz_full)
-    e_lt = _get_config_energy(system, ps_total, qs_total, pref, eps, gap, lz_full)
+    positions_total = np.vstack([positions, positions_top_images])
+    charges_total = np.concatenate([charges, charges_top_images])
+    e_lt = _get_config_energy(system, positions_total, charges_total, prefactor, eps, gap_size, lz)
     
     e_near = 0.5 * (e_lt - e_pm1 + e_l0)
 
-    # 3. Far-Field Energy (Top specific)
-    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
+
+    e_far = prefactor * _get_far_field_energy(box, gap_size, eps, charges, positions, delta_mid_bot, delta_mid_top)
 
     return e_near + e_far
 
