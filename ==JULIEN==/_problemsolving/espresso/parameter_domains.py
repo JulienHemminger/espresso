@@ -27,3 +27,5 @@ for i in range(params_count):
     ]
 
     params_sets.append(params)
+
+# in raw latex write these domains of paramters.. use mathematical notation and formulas.

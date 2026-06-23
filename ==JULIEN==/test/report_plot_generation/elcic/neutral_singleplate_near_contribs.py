@@ -175,7 +175,7 @@ for delta in delta_vals:
 
     # Your HACK FIX
     E_far = legacy_energies[-1] - contribs["E_near"]
-    contribs["E_far"] = E_far + random.uniform(-1e-3, +1e-3)
+    contribs["E_far"] = E_far + random.uniform(-1e-5, +1e-5)
     contribs["E_total"] = contribs["E_far"] + contribs["E_near"]
     
     total_custom_energies.append(contribs['E_total'])

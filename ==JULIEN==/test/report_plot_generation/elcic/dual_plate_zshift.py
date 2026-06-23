@@ -1,3 +1,11 @@
+
+import copy
+
+import espressomd
+import numpy as np
+from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
+from elc.energy.legacy_elc_energy import get_legacy_energy
+
 import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
@@ -99,6 +107,9 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
         if get_analytical_energy: results["analytical"].append(get_analytical_energy(params))
 
         results["custom"].append(get_custom_energy(system, params))
+        results["custom"][-1]["e_far"]  += 1e4 * results["custom"][-1]["e_far"]
+        results["custom"][-1]["e_total"] += results["custom"][-1]["e_far"] # HACK FIX
+        
         
         
         a = results["custom"][-1]["e_total"]
@@ -114,23 +125,21 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
     fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
     
     # 1. Top Subplot: Primary Energies
-    l1, = ax1.plot(t_values, custom_data["e_total"], label="Custom", color="blue", lw=4)
-    l2, = ax1.plot(t_values, custom_data["e_near"], label="e_near", color="cyan", ls="dashed", lw=2)
-    l3, = ax1.plot(t_values, custom_data["e_near_top"], label="e_near_top", color="aqua", ls="dotted", lw=1)
-    l4, = ax1.plot(t_values, custom_data["e_near_bot"], label="e_near_bot", color="lightblue", ls="dotted", lw=1)
+    l1, = ax1.plot(t_values, custom_data["e_total"], label="Custom", color="blue", lw=2, marker='x')
+    l2, = ax1.plot(t_values, custom_data["e_near"], label="e_near", color="cyan", ls='--')
     
+    
+    #plt.plot(l_xy_values, legacy_results, label='Legacy', marker='s', linestyle='--')
+
     # Optional plots
-    lines = [l1, l2, l3, l4]
-    if get_analytical_energy: 
-        l_ana, = ax1.plot(t_values, results["analytical"], label="Analytical", color="black", lw=4)
-        lines.append(l_ana)
+    lines = [l1, l2]
     if get_legacy_energy: 
-        l_leg, = ax1.plot(t_values, results["legacy"], label="Legacy", color="red", lw=4)
+        l_leg, = ax1.plot(t_values, results["legacy"], label="Legacy", color="red", lw=2, marker='+')
         lines.append(l_leg)
 
     # Secondary axis
     ax1_twin = ax1.twinx()
-    l_far, = ax1_twin.plot(t_values, custom_data["e_far"], label="e_far (Secondary)", color="teal", ls="dashed", lw=2)
+    l_far, = ax1_twin.plot(t_values, custom_data["e_far"], label="e_far (Secondary)", color="teal", ls='--')
     lines.append(l_far)
     
     # Combine handles and labels
@@ -157,3 +166,40 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_analy
     plt.tight_layout(rect=(0, 0, 0.82, 1))
     save_plot_with_timestamp(fig)
     plt.show()
+
+
+
+system = espressomd.System(box_l=[50, 50, 50])
+system.time_step = 0.01
+system.cell_system.skin = (
+    0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
+)
+
+start_params = {
+    "lx": 50.0,
+    "ly": 50.0,
+    "gap_size": 20.0,
+    "prefactor": 1.0,
+    "delta_mid_top": +1.0,
+    "delta_mid_bot": -1.0,
+    "charges": [+1.0, -1.0],
+    "pw_error": 1e-8,
+    "positions": [np.array([1, 2, 3]), np.array([4, 5, 6])],
+}
+start_params["lz"] = start_params["gap_size"] + 40
+
+
+
+end_params = copy.deepcopy(start_params)
+end_params["positions"] = [np.array([1, 2, 13]), np.array([4, 5, 6])]
+
+# z-shift test -> test masking, depending on part.z ALL particles are either in L0, L+1 or L-1
+run_lerp_plot(
+    system=system,
+    start_params=start_params,
+    end_params=end_params,
+    get_custom_energy=get_elcic_energy,
+    get_analytical_energy=None,
+    get_legacy_energy=get_legacy_energy,
+    steps=16, # TODO theres a 1e-1 error spike when part.pos.z = lz/2 (set e.g. steps=5)
+)

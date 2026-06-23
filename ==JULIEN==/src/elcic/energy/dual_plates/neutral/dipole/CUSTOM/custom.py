@@ -79,33 +79,33 @@ def _get_config_energy(system, p_set, q_set, prefactor, accuracy, lz):
 def get_elcic_energy(system, params: dict):
     """Computes total electrostatic energy for 2D+h systems with dielectric interfaces."""
     box = np.array(system.box_l)
-    lz_full, gap = box[2], params["gap_size"]
-    pref, eps = params.get("prefactor", 1.0), params["pw_error"]
-    db, dt = params["delta_mid_bot"], params["delta_mid_top"]
-    lz = lz_full - gap 
+    lz_plus_gap, gap = box[2], params["gap_size"]
+    prefactor, eps = params.get("prefactor", 1.0), params["pw_error"]
+    delta_mid_bot, delta_mid_top = params["delta_mid_bot"], params["delta_mid_top"]
+    lz = lz_plus_gap - gap 
     
-    parts = system.part.all()
-    qs_orig, ps_orig = parts.q.copy(), parts.pos.copy()
+    particles = system.part.all()
+    charges, positions = particles.q.copy(), particles.pos.copy()
     lambda_ = np.clip(params.get("lambda", lz / 2), 1e-3, lz / 2)
 
     # Partition particles by distance to interfaces
-    mask_bot = (ps_orig[:, 2] >= 0.0) & (ps_orig[:, 2] < lambda_)
-    mask_top = (ps_orig[:, 2] > (lz - lambda_)) & (ps_orig[:, 2] <= lz)
+    mask_bot = (positions[:, 2] >= 0.0) & (positions[:, 2] < lambda_)
+    mask_top = (positions[:, 2] > (lz - lambda_)) & (positions[:, 2] <= lz)
 
-    # Generate image charges near boundaries
-    ps_p1, qs_p1 = ps_orig[mask_top].copy(), qs_orig[mask_top] * dt
-    ps_p1[:, 2] = 2 * lz - ps_p1[:, 2]
-    ps_m1, qs_m1 = ps_orig[mask_bot].copy(), qs_orig[mask_bot] * db
-    ps_m1[:, 2] = -ps_m1[:, 2]
+    positions_top_images, charges_top_images = positions[mask_top].copy(), charges[mask_top] * delta_mid_top
+    positions_top_images[:, 2] = 2 * lz - positions_top_images[:, 2]
+    
+    positions_bot_images, charges_bot_images = positions[mask_bot].copy(), charges[mask_bot] * delta_mid_bot
+    positions_bot_images[:, 2] = -positions_bot_images[:, 2]
 
     # Calculate near-field energy via ELCIC partitioning
-    e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, lz_full)
-    e_lt = _get_config_energy(system, np.vstack([ps_orig, ps_p1, ps_m1]), np.concatenate([qs_orig, qs_p1, qs_m1]), pref, eps, lz_full)
-    e_pm1 = _get_config_energy(system, np.vstack([ps_p1, ps_m1]), np.concatenate([qs_p1, qs_m1]), pref, eps, lz_full)
+    e_l0 = _get_config_energy(system, positions, charges, prefactor, eps, lz_plus_gap)
+    e_lt = _get_config_energy(system, np.vstack([positions, positions_top_images, positions_bot_images]), np.concatenate([charges, charges_top_images, charges_bot_images]), prefactor, eps, lz_plus_gap)
+    e_pm1 = _get_config_energy(system, np.vstack([positions_top_images, positions_bot_images]), np.concatenate([charges_top_images, charges_bot_images]), prefactor, eps, lz_plus_gap)
     e_near = 0.5 * (e_lt - e_pm1 + e_l0)
 
     # Add far-field contributions
-    e_far = pref * _get_far_field_energy(box, gap, eps, qs_orig, ps_orig, db, dt)
+    e_far = prefactor * _get_far_field_energy(box, gap, eps, charges, positions, delta_mid_bot, delta_mid_top)
 
     return {
         "e_total": e_near + e_far,
