@@ -2,7 +2,9 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elc.energy.analytical.analytical_elc_energy import get_ewald_energy_2d
+from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
+    get_ewald_energy_2d
+)
 
 def run(system, lx, ly, lz, gap_size, charges, positions, z_pos_count):
     system.part.clear()

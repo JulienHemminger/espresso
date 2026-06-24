@@ -8,7 +8,9 @@ from elc.energy._1_big_box_neutral_dipole.reference_solution.large_box_direct_su
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
-from elc.energy.analytical.analytical_elc_energy import get_ewald_energy_2d
+from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
+    get_ewald_energy_2d
+)
 
 # 1. Initialize the system ONCE
 system = espressomd.System(box_l=[50, 50, 50])

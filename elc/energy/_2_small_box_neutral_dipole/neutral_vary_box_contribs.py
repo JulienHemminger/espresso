@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
 from common.legacy.energy import get_legacy_energy
-from elc.energy.analytical.analytical_elc_energy import get_ewald_energy_2d
+from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
+    get_ewald_energy_2d
+)
 import espressomd.electrostatics
 
 def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
