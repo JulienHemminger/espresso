@@ -1,9 +1,0 @@
-// clang-format off
-constParameter
-unusedFunction
-missingIncludeSystem
-noConstructor
-noExplicitConstructor
-redundantAssignment
-uselessAssignmentPtrArg
-preprocessorErrorDirective
