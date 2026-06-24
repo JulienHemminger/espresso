@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
 from src.elc.energy.legacy_elc_energy import get_legacy_energy
-from src.elc.energy.analytical.large_box_direct_sum import get_direct_sum_energy as get_direct_sum_energy
+from elc.energy.analytical.large_box_direct_sum import get_direct_sum_energy as get_direct_sum_energy
 import espressomd.electrostatics
 from src.common.plot_saving import save_plot_with_timestamp
 
