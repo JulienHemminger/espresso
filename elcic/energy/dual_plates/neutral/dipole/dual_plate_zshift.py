@@ -4,7 +4,7 @@ import copy
 import espressomd
 import numpy as np
 from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 
 import espressomd
 import espressomd.electrostatics

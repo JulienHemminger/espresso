@@ -6,7 +6,7 @@ import mpld3
 from datetime import datetime
 
 from elcic.energy.custom_elcic_energy import get_elcic_energy_old
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 from elcic.energy.single_plate.neutral.metallic.analytical import (
     analytical_single_plate_2d_ewald_elcic_energy,
 )

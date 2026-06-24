@@ -1,7 +1,7 @@
 import espressomd
 import numpy as np
 from elc.debug.custom import get_elcic_energy
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 from elc.debug.analytical import (
     get_ewald_energy_2d
 )

@@ -3,7 +3,7 @@ import copy
 import espressomd
 import numpy as np
 
-from elc.force.legacy_elc_forces import get_legacy_forces
+from common.legacy.forces import get_legacy_forces
 from elcic.force.CUSTOM.elcic_forces import get_elcic_forces
 from elcic.force.param_lerp_force_plot_2d import run_lerp_plot
 

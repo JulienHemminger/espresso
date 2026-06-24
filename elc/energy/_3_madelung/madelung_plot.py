@@ -6,12 +6,12 @@ from elc.energy.custom_elc_energy import get_elc_energy
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 from elc.energy.analytical.large_box_direct_sum import get_direct_sum_energy as get_direct_sum_energy
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 import numpy as np
 from elc.energy.custom_elc_energy import get_elc_energy
 

@@ -95,17 +95,17 @@ def get_elcic_energy(system, params: dict):
 
 import espressomd
 import espressomd.electrostatics
-from common.generators.position_generator import get_rdm_constrained_points_np
+from common.generators.positions import get_rdm_constrained_points_np
 from elc.energy.analytical.analytical_elc_energy import get_ewald_energy_2d
 
 import matplotlib.pyplot as plt
 import numpy as np
 from src.common.has_downward_trend import has_downward_trend
-from common.generators.position_generator import get_rdm_constrained_points_np
+from common.generators.positions import get_rdm_constrained_points_np
 import espressomd
 import espressomd.electrostatics
 import numpy as np
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 import copy
 system = espressomd.System(box_l=[80, 80, 20])
 system.time_step = 0.01

@@ -2,7 +2,7 @@ import sys
 import re
 import os
 import tempfile
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 import numpy as np
 import math
 

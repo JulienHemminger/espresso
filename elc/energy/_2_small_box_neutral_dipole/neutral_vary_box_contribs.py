@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 from elc.energy.analytical.analytical_elc_energy import get_ewald_energy_2d
 import espressomd.electrostatics
 

@@ -1,6 +1,6 @@
 import espressomd
 import espressomd.electrostatics
-from common.generators.position_generator import get_rdm_constrained_points_np
+from common.generators.positions import get_rdm_constrained_points_np
 from src.common.set_utils import are_sets_equal
 from elc.force.custom_elc_forces import get_elc_forces
 from elc.force.analytical_elc_forces import get_ewald_forces_2d

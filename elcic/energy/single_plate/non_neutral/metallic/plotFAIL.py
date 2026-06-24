@@ -4,7 +4,7 @@ import espressomd
 import numpy as np
 from elcic.energy.single_plate.neutral.metallic.custom import get_elcic_energy
 from common.plotting.param_lerp_plot_2d import run_lerp_plot
-from elc.energy.legacy_elc_energy import get_legacy_energy
+from common.legacy.energy import get_legacy_energy
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
