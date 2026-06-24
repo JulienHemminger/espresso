@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
 from common.legacy.energy import get_legacy_energy
-from elc.energy.analytical.large_box_direct_sum import get_direct_sum_energy
+from elc.energy._1_big_box_neutral_dipole.reference_solution.large_box_direct_sum import get_direct_sum_energy
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd

@@ -27,13 +27,25 @@ def get_energies(n_values):
     ewald_energies = []
     direct_energies = []
 
+    params = {
+        "lx": l_xy,
+        "ly": l_xy,
+        "gap_size": 0,
+        "prefactor": 1.0,
+        "charges": [+1.0, -1.0],
+        "positions": [np.array([5, 5, 1]), np.array([5, 5, 2])],
+        "pw_error": 1e-8,
+    }
+    params["lz"] = params["gap_size"] + 3
+
+
     # 2. Calculation Loop
     for n in n_values:
         n_int = int(n)
         print(f"Processing n_max = {n_int}...")
 
         # Calculate both methods
-        e_ewald = get_ewald_energy_2d(system, n_int, PREFACTOR)
+        e_ewald = get_ewald_energy_2d(params, n_int)
         e_direct = direct_sum_energy(system, n_int, PREFACTOR)
 
         ewald_energies.append(e_ewald)
