@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
-from elc.energy.custom_elc_energy import get_elc_energy
+from elc.energy._5_param_sweep_rdm_tests.custom_elc_energy import get_elc_energy
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import espressomd
 from common.legacy.energy import get_legacy_energy
 import numpy as np
-from elc.energy.custom_elc_energy import get_elc_energy
+from elc.energy._5_param_sweep_rdm_tests.custom_elc_energy import get_elc_energy
 
 
 def run_madelung(system, ions_list, gap_size=1, accuracy=1e-6):
