@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
 import copy
-import mpld3
 from datetime import datetime
+import mpld3
 
-from elcic.energy.custom_elcic_energy import get_elcic_energy_old
+from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy as get_elcic_energy_old
 from common.legacy.energy import get_legacy_energy
 from elcic.energy.single_plate.neutral.metallic.analytical import (
-    analytical_single_plate_2d_ewald_elcic_energy,
+    get_ewald_elcic_2d as analytical_single_plate_2d_ewald_elcic_energy,
 )
 ERROR_CODE = 1.0
 
@@ -35,11 +35,7 @@ def run_single_test(system, params):
     try:
         custom_energy = get_elcic_energy_old(
             system=system,
-            gap_size=params["gap_size"],
-            pw_error=params["pw_error"],
-            prefactor=params["prefactor"],
-            delta_mid_bot=params["delta_mid_bot"],
-            delta_mid_top=params["delta_mid_top"],
+            params=params,
         )
     except Exception as e:
         print(f"Warning: Custom energy calculation failed. Error: {e}")

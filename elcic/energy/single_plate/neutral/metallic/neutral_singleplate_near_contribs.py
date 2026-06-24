@@ -102,7 +102,7 @@ from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
 
 import matplotlib.pyplot as plt
 import numpy as np
-from src.common.has_downward_trend import has_downward_trend
+from common.has_downward_trend import has_downward_trend
 from common.generators.positions import get_rdm_constrained_points_np
 import espressomd
 import espressomd.electrostatics

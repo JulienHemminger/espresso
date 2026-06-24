@@ -9,8 +9,9 @@ import re
 import espressomd
 import numpy as np
 from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
-from elcic.cpp_reverse_eng.param_lerp_contrib_plot_2d import run_lerp_plot
-from elcic.cpp_reverse_eng.legacy.get_legacy_contribs import get_legacy_contribs
+from elcic.energy.cpp_reverse_eng.param_lerp_contrib_plot_2d import run_lerp_plot
+from elcic.energy.cpp_reverse_eng.legacy.get_legacy_contribs import get_legacy_contribs
+
 
 start_params = {
     "lx": 10.0,

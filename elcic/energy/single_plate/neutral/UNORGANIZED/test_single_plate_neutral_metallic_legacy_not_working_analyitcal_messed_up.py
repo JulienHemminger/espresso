@@ -2,7 +2,7 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elcic.energy.custom_elcic_energy import get_elcic_energy_old
+from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy as get_elcic_energy_old
 from common.legacy.energy import get_legacy_energy
 
 import numpy as np
@@ -150,11 +150,25 @@ def run(system, lx, ly, lz, gap_size, charges, positions, prefactor, pw_error, d
             pos[2] = z
             system.part.add(pos=pos, q=charges[i])
         
+        params = {
+            "lx": lx,
+            "ly": ly,
+            "gap_size": gap_size,
+            "prefactor": prefactor,
+            "delta_mid_top": delta_mid_top,
+            "delta_mid_bot": delta_mid_bot,
+            "charges": charges,
+            "pw_error": pw_error,
+            "positions": positions,
+        }
+        params["lz"] = params["gap_size"] + lz
 
-        legacy_energy = get_legacy_energy(system, gap_size, pw_error, prefactor, delta_mid_top, delta_mid_bot, duration_limit_sec=30)
+
+
+        legacy_energy = get_legacy_energy(system, params_dict=params)
         analytical_energy = analytical_elcic_energy(system, params)
         custom_energy = get_elcic_energy_old(
-            system, gap_size, pw_error, prefactor, delta_mid_bot, delta_mid_top
+            system, params=params
         )
         legacy_energies.append(legacy_energy)
         analytical_energies.append(analytical_energy)

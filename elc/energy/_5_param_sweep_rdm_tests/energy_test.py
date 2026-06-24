@@ -25,7 +25,7 @@ def run_basic(
     for i in range(particle_count):
         system.part.add(pos=positions[i], q=charges[i])
 
-    analytical_energy = get_ewald_energy_2d(system, prefactor=prefactor)
+    analytical_energy = get_ewald_energy_2d(system)
     elc_energy = get_elc_energy(system, gap_size, pw_error, prefactor=prefactor)
 
     # Validation logic

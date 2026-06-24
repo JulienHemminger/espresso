@@ -25,7 +25,7 @@ def run_basic(
     for i in range(particle_count):
         system.part.add(pos=positions[i], q=charges[i])
 
-    analytical_energy = get_ewald_energy_2d(system, prefactor=prefactor)
+    analytical_energy = get_ewald_energy_2d(system,)
     elc_energy = get_elc_energy(system, gap_size, pw_error, prefactor=prefactor)
 
     # Validation logic
@@ -39,7 +39,7 @@ def test_all():
     # pytest -vv -s ==JULIEN==/elc/tests/energy/energy_test.py
     system = espressomd.System(box_l=[10, 10, 3])
     system.time_step = 0.01
-    """
+    
     run_accuracy_convergence(
         system, prefactor=1.7, gap_size=1.0, charges=[+1, -1]
     )  # PASSED
@@ -51,11 +51,11 @@ def test_all():
     run_accuracy_convergence(
         system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1]
     )  # PASSED
-    """
+    
     run_accuracy_convergence(
         system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9]
     )  # PASSED
-    """
+    
     run_accuracy_convergence(
         system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3]
     )  # PASSED
@@ -89,6 +89,6 @@ def test_all():
 
     # huge_box_neutral
     run_basic(system, 200, 200, 10, 1, [+1, -1])
-    """
+    
 
 test_all()

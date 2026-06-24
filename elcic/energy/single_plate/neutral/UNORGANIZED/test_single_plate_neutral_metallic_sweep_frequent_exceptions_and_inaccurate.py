@@ -5,10 +5,11 @@ from datetime import datetime
 from pathlib import Path
 
 import espressomd
-from elcic.energy.custom_elcic_energy import get_elcic_energy_old
+from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy as get_elcic_energy_old
+
 from common.legacy.energy import get_legacy_energy
 from elcic.energy.single_plate.neutral.metallic.analytical import (
-    analytical_single_plate_2d_ewald_elcic_energy,
+    get_ewald_elcic_2d as analytical_single_plate_2d_ewald_elcic_energy,
 )
 pw_error = 1e-8
 accuracy_max = 10
@@ -27,32 +28,19 @@ def param_sweep_accuracy_convergence(
                 system.part.add(pos=pos, q=q)
 
             ana_energy = analytical_single_plate_2d_ewald_elcic_energy(
-                positions=params["positions"],
-                charges=params["charges"],
-                box_l=system.box_l,
-                prefactor=params["prefactor"],
-                delta_mid_bot=params["delta_mid_bot"],
-                accuracy=pw_error
+                params=params
             )
 
             for acc in accuracies:
                 print("Computing custom_energy...")
                 custom_energy = get_elcic_energy_old(
                     system=system,
-                    gap_size=params["gap_size"],
-                    pw_error=acc,
-                    prefactor=params["prefactor"],
-                    delta_mid_bot=params["delta_mid_bot"],
-                    delta_mid_top=params["delta_mid_top"],
+                    params=params
                 )
                 print("Computing legacy_energy...")
                 legacy_energy = get_legacy_energy(
                     system=system,
-                    gap_size=params["gap_size"],
-                    pw_error=acc,
-                    prefactor=params["prefactor"],
-                    delta_mid_top=params["delta_mid_top"],
-                    delta_mid_bot=params["delta_mid_bot"],
+                    params_dict=params
                 )
 
                 results.append(

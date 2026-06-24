@@ -7,7 +7,7 @@ import espressomd
 from common.legacy.energy import get_legacy_energy
 from elc.energy._1_big_box_neutral_dipole.reference_solution.large_box_direct_sum import get_direct_sum_energy as get_direct_sum_energy
 import espressomd.electrostatics
-from src.common.plot_saving import save_plot_with_timestamp
+from common.plotting.plot_saving import save_plot_with_timestamp
 
 
 def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):

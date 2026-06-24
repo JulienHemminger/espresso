@@ -70,7 +70,7 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     return (E_3d, E_dipole, E_recip)
 
 
-from src.common.plot_saving import save_plot_with_timestamp
+from common.plotting.plot_saving import save_plot_with_timestamp
 
 # 1. Initialize the system
 system = espressomd.System(box_l=[80, 80, 20])

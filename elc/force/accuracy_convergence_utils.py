@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from src.common.has_downward_trend import has_downward_trend
+from common.has_downward_trend import has_downward_trend
 from common.generators.positions import get_rdm_constrained_points_np
 from elc.force.custom_elc_forces import get_elc_forces_contribs
 from elc.force.analytical_elc_forces import get_ewald_forces_2d

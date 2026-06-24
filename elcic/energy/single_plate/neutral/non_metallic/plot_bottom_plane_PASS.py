@@ -5,7 +5,7 @@ import numpy as np
 from elcic.energy.single_plate.neutral.metallic.custom import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
 from elcic.energy.single_plate.neutral.metallic.analytical import (
-    analytical_single_plate_2d_ewald_elcic_energy,
+    get_ewald_elcic_2d as analytical_single_plate_2d_ewald_elcic_energy,
 )
 from common.plotting.param_lerp_plot_2d import run_lerp_plot
 

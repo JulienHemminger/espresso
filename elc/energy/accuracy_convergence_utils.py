@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from src.common.has_downward_trend import has_downward_trend
+
+from common.has_downward_trend import has_downward_trend
 from common.generators.positions import get_rdm_constrained_points_np
 from elc.energy.custom_elc_energy import get_elc_energy_contribs
 from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
@@ -35,7 +36,7 @@ def run_accuracy_convergence(
         for i in range(particle_count):
             system.part.add(pos=positions[i], q=charges[i])
 
-        ana_energy = get_ewald_energy_2d(system, n_max=100, prefactor=prefactor)
+        ana_energy = get_ewald_energy_2d(system, n_max=100)
 
         pref, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
             gap_size, pw_err, system, prefactor

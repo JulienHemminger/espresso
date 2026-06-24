@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from datetime import datetime
-from src.common.plot_saving import save_plot_with_timestamp
+from common.plotting.plot_saving import save_plot_with_timestamp
 
 def normalize_to_dict(val, default_key="energy"):
     """Helper to ensure energy results are always dictionaries."""

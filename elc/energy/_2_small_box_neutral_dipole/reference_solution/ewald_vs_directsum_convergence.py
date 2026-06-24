@@ -2,9 +2,7 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elc.energy.analytical.analytical_elc_energy import (
-    direct_sum_energy,
-)
+from elc.energy._1_big_box_neutral_dipole.reference_solution.large_box_direct_sum import get_direct_sum_energy
 from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
     get_ewald_energy_2d
 )
@@ -48,7 +46,7 @@ def get_energies(n_values):
 
         # Calculate both methods
         e_ewald = get_ewald_energy_2d(params, n_int)
-        e_direct = direct_sum_energy(system, n_int, PREFACTOR)
+        e_direct = get_direct_sum_energy(system, PREFACTOR)
 
         ewald_energies.append(e_ewald)
         direct_energies.append(e_direct)

@@ -1,6 +1,6 @@
 import espressomd
 import numpy as np
-from elc.energy._5_param_sweep_rdm_tests.custom import get_elcic_energy
+from elc.energy._5_param_sweep_rdm_tests.custom_lxy_lerp import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
 from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
     get_ewald_energy_2d
