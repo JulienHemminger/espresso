@@ -1,9 +1,6 @@
 import numpy as np
 from scipy.special import erf, erfc
 
-from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
-    get_ewald_energy_2d
-)
 
 
 def direct_sum_energy(system, n_max=100, prefactor=1.0, eps=1.0, eps0=1.0):

@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from elc.energy.analytical.analytical_elc_energy import (
     direct_sum_energy,
-    get_ewald_energy_2d,
+)
+from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
+    get_ewald_energy_2d
 )
 
 PREFACTOR = 1.7
