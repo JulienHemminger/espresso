@@ -1,7 +1,7 @@
 import espressomd
 import espressomd.electrostatics
 import numpy as np
-from elcic.energy.cpp_reverse_eng.legacy.get_legacy_contribs import get_legacy_contribs
+from elcic.energy._z_legacy_contrib_parsing_experiment.get_legacy_contribs import get_legacy_contribs
 
 
 

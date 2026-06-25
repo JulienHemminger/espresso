@@ -64,7 +64,7 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
     t_values = np.linspace(0, 1, steps)
     results = {"legacy": [], "custom": []}
 
-    # Run Simulation/Evaluation Loop
+    # 1. Run Simulation/Evaluation Loop
     for t in t_values:
         system.electrostatics.clear()
         params = lerp_dict(start_params, end_params, t)
@@ -74,31 +74,29 @@ def run_lerp_plot(system, start_params, end_params, get_custom_energy, get_legac
         for i in range(len(params["charges"])):
             system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
-
-        # Capture full dictionaries
-        results["custom"] = [normalize_to_dict(r) for r in results["custom"]]
-        if get_legacy_energy:
-            results["legacy"] = [normalize_to_dict(r) for r in results["legacy"]]
-
+        # --- IMPORTANT: Populate the results lists here ---
+        custom_val = get_custom_energy(system, params)
+        results["custom"].append(normalize_to_dict(custom_val))
         
-        for i in range(steps):
+        if get_legacy_energy:
+            legacy_val = get_legacy_energy(system, params)
+            results["legacy"].append(normalize_to_dict(legacy_val))
 
-            
-            t = t_values[i]
-            params = lerp_dict(start_params, end_params, t)
-            print(f"Parameters={params}")
-            print(f"{'Name':<12} | {'Legacy':<10} | {'Custom':<10} | {'Error (abs)'}")
-            print("-" * 50)
-            leg_final = results["legacy"][i]
-            cus_final = results["custom"][i]
-            
-            for custom_key in cus_final.keys():
-                legacy_key = next((lk for lk in leg_final.keys() if lk.lower() == custom_key.lower()), None)
-                if legacy_key:
-                    val_l = float(leg_final[legacy_key])
-                    val_c = float(cus_final[custom_key])
-                    error = abs(val_l - val_c)
-                    print(f"{custom_key:<12} | {val_l:<15.10f} | {val_c:<15.10f} | {error:<15.10f}")
+    # 2. Print/Analyze Results (After the simulation loop is finished)
+    print(f"{'Name':<12} | {'Legacy':<10} | {'Custom':<10} | {'Error (abs)'}")
+    print("-" * 50)
+    
+    for i in range(len(results["custom"])):
+        leg_final = results["legacy"][i] if get_legacy_energy else {}
+        cus_final = results["custom"][i]
+        
+        for custom_key in cus_final.keys():
+            legacy_key = next((lk for lk in leg_final.keys() if lk.lower() == custom_key.lower()), None)
+            if legacy_key:
+                val_l = float(leg_final[legacy_key])
+                val_c = float(cus_final[custom_key])
+                error = abs(val_l - val_c)
+                print(f"{custom_key:<12} | {val_l:<15.10f} | {val_c:<15.10f} | {error:<15.10f}")
 
     # --- Prepare Data ---
     # Convert list of dicts to a dict of clean float numpy arrays (handles np.float64 objects safely)
