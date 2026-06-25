@@ -1,7 +1,7 @@
 import espressomd
 import numpy as np
-from elcic.energy._2_dual_plates.CUSTOM.custom import get_elcic_energy
-from elcic.energy._z_legacy_contrib_parsing_experiment.get_legacy_contribs import get_legacy_contribs
+from elcic.energy._y_dual_plates.CUSTOM.custom import get_elcic_energy
+from elcic.energy._z_failed_legacy_contrib_parsing_experiment.get_legacy_contribs import get_legacy_contribs
 from common.plotting.param_lerp_plot import run_lerp_plot
 
 start_params = {

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import erfcx, erf, erfc
 
 
-def get_ewald_elcic_2d(params, k_max=10, n_real=10, tol=1e-8):
+def get_ewald2d_elcic(params, k_max=10, n_real=10, tol=1e-8):
     pos = np.asarray(params["positions"], dtype=np.float64)
     q = np.asarray(params["charges"], dtype=np.float64)
 

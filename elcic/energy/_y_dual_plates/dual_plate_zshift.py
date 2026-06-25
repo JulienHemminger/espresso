@@ -3,7 +3,7 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
+from elcic.energy._1_single_plate_neutral_metallic.custom import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
 
 import espressomd

@@ -2,7 +2,7 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy as get_elcic_energy_old
+from elcic.energy._1_single_plate_neutral_metallic.custom import get_elcic_energy as get_elcic_energy_old
 from common.legacy.energy import get_legacy_energy
 
 import numpy as np

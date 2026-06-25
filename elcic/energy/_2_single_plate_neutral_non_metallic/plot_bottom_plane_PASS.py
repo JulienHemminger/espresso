@@ -2,9 +2,11 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.single_plate.neutral.metallic.custom import get_elcic_energy
-from elcic.OLDparam_lerp_plot_2d import run_lerp_plot
+from elcic.energy._1_single_plate_neutral_metallic.custom import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
+
+from elcic.energy._1_single_plate_neutral_metallic.get_ewald2d_elcic import get_ewald2d_elcic
+from elcic.OLDparam_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -18,47 +20,37 @@ start_params = {
     "prefactor": 1.0,
     "delta_mid_top": 0.0,
     "delta_mid_bot": -1.0,
-    "charges": [+0.3, -0.6],
+    "charges": [+1.0, -1.0],
     "positions": [np.array([1, 2, 3]), np.array([4, 5, 6])],
     "pw_error": 1e-8,
 }
 start_params["lz"] = start_params["gap_size"] + 40
 
 
+end_params = copy.deepcopy(start_params)
+end_params["delta_mid_bot"] = +1
+
+
 end_params = {
-    "lx": 50.0,
-    "ly": 50.0,
-    "gap_size": 20.0,
+    "lx": 10.0,
+    "ly": 10.0,
+    "gap_size": 10.0,
     "prefactor": 1.0,
     "delta_mid_top": 0.0,
-    "delta_mid_bot": -1.0,
-    "charges": [+0.7, -0.2],
+    "delta_mid_bot": +1.0,
+    "charges": [+1.0, -1.0],
     "positions": [np.array([6, 5, 6]), np.array([3, 2, 1])],
     "pw_error": 1e-8,
 }
-end_params["lz"] = end_params["gap_size"] + 40
+end_params["lz"] = end_params["gap_size"] + 10
 
-"""
-The standard Ewald summation (even in 3D) is mathematically ill-defined for non-neutral systems because the Coulomb potential energy of a net-charged periodic system diverges (the "monopole problem")
-"""
 run_lerp_plot(
     system=system,
     start_params=start_params,
     end_params=end_params,
     get_custom_energy=get_elcic_energy,
-    get_analytical_energy=None,
-    get_legacy_energy=None,
+    get_analytical_energy=get_ewald2d_elcic,
+    get_legacy_energy=get_legacy_energy,
     steps=10,
 )
 
-
-"""
-legacy: doent work for systems like this
-
-
-fix ana sol:
-* extend ewald method: NO, doesnt work for systems like this
-
-
-fix custom (focus on custom-legacy)
-"""

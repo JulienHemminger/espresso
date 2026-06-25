@@ -5,11 +5,9 @@ import copy
 from datetime import datetime
 import mpld3
 
-from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy as get_elcic_energy_old
+from elcic.energy._1_single_plate_neutral_metallic.custom import get_elcic_energy as get_elcic_energy_old
 from common.legacy.energy import get_legacy_energy
-from elcic.energy.single_plate.neutral.metallic.analytical import (
-    get_ewald_elcic_2d as analytical_single_plate_2d_ewald_elcic_energy,
-)
+
 ERROR_CODE = 1.0
 
 

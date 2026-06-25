@@ -5,12 +5,11 @@ from datetime import datetime
 from pathlib import Path
 
 import espressomd
-from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy as get_elcic_energy_old
+from elcic.energy._1_single_plate_neutral_metallic.custom import get_elcic_energy as get_elcic_energy_old
 
 from common.legacy.energy import get_legacy_energy
-from elcic.energy.single_plate.neutral.metallic.analytical import (
-    get_ewald_elcic_2d as analytical_single_plate_2d_ewald_elcic_energy,
-)
+
+from elcic.energy._1_single_plate_neutral_metallic.get_ewald2d_elcic import get_ewald2d_elcic
 pw_error = 1e-8
 accuracy_max = 10
 
@@ -27,7 +26,7 @@ def param_sweep_accuracy_convergence(
             for pos, q in zip(params["positions"], params["charges"]):
                 system.part.add(pos=pos, q=q)
 
-            ana_energy = analytical_single_plate_2d_ewald_elcic_energy(
+            ana_energy = get_ewald2d_elcic(
                 params=params
             )
 

@@ -2,7 +2,7 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
+from elcic.energy._1_single_plate_neutral_metallic.custom import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
 
 from elcic.OLDparam_lerp_plot_2d import run_lerp_plot
@@ -10,28 +10,26 @@ from elcic.OLDparam_lerp_plot_2d import run_lerp_plot
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
 system.cell_system.skin = (
-    0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
+    0.4  # required to fix "tuning failed: number of cells 6 is smaller than minimum 8"
 )
 
 
-lz = 20
 start_params = {
     "lx": 50.0,
     "ly": 50.0,
     "gap_size": 20.0,
     "prefactor": 1.0,
-    "delta_mid_top": +1.0,
-    "delta_mid_bot": +1.0,
+    "delta_mid_top": -1.0,
+    "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    "positions": [np.array([6, 5, 2]), np.array([3, 2, 4])],
+    "positions": [np.array([6, 5, 14]), np.array([3, 2, 11])],
+    
 }
-start_params["lz"] = start_params["gap_size"] + lz
-
-
+start_params["lz"] = start_params["gap_size"] + 40
 
 end_params = copy.deepcopy(start_params)
-end_params["delta_mid_top"] = -1.0
+end_params["lz"] = start_params["gap_size"] + 20
 
 
 
@@ -39,26 +37,8 @@ run_lerp_plot(
     system=system,
     start_params=start_params,
     end_params=end_params,
-    get_custom_energy=get_elcic_energy,
+    get_custom_energy=get_elcic_energy, 
     get_analytical_energy=None,
     get_legacy_energy=get_legacy_energy,
-    steps=5,
+    steps=2,
 )
-
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-rn i have multiple custom.py. i want a single one that passes all tests
-
-"""
