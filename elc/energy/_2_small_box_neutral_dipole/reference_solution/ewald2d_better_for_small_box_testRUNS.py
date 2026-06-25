@@ -1,24 +1,20 @@
-# show reference sol: direct sum not accurate anymore, ewald2d matches legacy elc
-
 import numpy as np
-import matplotlib.pyplot as plt
 import espressomd
 from common.legacy.energy import get_legacy_energy
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy
-import numpy as np
-import matplotlib.pyplot as plt
-import espressomd
-from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
-    get_ewald_energy_2d
-)
+from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import get_ewald_energy_2d
+
+# Import your newly generalized plotting utility
+# (Adjust this import path based on your actual file layout)
+from common.plotting.param_lerp_plot import run_lerp_plot
 
 # 1. Initialize the system ONCE
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-# Define your parameters
-params = {
+# 2. Define Start and End configurations for the interpolation
+start_params = {
     "lx": 10.0,
     "ly": 10.0,
     "lz": 10.0,
@@ -29,56 +25,34 @@ params = {
     "pw_error": 1e-8,
 }
 
+# End parameters: Sweep lx and ly up to 30.0, keeping everything else the same
+end_params = start_params.copy()
+end_params["lx"] = 30.0
+end_params["ly"] = 30.0
 
-l_xy_values = np.linspace(10, 30, num=20) #works for max=100, timeout_duration_sec=600
-direct_sum_results = []
-ewald_results = []
-legacy_results = []
+# 3. Define the custom metric wrappers matching signature: (system, params) -> float
+def eval_direct_sum(sys, params):
+    return get_direct_sum_energy(sys)
 
-# 2. Iterate and update the existing system
-for l_xy in l_xy_values:
-    # A. Clear system for reconfiguration
-    system.part.clear()
-    system.electrostatics.clear()
-    
-    # B. Resize the box (safe now that particles are cleared)
-    system.box_l = [l_xy, l_xy, params["lz"]]
-    
-    # C. Re-add particles
-    for i in range(len(params["charges"])):
-        system.part.add(pos=params["positions"][i], q=params["charges"][i])
-    
-    # D. Calculate energies
-    params["lx"] = l_xy
-    params["ly"] = l_xy
-    
-    direct_sum_results.append(get_direct_sum_energy(system))
-    ewald_results.append(get_ewald_energy_2d(params))
-    legacy_results.append(get_legacy_energy(system, params))
+def eval_ewald2d(sys, params):
+    # This specific function only requires the params dict
+    return get_ewald_energy_2d(params)
 
-    print(f"direct_sum_results = {direct_sum_results[-1]}")
-    print(f"legacy_results = {legacy_results[-1]}")
+def eval_legacy(sys, params):
+    return get_legacy_energy(sys, params)
 
-# 3. Plotting
-plt.figure(figsize=(12, 6)) # Increased width to accommodate the text
+# 4. Map labels and plotting styles (using hashable immutable tuples) to the functions
+metrics_to_plot = {
+    ("direct_sum_results", (("marker", "o"), ("color", "blue"))): eval_direct_sum,
+    ("ewald_results", (("marker", "o"), ("color", "orange"))): eval_ewald2d,
+    ("legacy_results", (("marker", "s"), ("linestyle", "--"), ("color", "green"))): eval_legacy
+}
 
-# Adjust subplots to make room for the text on the right
-plt.subplots_adjust(right=0.7) 
-
-plt.plot(l_xy_values, direct_sum_results, label='direct_sum_results', marker='o')
-plt.plot(l_xy_values, ewald_results, label='ewald_results', marker='o')
-plt.plot(l_xy_values, legacy_results, label='legacy_results', marker='s', linestyle='--')
-plt.xlabel(r"$L_{xy}$")
-plt.ylabel("Energy")
-plt.title("Energy Comparison: Analytical vs Legacy")
-plt.legend()
-plt.grid(True)
-
-# Add parameters text to the right side
-# We convert the dictionary to a formatted string
-params_str = "Parameters:\n" + "\n".join([f"{k}: {v}" for k, v in params.items()])
-
-# Place text at x=0.75, y=0.5 (relative figure coordinates)
-plt.figtext(0.75, 0.5, params_str, fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
-
-plt.show()
+# 5. Run the generalized loop and display/save the plot
+run_lerp_plot(
+    system=system,
+    start_params=start_params,
+    end_params=end_params,
+    lerp_step_count=20,
+    plot_metrics=metrics_to_plot
+)

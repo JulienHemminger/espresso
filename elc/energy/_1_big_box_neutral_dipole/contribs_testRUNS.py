@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import espressomd
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy as get_direct_sum_energy
 import espressomd.electrostatics
-from common.plotting.plot_saving import save_plot_with_timestamp
-
+from common.plotting.utils.plot_saving import save_plot_with_timestamp
+from common.plotting.param_lerp_plot import run_lerp_plot
 
 def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     p3m = espressomd.electrostatics.P3M(
@@ -67,86 +67,90 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     #E_total = E_3d + (prefactor * E_dipole_w_nonneutr_corr) + (prefactor * E_recip)
 
     return (E_3d, E_dipole, E_recip)
+import numpy as np
+import espressomd
+import matplotlib.pyplot as plt
+
+# Assuming 'run_lerp_plot', 'get_direct_sum_energy', and 'get_elc_energy_contribs' 
+# are already defined or imported here.
+
+# --- 1. Set Up Constants & Bounds ---
+lz_val = 20.0
+gap_size_val = 10.0
+eps = 1e-1
+z_min = 0 + eps
+z_max = lz_val - gap_size_val - eps
+
+# --- 2. Define Start and End Parameter Dictionaries ---
+start_params = {
+    "lx": 80.0,
+    "ly": 80.0,
+    "lz": lz_val,
+    "gap_size": gap_size_val,
+    "prefactor": 1.0,
+    "pw_error": 1e-8,
+    "charges": [+1.0, -1.0],
+    # At t=0: P0 is at z_min, P1 is at z_max
+    "positions": [np.array([6.0, 5.0, z_min]), np.array([3.0, 2.0, z_max])],
+}
+
+end_params = {
+    "lx": 80.0,
+    "ly": 80.0,
+    "lz": lz_val,
+    "gap_size": gap_size_val,
+    "prefactor": 1.0,
+    "pw_error": 1e-8,
+    "charges": [+1.0, -1.0],
+    # At t=1: P0 is at z_max, P1 is at z_min
+    "positions": [np.array([6.0, 5.0, z_max]), np.array([3.0, 2.0, z_min])],
+}
+
+# --- 3. Define Metric Evaluation Functions ---
+# Each function matches the signature: (system, params) -> float
+
+def eval_analytical(system, params):
+    return get_direct_sum_energy(system)
+
+def eval_e_3d(system, params):
+    E_3d, _, _ = get_elc_energy_contribs(
+        params["gap_size"], params["pw_error"], system, params["prefactor"]
+    )
+    return E_3d
+
+def eval_e_dipole(system, params):
+    _, E_dipole, E_recip = get_elc_energy_contribs(
+        params["gap_size"], params["pw_error"], system, params["prefactor"]
+    )
+    return E_dipole + E_recip
+
+def eval_sum(system, params):
+    E_3d, E_dipole, E_recip = get_elc_energy_contribs(
+        params["gap_size"], params["pw_error"], system, params["prefactor"]
+    )
+    return E_3d + E_dipole + E_recip
 
 
-# 1. Initialize the system
+# --- 4. Define the Mapping Framework ---
+# Map immutable nested configuration tuples to our evaluation functions
+metrics_to_plot = {
+    ("E_3d", (("color", "cyan"), ("linestyle", ":"))): eval_e_3d,
+    ("E_dipole", (("color", "skyblue"), ("linestyle", ":"))): eval_e_dipole,
+    ("Sum (E_3d + E_dipole)", (("color", "blue"), ("linestyle", "-"))): eval_sum,
+    ("Analytical", (("color", "red"), ("marker", "o"), ("linestyle", "None"))): eval_analytical
+}
+
+# --- 5. Initialize System and Run ---
 system = espressomd.System(box_l=[80, 80, 20])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-params = {
-    "lx": 80.0,
-    "ly": 80.0,
-    "lz": 20.0,
-    "gap_size": 10.0,
-    "prefactor": 1.0,
-    "charges": [+1.0, -1.0],
-    "positions": [np.array([6, 5, 0]), np.array([3, 2, 0])], # Z will be overwritten
-    "pw_error": 1e-8,
-}
 
-# Define the Z range
-eps = 1e-1
-z_min = 0 + eps
-z_max = params["lz"] - params["gap_size"] - eps
-z_values = np.linspace(z_min, z_max, num=6)
-
-analytical_results = []
-E_3d_list = []
-E_dipole_list = []
-E_sum_list = []
-
-# 2. Iterate and update particle positions
-for z in z_values:
-    system.part.clear()
-    system.electrostatics.clear()
-    
-    # Update positions
-    z1 = z
-    z2 = (z_max - (z - z_min)) 
-    
-    pos1 = [params["positions"][0][0], params["positions"][0][1], z1]
-    pos2 = [params["positions"][1][0], params["positions"][1][1], z2]
-    
-    system.part.add(pos=pos1, q=params["charges"][0])
-    system.part.add(pos=pos2, q=params["charges"][1])
-    
-    # Calculate energies
-    analytical_results.append(get_direct_sum_energy(system))
-    E_3d, E_dipole, E_recip = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
-    
-    E_3d_list.append(E_3d)
-    E_dipole_list.append(E_dipole + E_recip)
-    E_sum_list.append(E_3d + E_dipole + E_recip)
-
-    print(f"Z={z:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_recip:.4f} | Sum={E_sum_list[-1]:.4f}")
-
-# 3. Plotting
-fig = plt.figure(figsize=(10, 6))
-
-# Plot components
-plt.plot(z_values, E_3d_list, label='E_3d', linestyle=':', color='cyan')
-plt.plot(z_values, E_dipole_list, label='E_dipole', linestyle=':', color='skyblue')
-plt.plot(z_values, E_sum_list, label='Sum (E_3d + E_dipole)', linestyle='-', color='blue')
-plt.plot(z_values, analytical_results, label='Analytical', marker='o', linestyle='None', color='red')
-
-plt.xlabel("Particle Z Position")
-plt.ylabel("Energy")
-plt.title("Energy Decomposition: E_3d, E_dipole, and Sum")
-plt.legend()
-plt.grid(True)
-
-# Generate custom parameter string
-params_display = params.copy()
-# Format the positions string to show 'z' as a variable
-params_display["positions"] = "[np.array([6, 5, z]), np.array([3, 2, z])]"
-
-params_str = "Parameters:\n" + "\n".join([f"{k}: {v}" for k, v in params_display.items()])
-
-# Place text
-plt.figtext(0.75, 0.5, params_str, fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
-
-save_plot_with_timestamp(fig)
-plt.show()
-
-
+# Fires off the generalized loop, validation step, plotting suite, and text overlay
+run_lerp_plot(
+    system=system,
+    start_params=start_params,
+    end_params=end_params,
+    lerp_step_count=6,
+    plot_metrics=metrics_to_plot
+)

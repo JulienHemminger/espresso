@@ -6,7 +6,7 @@ from common.legacy.energy import get_legacy_energy
 from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
     get_ewald_energy_2d
 )
-from common.plotting.param_lerp_plot_2d import run_lerp_plot
+from common.plotting.OLDparam_lerp_plot_2d import run_lerp_plot
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
 system.cell_system.skin = 0.4 # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"

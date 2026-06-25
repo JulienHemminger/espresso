@@ -13,6 +13,13 @@
 
   * make scripts re-use "save_figure_w_timestamp" or "run_lerp\_plot"
 
+    * param\_lerp\_plot TODO
+
+      * when im lerping e.g. only over lx, make x-axis-label "L\_x" else do "Interpolation parameter t"
+      * optional: specifying y-label, e.g.
+
+        * y-label="absolute energy", or "energy difference" if i plot lamda = a(x) - b(x)
+
 
 * cleanup outputs (plot labels, colors, print statements)
 
