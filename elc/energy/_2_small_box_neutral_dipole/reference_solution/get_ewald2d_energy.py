@@ -1,8 +1,6 @@
 import numpy as np
-from scipy.special import erfcx, erf, erfc
-import numpy as np
 from scipy.special import erf, erfc
-
+from scipy.special import erf, erfc, erfcx  # Add erfcx here
 
 
 def get_ewald_energy_2d(params, n_max=100, k_max=10, tol=1e-8):
@@ -61,11 +59,13 @@ def get_ewald_energy_2d(params, n_max=100, k_max=10, tol=1e-8):
 
             phase = drho[:, :, 0] * Gx + drho[:, :, 1] * Gy  # (N, N)
 
-            # h(G, dz) = exp(G*dz)*erfc(G/(2*eta) + eta*dz)
-            #           + exp(-G*dz)*erfc(G/(2*eta) - eta*dz)
+            # Stable evaluation using erfcx
             arg_p = G / (2.0 * eta) + eta * dz
             arg_m = G / (2.0 * eta) - eta * dz
-            h = np.exp(G * dz) * erfc(arg_p) + np.exp(-G * dz) * erfc(arg_m)
+            
+            # The exponential terms cancel out nicely into this shared factor:
+            shared_exp = np.exp(-(G / (2.0 * eta))**2 - (eta * dz)**2)
+            h = (erfcx(arg_p) + erfcx(arg_m)) * shared_exp
 
             E_recip += np.sum(qq * (np.pi / G) * h * np.cos(phase))
 

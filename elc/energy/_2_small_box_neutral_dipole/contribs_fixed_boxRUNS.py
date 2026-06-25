@@ -1,10 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import espressomd
-from common.legacy.energy import get_legacy_energy
-from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy as get_direct_sum_energy
 import espressomd.electrostatics
-
+from common.legacy.energy import get_legacy_energy
+from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy
+from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import get_ewald_energy_2d
+# Assuming the newly generalized script is saved as param_lerp_plot.py in the same directory/path
+from common.plotting.param_lerp_plot import run_lerp_plot
 
 def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     p3m = espressomd.electrostatics.P3M(
@@ -71,97 +72,73 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
 
 
 
-# 1. Initialize the system
+# --- Define the get_value wrapper metrics ---
+
+def metric_E_3d(system, params):
+    E_3d, _, _ = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    return E_3d
+
+def metric_E_dipole(system, params):
+    _, E_dipole, _ = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    return E_dipole
+
+def metric_E_recip(system, params):
+    _, _, E_recip = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    return E_recip
+
+def metric_E_sum(system, params):
+    E_3d, E_dipole, E_recip = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    return E_3d + E_dipole + E_recip
+
+def metric_analytical(system, params):
+    # return get_legacy_energy(system, params) #ana-custom match
+    return get_ewald_energy_2d(params) # ana-custom match, but doesnt return values for edges
+    # return get_direct_sum_energy(system) # ana-custom mismatch
+
+
+# --- Setup ESPRESSOMD System Engine ---
 system = espressomd.System(box_l=[80, 80, 20])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-params = {
-    "lx": 10.0,
-    "ly": 10.0,
-    "lz": 20.0,
-    "gap_size": 4.0,
-    "prefactor": 1.0,
-    "charges": [+1.0, -1.0],
-    "positions": [np.array([6, 5, 0]), np.array([3, 2, 0])], # Z will be overwritten
-    "pw_error": 1e-8,
-}
-
-# Define the Z range
+# Static Configuration Elements
+lx_val, ly_val, lz_val = 10.0, 10.0, 20.0
+gap_size_val = 4.0
 eps = 1e-1
 z_min = 0 + eps
-z_max = params["lz"] - params["gap_size"] - eps
-z_values = np.linspace(z_min, z_max, num=5)
+z_max = lz_val - gap_size_val - eps
 
-analytical_results = []
-E_3d_list = []
-E_dipole_list = []
-E_far_list = []
-E_sum_list = []
+# Defining start and end states to replicate the dynamic system trajectories
+start_params = {
+    "lx": lx_val, "ly": ly_val, "lz": lz_val,
+    "gap_size": gap_size_val, "prefactor": 1.0, "pw_error": 1e-8,
+    "charges": [+1.0, -1.0],
+    "positions": [np.array([6.0, 5.0, z_min]), np.array([3.0, 2.0, z_max])]
+}
 
-# 2. Iterate and update particle positions
-for z in z_values:
-    system.part.clear()
-    system.electrostatics.clear()
-    
-    # Update positions
-    z1 = z
-    z2 = (z_max - (z - z_min)) 
-    
-    pos1 = [params["positions"][0][0], params["positions"][0][1], z1]
-    pos2 = [params["positions"][1][0], params["positions"][1][1], z2]
-    
-    system.part.add(pos=pos1, q=params["charges"][0])
-    system.part.add(pos=pos2, q=params["charges"][1])
-    
-    # Calculate energies
-    analytical_results.append(get_direct_sum_energy(system))
-    E_3d, E_dipole, E_recip = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
-    
-    E_3d_list.append(E_3d)
-    E_dipole_list.append(E_dipole)
-    E_far_list.append(E_recip)
-    E_sum_list.append(E_3d + E_dipole + E_recip)
+end_params = {
+    "lx": lx_val, "ly": ly_val, "lz": lz_val,
+    "gap_size": gap_size_val, "prefactor": 1.0, "pw_error": 1e-8,
+    "charges": [+1.0, -1.0],
+    "positions": [np.array([6.0, 5.0, z_max]), np.array([3.0, 2.0, z_min])]
+}
 
-    print(f"Z={z:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_recip:.4f} | Sum={E_sum_list[-1]:.4f}")
+# --- Mapping Configuration Table ---
+# Uses the immutable nested tuple framework required by the new plotting engine
+plot_metrics = {
+    ("E_3d", (("color", "cyan"), ("linestyle", ":"))): metric_E_3d,
+    ("E_dipole", (("color", "skyblue"), ("linestyle", ":"))): metric_E_dipole,
+    ("E_recip", (("color", "steelblue"), ("linestyle", ":"))): metric_E_recip,
+    ("Sum (E_3d + E_dipole + E_recip)", (("color", "blue"), ("linestyle", "-"), ("linewidth", 2))): metric_E_sum,
+    ("Analytical", (("color", "red"), ("marker", "o"), ("linestyle", "None"))): metric_analytical
+}
 
-# 3. Plotting
-plt.figure(figsize=(10, 6))
-
-# Plot components
-plt.plot(z_values, E_3d_list, label='E_3d', linestyle=':', color='cyan')
-plt.plot(z_values, E_dipole_list, label='E_dipole', linestyle=':', color='skyblue')
-plt.plot(z_values, E_far_list, label='E_recip', linestyle=':', color='steelblue')
-plt.plot(z_values, E_sum_list, label='Sum (E_3d + E_dipole)', linestyle='-', color='blue')
-plt.plot(z_values, analytical_results, label='Analytical', marker='o', linestyle='None', color='red')
-
-plt.xlabel("Particle Z Position")
-plt.ylabel("Energy")
-plt.title("Energy Decomposition: E_3d, E_dipole, and Sum")
-plt.legend()
-plt.grid(True)
-
-# Generate custom parameter string
-params_display = params.copy()
-# Format the positions string to show 'z' as a variable
-params_display["positions"] = "[np.array([6, 5, z]), np.array([3, 2, z])]"
-
-params_str = "Parameters:\n" + "\n".join([f"{k}: {v}" for k, v in params_display.items()])
-
-# Place text
-plt.figtext(0.75, 0.5, params_str, fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
-
-plt.show()
-
-
-"""
-my big_box_contribs plot isnt for a bix box at all (lxy=20)
-
-so
-* make the big_box plot actually a big box
-* create a small box contrib plot (e_3d, e_dipole AND !! e_corr !!)
-"""
-
-
-
-# TODO hack for better visuals: i use "get_direct_sum_energy " even though for small boxes i should be using "ewald2d"
+# --- Run Plotting Engine ---
+if __name__ == "__main__":
+    run_lerp_plot(
+        system=system,
+        start_params=start_params,
+        end_params=end_params,
+        lerp_step_count=5, # Restoring original resolution parameters
+        plot_metrics=plot_metrics
+    )
