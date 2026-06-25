@@ -6,7 +6,7 @@ from common.legacy.energy import get_legacy_energy
 from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
     get_ewald_energy_2d
 )
-from common.plotting.OLDparam_lerp_plot_2d import run_lerp_plot
+from common.plotting.param_lerp_plot import run_lerp_plot
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
 system.cell_system.skin = 0.4 # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
@@ -34,4 +34,31 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
-run_lerp_plot(system, start_params=start_params, end_params=end_params, get_custom_energy=get_elcic_energy, get_analytical_energy=get_ewald_energy_2d, get_legacy_energy=get_legacy_energy, steps=5)
+
+# 3. Define the evaluation functions to match your new API signature: (system, params) -> float
+def eval_analytical(sys, params):
+    # Your analytical function only takes system in your original code
+    return get_ewald_energy_2d(params)
+
+def eval_legacy(sys, params):
+    return get_legacy_energy(sys, params, timeout_duration_sec=600)
+
+def eval_custom(sys, params):
+    return get_elcic_energy(sys, params)['e_total']
+
+# 4. Map metrics using the hashable tuple-of-tuples format for matplotlib configurations
+metrics_to_plot = {
+    ("Analytical", (("color", "blue"), ("marker", "o"), ("linewidth", 2))): eval_analytical,
+    ("Legacy", (("color", "orange"), ("marker", "s"), ("linestyle", "--"), ("linewidth", 2))): eval_legacy,
+    ("Custom", (("color", "red"), ("marker", "s"), ("linestyle", "--"), ("linewidth", 2))): eval_custom
+}
+
+# 5. Execute using the generalized plotting runner
+run_lerp_plot(
+    system=system,
+    start_params=start_params,
+    end_params=end_params,
+    lerp_step_count=6,
+    plot_metrics=metrics_to_plot
+)
+

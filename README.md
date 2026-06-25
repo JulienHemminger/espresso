@@ -8,6 +8,8 @@
 
 * repair broken/false plots (where custom != legacy)
 
+  * fix messy custom.py stuff
+
 
 * cleanup source code (remove unnessecary comments, etc)
 
