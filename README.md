@@ -2,8 +2,6 @@
 
 * remove unnessecary files, merge duplicate files, rename them, etc
 
-*
-
 * repair broken/false plots (where custom != legacy)
 
   * fix messy custom.py stuff. i have multiple custom.py's (idk if i need all). and some retunr contrib dict, some return total float
