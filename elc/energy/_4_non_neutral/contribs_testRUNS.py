@@ -1,4 +1,4 @@
-from common.plotting.param_lerp_plot import run_lerp_plot
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd

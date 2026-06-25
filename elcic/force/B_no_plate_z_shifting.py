@@ -4,8 +4,8 @@ import espressomd
 import numpy as np
 
 from common.legacy.forces import get_legacy_forces
-from elcic.force.CUSTOM.elcic_forces import get_elcic_forces
-from elcic.force.param_lerp_force_plot_2d import run_lerp_plot
+from elcic.force.get_custom_elcic_forces import get_elcic_forces
+from elcic.force.param_lerp_force_plot import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01

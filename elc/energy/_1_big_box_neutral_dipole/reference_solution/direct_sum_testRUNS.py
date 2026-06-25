@@ -3,7 +3,7 @@ import espressomd
 from common.legacy.energy import get_legacy_energy
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy
 # Assuming param_lerp_plot is inside your common/plotting path
-from common.plotting.param_lerp_plot import run_lerp_plot
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
 
 # 1. Initialize the system ONCE
 system = espressomd.System(box_l=[50, 50, 50])

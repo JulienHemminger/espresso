@@ -5,7 +5,7 @@ from common.legacy.energy import get_legacy_energy
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy
 from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import get_ewald_energy_2d
 # Assuming the newly generalized script is saved as param_lerp_plot.py in the same directory/path
-from common.plotting.param_lerp_plot import run_lerp_plot
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
 from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
 
 # --- Define the get_value wrapper metrics ---

@@ -6,7 +6,7 @@ from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energ
 
 # Import your newly generalized plotting utility
 # (Adjust this import path based on your actual file layout)
-from common.plotting.param_lerp_plot import run_lerp_plot
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
 
 # 1. Initialize the system ONCE
 system = espressomd.System(box_l=[50, 50, 50])

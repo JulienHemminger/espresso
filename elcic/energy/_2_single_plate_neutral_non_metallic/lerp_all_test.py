@@ -6,7 +6,7 @@ from elcic.energy.get_custom_elcic_energy import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
 
 from elcic.energy._2_single_plate_neutral_non_metallic.reference_method.get_ewald2d_elcic import get_ewald2d_elcic
-from elcic.OLDparam_lerp_plot_2d import run_lerp_plot
+from elcic.energy.OLDparam_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
