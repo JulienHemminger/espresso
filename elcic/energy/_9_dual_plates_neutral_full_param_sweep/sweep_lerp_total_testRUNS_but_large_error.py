@@ -1,6 +1,6 @@
 import espressomd
 import numpy as np
-from elcic.energy.custom_elcic.custom import get_elcic_energy
+from elcic.energy.get_custom_elcic_energy import get_elcic_energy
 from elcic.energy._z_failed_legacy_contrib_parsing_experiment.get_legacy_contribs import get_legacy_contribs
 from common.plotting.param_lerp_plot import run_lerp_plot
 

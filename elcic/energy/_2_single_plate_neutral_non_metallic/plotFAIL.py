@@ -2,7 +2,7 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.custom_elcic.custom import get_elcic_energy
+from elcic.energy.get_custom_elcic_energy import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
 
 from elcic.OLDparam_lerp_plot_2d import run_lerp_plot

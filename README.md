@@ -4,13 +4,11 @@
 
 * repair broken/false plots (where custom != legacy)
 
-  *
-
 
 
 * cleanup source code (remove unnessecary comments, etc)
 
-  * make scripts re-use "save_figure_w_timestamp" or "run_lerp\_plot"
+  * make scripts re-use "save\_figure\_w\_timestamp" or "run\_lerp\_plot"
 
     * param\_lerp\_plot TODO
 
@@ -18,8 +16,6 @@
       * optional: specifying y-label, e.g.
 
         * y-label="absolute energy", or "energy difference" if i plot lamda = a(x) - b(x)
-
-
 
 * cleanup outputs (plot labels, colors, print statements)
 
