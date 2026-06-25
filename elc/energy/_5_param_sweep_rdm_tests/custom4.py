@@ -3,14 +3,13 @@ import espressomd.electrostatics
 import numpy as np
 
 
-def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
+def _get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     p3m = espressomd.electrostatics.P3M(
         prefactor=prefactor, accuracy=pw_error, check_neutrality=False, verbose=False
     )
     # 1. 3D Periodic Energy from P3M
     system.electrostatics.solver = p3m
     E_3d = system.analysis.energy()["total"]
-
 
     lx, ly, lz = system.box_l
     particles = system.part.all()
@@ -20,10 +19,9 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     xi1 = np.sum(qs * zs)
     xi2 = np.sum(qs * zs**2)
     volume = lx * ly * lz
-    E_non_neutral_corr = 2.0 * np.pi / volume * (- xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
+    E_non_neutral_corr = 2.0 * np.pi / volume * (-xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
 
     E_dipole = 2.0 * np.pi / volume * xi1**2
-    
 
     # 4. Reciprocal Space ELC Term
     f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
@@ -62,11 +60,16 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
     E_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
 
-    return (float(prefactor), float(E_recip), float(E_3d), float(E_dipole + E_non_neutral_corr))
+    return (
+        float(prefactor),
+        float(E_recip),
+        float(E_3d),
+        float(E_dipole + E_non_neutral_corr),
+    )
 
 
 def get_elc_energy(system, gap_size, pw_error=1e-8, prefactor=1.0):
-    _, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
+    _, e_recip, e_3d, e_non_neutral_corr = _get_elc_energy_contribs(
         gap_size, pw_error, system, prefactor
     )
     return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)

@@ -1,10 +1,5 @@
-from common.plotting.param_lerp_plot import run_lerp_plot
 import numpy as np
-import matplotlib.pyplot as plt
 import espressomd
-from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
-    get_ewald_energy_2d
-)
 import espressomd.electrostatics
 
 
@@ -16,7 +11,6 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     system.electrostatics.solver = p3m
     E_3d = system.analysis.energy()["total"]
 
-
     lx, ly, lz = system.box_l
     particles = system.part.all()
     qs, (xs, ys, zs) = particles.q, particles.pos.T
@@ -25,10 +19,9 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     xi1 = np.sum(qs * zs)
     xi2 = np.sum(qs * zs**2)
     volume = lx * ly * lz
-    E_nonneutr = 2.0 * np.pi / volume * (- xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
+    E_nonneutr = 2.0 * np.pi / volume * (-xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
 
     E_dipole = 2.0 * np.pi / volume * xi1**2
-    
 
     # 4. Reciprocal Space ELC Term
     f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
@@ -66,6 +59,5 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     # The reciprocal energy correction
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
     E_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
-
 
     return (E_3d, E_dipole, E_recip, E_nonneutr)

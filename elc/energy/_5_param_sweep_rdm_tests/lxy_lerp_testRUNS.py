@@ -1,7 +1,6 @@
 import espressomd
 import numpy as np
-from elc.energy._5_param_sweep_rdm_tests.custom5 import get_elcic_energy
-#from elc.energy._5_param_sweep_rdm_tests.custom_elc_energy_for_accuracy_convergence import get_elc_energy as get_elcic_energy # doesnt work
+from elc.energy._1_big_box_neutral_dipole.custom1 import get_elc_energy_contribs
 from common.legacy.energy import get_legacy_energy
 from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
     get_ewald_energy_2d
@@ -44,7 +43,8 @@ def eval_legacy(sys, params):
     return get_legacy_energy(sys, params, timeout_duration_sec=600)
 
 def eval_custom(sys, params):
-    return get_elcic_energy(sys, params)['e_total']
+    E_3d, E_dipole, E_recip, E_nonneutral = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    return E_3d + E_dipole + E_recip + E_nonneutral
 
 # 4. Map metrics using the hashable tuple-of-tuples format for matplotlib configurations
 metrics_to_plot = {
