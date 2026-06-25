@@ -65,7 +65,7 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     return (float(prefactor), float(E_recip), float(E_3d), float(E_dipole + E_non_neutral_corr))
 
 
-def get_elc_energy(system, gap_size, pw_error, prefactor=1.0):
+def get_elc_energy(system, gap_size, pw_error=1e-8, prefactor=1.0):
     _, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
         gap_size, pw_error, system, prefactor
     )

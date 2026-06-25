@@ -1,10 +1,6 @@
-# E-3d and E-corr contribs vs direct sum
-# what do i lerp? part.z - something with interesting contribs
-
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
-from common.legacy.energy import get_legacy_energy
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy as get_direct_sum_energy
 import espressomd.electrostatics
 from common.plotting.plot_saving import save_plot_with_timestamp
@@ -73,41 +69,6 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     return (E_3d, E_dipole, E_recip)
 
 
-"""
-lz =  4, gap_size = 3, eps = 1e-1
-    Z=0.1000 | E_3d=0.0000 | E_dipole=-0.2296 | Sum=-0.2296
-    Z=0.5000 | E_3d=0.0000 | E_dipole=-0.2335 | Sum=-0.2335
-    Z=0.9000 | E_3d=0.0000 | E_dipole=-0.2296 | Sum=-0.2296
-
-lz = 14, gap_size = 3, eps = 1e-1: WORSE
-    Z=0.1000 | E_3d=0.0000 | E_dipole=-0.1174 | Sum=-0.1174
-    Z=5.5000 | E_3d=0.0000 | E_dipole=-0.2335 | Sum=-0.2335
-    Z=10.9000 | E_3d=0.0000 | E_dipole=-0.1174 | Sum=-0.1174
-
-lz =  4, gap_size = 1, eps = 1e-1
-    Z=0.1000 | E_3d=0.0000 | E_dipole=-0.1963 | Sum=-0.1963
-    Z=1.5000 | E_3d=0.0000 | E_dipole=-0.2335 | Sum=-0.2335
-    Z=2.9000 | E_3d=0.0000 | E_dipole=-0.1963 | Sum=-0.1963
-
-lz =  1, gap_size = .5, eps = 1e-1
-    Z=0.1000 | E_3d=0.0000 | E_dipole=-0.2329 | Sum=-0.2329
-    Z=0.2500 | E_3d=0.0000 | E_dipole=-0.2335 | Sum=-0.2335
-    Z=0.4000 | E_3d=0.0000 | E_dipole=-0.2329 | Sum=-0.2329
-
-
-"""
-
-"""
-=== How to get E_recip = 0 ===
-* Massive gap_size ("lz": 20.0, "gap_size": 19.0,): NO, E_recip=-0.002
-* Massive gap_size ("lz": 100.0, "gap_size": 99.0,): NO, E_recip=-0.0017
-* Loose pw_error=1e-2: NO, E_recip=0.02
-
-* The Purely In-Plane Dipole (z1 = z2 = 0): NO,  E_dipole=0.0000 | E_recip=-0.0013
-* The Purely Vertical Dipole (xy1 = xy2): NO, E_dipole=0.0012 | E_recip=0.0069 
-"""
-
-
 # 1. Initialize the system
 system = espressomd.System(box_l=[80, 80, 20])
 system.time_step = 0.01
@@ -128,7 +89,7 @@ params = {
 eps = 1e-1
 z_min = 0 + eps
 z_max = params["lz"] - params["gap_size"] - eps
-z_values = np.linspace(z_min, z_max, num=20)
+z_values = np.linspace(z_min, z_max, num=6)
 
 analytical_results = []
 E_3d_list = []
