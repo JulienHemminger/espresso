@@ -4,7 +4,7 @@ import espressomd
 import numpy as np
 from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
-from common.plotting.parap_lerp_plot_3d import run_2d_contour_plot
+from common.plotting.param_lerp_plot_3d import run_2d_contour_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01

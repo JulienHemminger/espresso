@@ -1,11 +1,22 @@
 # Planning
 
-* remove unnessecary files
-  * can i remove any plots/tests?
+* remove unnessecary files, merge duplicate files, rename them, etc
 
-* get all plots to work
 
-* merge duplicate files, rename them, etc
+
+
+
+* repair broken/false plots (where custom != legacy)
+
+
+* cleanup source code (remove unnessecary comments, etc)
+
+  * make scripts re-use "save_figure_w_timestamp" or "run_lerp\_plot"
+
+
+* cleanup outputs (plot labels, colors, print statements)
+
+  * maybe: make most plots share same color sceme
 
 # Readme
 

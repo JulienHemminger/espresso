@@ -74,5 +74,11 @@ def get_elcic_energy(system, params: dict):
     _, e_recip, e_3d, e_non_neutral_corr = get_elc_energy_contribs(
         gap_size, pw_error, system, prefactor
     )
-    return e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip)
+    return {
+        'e_total': e_3d + (prefactor * e_non_neutral_corr) + (prefactor * e_recip),
+        'e_near': 0,
+        'e_far': 0,
+        'e_near_top': 0,
+        'e_near_bot': 0,
 
+    }

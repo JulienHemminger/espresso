@@ -88,7 +88,7 @@ params = {
     "pw_error": 1e-8,
 }
 
-t_values = np.linspace(0, 1, num=20)
+t_values = np.linspace(0, 1, num=3)
 
 analytical_results = []
 E_3d_list = []
@@ -117,9 +117,10 @@ for t in t_values:
     system.part.add(pos=params["positions"][0], q=q0)
     system.part.add(pos=params["positions"][1], q=q1)
     system.part.add(pos=params["positions"][2], q=q2)
+    params["charges"] = [q0, q1, q2]
     
     # Calculate energies
-    analytical_results.append(get_ewald_energy_2d(system))
+    analytical_results.append(get_ewald_energy_2d(params))
     E_3d, E_dipole, E_recip, E_nonneutr = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
     
     E_3d_list.append(E_3d)
