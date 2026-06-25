@@ -96,7 +96,7 @@ def get_elcic_energy(system, params: dict):
 import espressomd
 import espressomd.electrostatics
 from common.generators.positions import get_rdm_constrained_points_np
-from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
+from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
     get_ewald_energy_2d
 )
 

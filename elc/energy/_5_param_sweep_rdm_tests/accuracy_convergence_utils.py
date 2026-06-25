@@ -3,8 +3,8 @@ import numpy as np
 
 from common.has_downward_trend import has_downward_trend
 from common.generators.positions import get_rdm_constrained_points_np
-from elc.energy._5_param_sweep_rdm_tests.custom_elc_energy import get_elc_energy_contribs
-from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
+from elc.energy._5_param_sweep_rdm_tests.custom_elc_energy_for_accuracy_convergence import get_elc_energy_contribs
+from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
     get_ewald_energy_2d
 )
 

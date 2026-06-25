@@ -1,6 +1,6 @@
 import numpy as np
-from elc.energy._5_param_sweep_rdm_tests.custom_elc_energy import get_elc_energy
-
+from elc.energy._5_param_sweep_rdm_tests.custom_elc_energy_for_accuracy_convergence import get_elc_energy
+import espressomd
 
 def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
     system.part.clear()
@@ -22,3 +22,9 @@ def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
 
     tolerance = 1e3 * accuracy  # 1e-3
     assert np.abs(madelung_2d_ref - elc_energy) < tolerance
+
+
+system = espressomd.System(box_l=[10, 10, 3])
+system.time_step = 0.01
+
+run_madelung(system, ions_per_axis=8)

@@ -2,8 +2,8 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
-from elc.energy._1_big_box_neutral_dipole.reference_solution.large_box_direct_sum import get_direct_sum_energy
-from elc.energy._2_small_box_neutral_dipole.reference_solution.ewald2d import (
+from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy
+from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
     get_ewald_energy_2d
 )
 

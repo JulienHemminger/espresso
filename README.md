@@ -1,7 +1,10 @@
 # Planning
 
-* organize files
-* rm unnessecary files
+* remove unnessecary files
+  * can i remove any plots/tests?
+
+* get all plots to work
+
 * merge duplicate files, rename them, etc
 
 # Readme
