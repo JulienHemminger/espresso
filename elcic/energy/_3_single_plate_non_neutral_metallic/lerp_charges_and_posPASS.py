@@ -3,9 +3,9 @@ import copy
 import espressomd
 import numpy as np
 from elcic.energy.get_custom_elcic_energy import get_elcic_energy
-from elcic.energy.OLDparam_lerp_plot_2d import run_lerp_plot
-from common.legacy.energy import get_legacy_energy
 
+from elcic.energy._2_single_plate_neutral_non_metallic.reference_method.get_ewald2d_elcic import get_ewald2d_elcic
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
 system.cell_system.skin = 0.4 # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
@@ -38,15 +38,20 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 40
 
-"""
-The standard Ewald summation (even in 3D) is mathematically ill-defined for non-neutral systems because the Coulomb potential energy of a net-charged periodic system diverges (the "monopole problem")
-"""
+
+def eval_reference(system, params):
+    return get_ewald2d_elcic(params)
+    
+
+plot_metrics = {
+    ("Custom", (("color", "blue"), ("linestyle", "-"), ("linewidth", 2))): get_elcic_energy,
+    ("Reference", (("color", "red"), ("marker", "o"), ("linestyle", "None"))): eval_reference
+}
+
+
 run_lerp_plot(
     system=system,
     start_params=start_params,
-    end_params=end_params,
-    get_custom_energy=get_elcic_energy,
-    get_analytical_energy=None,
-    get_legacy_energy=None,
-    steps=10,
+    end_params=end_params,lerp_step_count=10,
+    plot_metrics=plot_metrics
 )
