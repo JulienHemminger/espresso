@@ -52,19 +52,19 @@ def eval_analytical(system, params):
     return get_direct_sum_energy(system)
 
 def eval_e_3d(system, params):
-    E_3d, _, _ = get_elc_energy_contribs(
+    E_3d, _, _, _ = get_elc_energy_contribs(
         params["gap_size"], params["pw_error"], system, params["prefactor"]
     )
     return E_3d
 
 def eval_e_dipole(system, params):
-    _, E_dipole, E_recip = get_elc_energy_contribs(
+    _, E_dipole, E_recip, _ = get_elc_energy_contribs(
         params["gap_size"], params["pw_error"], system, params["prefactor"]
     )
     return E_dipole + E_recip
 
 def eval_sum(system, params):
-    E_3d, E_dipole, E_recip = get_elc_energy_contribs(
+    E_3d, E_dipole, E_recip, _ = get_elc_energy_contribs(
         params["gap_size"], params["pw_error"], system, params["prefactor"]
     )
     return E_3d + E_dipole + E_recip

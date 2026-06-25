@@ -11,19 +11,19 @@ from elc.energy._1_big_box_neutral_dipole.custom1 import get_elc_energy_contribs
 # --- Define the get_value wrapper metrics ---
 
 def metric_E_3d(system, params):
-    E_3d, _, _ = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    E_3d, _, _, _ = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
     return E_3d
 
 def metric_E_dipole(system, params):
-    _, E_dipole, _ = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    _, E_dipole, _, _ = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
     return E_dipole
 
 def metric_E_recip(system, params):
-    _, _, E_recip = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    _, _, E_recip, _ = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
     return E_recip
 
 def metric_E_sum(system, params):
-    E_3d, E_dipole, E_recip = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    E_3d, E_dipole, E_recip, _ = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
     return E_3d + E_dipole + E_recip
 
 def metric_analytical(system, params):

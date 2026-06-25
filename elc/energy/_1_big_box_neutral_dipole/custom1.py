@@ -1,10 +1,12 @@
+from common.plotting.param_lerp_plot import run_lerp_plot
 import numpy as np
 import matplotlib.pyplot as plt
 import espressomd
-from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy as get_direct_sum_energy
+from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
+    get_ewald_energy_2d
+)
 import espressomd.electrostatics
-from common.plotting.utils.plot_saving import save_plot_with_timestamp
-from common.plotting.param_lerp_plot import run_lerp_plot
+
 
 def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     p3m = espressomd.electrostatics.P3M(
@@ -23,9 +25,10 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     xi1 = np.sum(qs * zs)
     xi2 = np.sum(qs * zs**2)
     volume = lx * ly * lz
+    E_nonneutr = 2.0 * np.pi / volume * (- xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
 
     E_dipole = 2.0 * np.pi / volume * xi1**2
-    E_dipole_w_nonneutr_corr =  E_dipole# + 2.0 * np.pi / volume * (- xi0 * xi2 - (lz**2 / 12.0) * xi0**2)
+    
 
     # 4. Reciprocal Space ELC Term
     f_max = -np.log(pw_error) / (2.0 * np.pi * gap_size)
@@ -65,4 +68,4 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     E_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
 
 
-    return (E_3d, E_dipole, E_recip)
+    return (E_3d, E_dipole, E_recip, E_nonneutr)
