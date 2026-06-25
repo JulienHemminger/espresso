@@ -17,10 +17,8 @@ def lerp_dict(start_params: dict, end_params: dict, t: float) -> dict:
     for key in start_params:
         v1, v2 = start_params[key], end_params[key]
         if isinstance(v1, list):
-            # Handles lists of scalars or lists of numpy arrays (like positions/charges)
+            # Handles lists
             lerp_params[key] = [lerp(np.array(p1), np.array(p2), t) for p1, p2 in zip(v1, v2)]
-        elif isinstance(v1, np.ndarray):
-            lerp_params[key] = lerp(v1, v2, t)
         else:
             lerp_params[key] = lerp(v1, v2, t)
     return lerp_params
