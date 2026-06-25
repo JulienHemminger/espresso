@@ -5,7 +5,7 @@ import numpy as np
 
 from common.legacy.forces import get_legacy_forces
 from elcic.force.get_custom_elcic_forces import get_elcic_forces
-from elcic.force.param_lerp_force_plot import run_lerp_plot
+from common.plotting.param_lerp_force_plot import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -13,14 +13,14 @@ system.cell_system.skin = 0.4
 
 
 lz = 40
-eps = 1e-3
+eps = 1
 start_params = {
     "lx": 50.0, 
     "ly": 50.0,
     "gap_size": 20.0,
     "prefactor": 1.0,
-    "delta_mid_top": 0.0,
-    "delta_mid_bot": 0.0,
+    "delta_mid_top": -0.8,
+    "delta_mid_bot": +0.5,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
     "lambda": lz/4,
