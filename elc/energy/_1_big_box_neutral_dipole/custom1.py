@@ -64,6 +64,5 @@ def get_elc_energy_contribs(gap_size, pw_error, system, prefactor=1.0):
     rep = np.exp(-arg_z * lz) / (1.0 - np.exp(-arg_z * lz))
     E_recip = -np.sum((1.0 / (lx * ly * f)) * rep * chi)
 
-    #E_total = E_3d + (prefactor * E_dipole_w_nonneutr_corr) + (prefactor * E_recip)
 
     return (E_3d, E_dipole, E_recip)
