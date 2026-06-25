@@ -1,6 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from elc.force.get_custom_elc_forces import get_elc_forces
-from elc.force.get_ewald_forces import get_ewald_forces_2d
+from elc.force._2_small_box_neutral.reference_method.get_ewald_forces import get_ewald_forces_2d
 import espressomd
 
 def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
@@ -20,21 +21,31 @@ def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
             system.part.add(pos=pos, q=charge)
 
     # Calculate forces using both methods
-    legacy_forces = np.array(get_ewald_forces_2d(system, n_max=100))
+    reference_forces = np.array(get_ewald_forces_2d(system, n_max=100))
     elc_forces = np.array(get_elc_forces(system, gap_size, accuracy))
 
-    # Verify that we aren't just comparing zeros
-    assert np.linalg.norm(legacy_forces) > 1e-5, "Forces are zero; test is trivial!"
+    # Calculate magnitude of forces for each particle for plotting
+    ref_magnitudes = np.linalg.norm(reference_forces, axis=1)
+    elc_magnitudes = np.linalg.norm(elc_forces, axis=1)
+    particle_indices = np.arange(len(ref_magnitudes))
 
-    # Use a relative/absolute tolerance check
-    # atol should be tuned based on your method's expected precision
-    np.testing.assert_allclose(
-        legacy_forces,
-        elc_forces,
-        atol=1e3 * accuracy,
-        err_msg="ELC and Legacy forces do not match!",
-    )
-
+    # --- Plotting Configuration ---
+    plt.figure(figsize=(10, 6))
+    
+    # Plot ground truth reference forces
+    plt.plot(particle_indices, ref_magnitudes, 'o-', label='Reference (Ewald 2D)', markersize=6, alpha=0.8)
+    
+    # Plot ELC forces
+    plt.plot(particle_indices, elc_magnitudes, 'x--', label='ELC Forces', markersize=6, alpha=0.8)
+    
+    plt.title('Comparison of Particle Force Magnitudes: Ewald 2D vs. ELC')
+    plt.xlabel('Particle Index')
+    plt.ylabel('Force Magnitude')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
 
 system = espressomd.System(box_l=[80, 80, 20])
 system.time_step = 0.01

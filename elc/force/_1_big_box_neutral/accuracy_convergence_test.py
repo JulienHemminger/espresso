@@ -3,7 +3,7 @@ import numpy as np
 from common.has_downward_trend import has_downward_trend
 from common.generators.positions import get_rdm_constrained_points_np
 from elc.force.get_custom_elc_forces import get_elc_forces_contribs
-from elc.force.get_ewald_forces import get_ewald_forces_2d
+from elc.force._2_small_box_neutral.reference_method.get_ewald_forces import get_ewald_forces_2d
 import espressomd
 
 def run_accuracy_convergence(
