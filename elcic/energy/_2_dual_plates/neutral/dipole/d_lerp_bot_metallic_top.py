@@ -5,7 +5,7 @@ import numpy as np
 from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
 from common.legacy.energy import get_legacy_energy
 
-from common.plotting.OLDparam_lerp_plot_2d import run_lerp_plot
+from elcic.OLDparam_lerp_plot_2d import run_lerp_plot
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01

@@ -1,7 +1,7 @@
 import numpy as np
-from elc.force.custom_elc_forces import get_elc_forces
-from elc.force.analytical_elc_forces import get_ewald_forces_2d
-
+from elc.force.get_custom_elc_forces import get_elc_forces
+from elc.force.get_ewald_forces import get_ewald_forces_2d
+import espressomd
 
 def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
     l_xy = min(system.box_l[0], system.box_l[1])
@@ -34,3 +34,9 @@ def run_madelung(system, ions_per_axis=8, gap_size=1, accuracy=1e-6):
         atol=1e3 * accuracy,
         err_msg="ELC and Legacy forces do not match!",
     )
+
+
+system = espressomd.System(box_l=[80, 80, 20])
+system.time_step = 0.01
+system.cell_system.skin = 0.4
+run_madelung(system, ions_per_axis=8)

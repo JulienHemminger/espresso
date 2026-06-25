@@ -2,8 +2,8 @@ import espressomd
 import espressomd.electrostatics
 from common.generators.positions import get_rdm_constrained_points_np
 from common.set_utils import are_sets_equal
-from elc.force.custom_elc_forces import get_elc_forces
-from elc.force.analytical_elc_forces import get_ewald_forces_2d
+from elc.force.get_custom_elc_forces import get_elc_forces
+from elc.force.get_ewald_forces import get_ewald_forces_2d
 
 
 def run_basic(
@@ -39,45 +39,9 @@ def run_basic(
     print("Success: Forces match within tolerance.")
     print("-" * 20)
 
+system = espressomd.System(box_l=[10, 10, 3])
+system.time_step = 0.01
+system.cell_system.skin = 0.4
 
-def test_all():
-    # pytest -vv -s ==JULIEN==/elc/tests/forces/force_test.py
-    system = espressomd.System(box_l=[10, 10, 3])
-    system.time_step = 0.01
-
-    # run_accuracy_convergence(system, prefactor=1.0, gap_size=1.0, charges=[+1, -1])  # PASSED
-
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=1.0, charges=[+1, -1])  # PASSED
-
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[+1, -1])  # PASSED
-
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +1.1])  # PASSED
-
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.6, +1.5, -0.9])  # PASSED
-
-    # run_accuracy_convergence(system, prefactor=1.7, gap_size=2.1, charges=[-0.9, +2.3, -1.4, -3.3])  # PASSED
-
-    """
-    system.part.clear()
-    system.box_l = [7, 12, 2]
-    run_accuracy_convergence(
-        system, prefactor=1.7, gap_size=0.6, charges=[-0.9, +2.3, -1.4, -3.3]
-    )  # PASSED
-    """
-
-    """
-    # small_box_neutral_dipole
-    run_basic(system, 10, 10, 3, 1, [+1, -1])
+run_basic(system, 10, 10, 3, 1, [+1, -1])
     
-    # small_box_neutral_tripole
-    run_basic(system, 10, 10, 3, 1, [+2, -1, -1])
-
-    # small_box_non_neutral_dipole_test
-    run_basic(system, 10, 10, 3, 1, [+2, -1])
-
-    run_madelung(system, ions_per_axis=8)
-
-
-    # huge_box_neutral
-    run_basic(system, 200, 200, 10, 1, [+1, -1])
-    """
