@@ -1,17 +1,8 @@
-import sys
-import io
-import re
-import copy
-import os
-import sys
-import io
-import re
 import espressomd
 import numpy as np
 from elcic.energy._2_dual_plates.CUSTOM.custom import get_elcic_energy
-from elcic.energy.cpp_reverse_eng.param_lerp_contrib_plot_2d import run_lerp_plot
 from elcic.energy._z_legacy_contrib_parsing_experiment.get_legacy_contribs import get_legacy_contribs
-
+from common.plotting.param_lerp_plot import run_lerp_plot
 
 start_params = {
     "lx": 10.0,
@@ -54,11 +45,24 @@ system.cell_system.skin = (
 )
 
 
+def eval_custom_total(system, params):
+    contribs = get_elcic_energy(system, params)
+    return contribs["e_total"]
+
+def eval_legacy_total(system, params):
+    contribs = get_legacy_contribs(system, params)
+    return contribs["E_total"]
+
+# --- Mapping Configuration Table ---
+plot_metrics = {
+    ("Custom", (("color", "red"), ("marker", "x"), ("linestyle", "None"))): eval_custom_total,
+    ("Legacy", (("color", "blue"), ("marker", "o"), ("linestyle", "None"))): eval_legacy_total
+}
+
 run_lerp_plot(
     system=system,
     start_params=start_params,
     end_params=end_params,
-    get_custom_energy=get_elcic_energy,
-    get_legacy_energy=get_legacy_contribs,
-    steps=6,
+    lerp_step_count=6,
+    plot_metrics=plot_metrics
 )
