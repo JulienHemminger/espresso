@@ -6,7 +6,7 @@ from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energ
     get_ewald_energy_2d
 )
 import espressomd.electrostatics
-from elc.energy._1_big_box_neutral_dipole.custom1 import get_elc_energy_contribs
+from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
 
 
 # --- Modular Callback Wrappers for the Metrics Dictionary ---

@@ -5,7 +5,7 @@ from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_ener
 import espressomd.electrostatics
 from common.plotting.utils.plot_saving import save_plot_with_timestamp
 from common.plotting.param_lerp_plot import run_lerp_plot
-from elc.energy._1_big_box_neutral_dipole.custom1 import get_elc_energy_contribs
+from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
 import numpy as np
 import espressomd
 import matplotlib.pyplot as plt

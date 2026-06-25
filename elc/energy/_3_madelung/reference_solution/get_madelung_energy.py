@@ -2,7 +2,7 @@ import numpy as np
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import (
     get_direct_sum_energy as get_direct_sum_energy,
 )
-from elc.energy._1_big_box_neutral_dipole.custom1 import get_elc_energy_contribs
+from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
 
 def get_madelung_energy(system, ions_list, gap_size=1, accuracy=1e-8):
     madelung_refs = []

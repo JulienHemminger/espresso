@@ -1,9 +1,6 @@
 from common.plotting.param_lerp_plot import run_lerp_plot
 import numpy as np
 import espressomd
-from elc.energy._5_param_sweep_rdm_tests.custom4 import (
-    get_elc_energy,
-)
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import (
     get_direct_sum_energy as get_direct_sum_energy,
 )
