@@ -2,13 +2,12 @@
 
 * remove unnessecary files, merge duplicate files, rename them, etc
 
-
-
-
+*
 
 * repair broken/false plots (where custom != legacy)
 
-  * fix messy custom.py stuff
+  * fix messy custom.py stuff. i have multiple custom.py's (idk if i need all). and some retunr contrib dict, some return total float
+
 
 
 * cleanup source code (remove unnessecary comments, etc)
@@ -21,6 +20,7 @@
       * optional: specifying y-label, e.g.
 
         * y-label="absolute energy", or "energy difference" if i plot lamda = a(x) - b(x)
+
 
 
 * cleanup outputs (plot labels, colors, print statements)
