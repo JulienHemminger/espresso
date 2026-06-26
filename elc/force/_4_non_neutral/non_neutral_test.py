@@ -2,10 +2,12 @@ import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
+
 from common.generators.positions import get_rdm_constrained_points_np
-from common.set_utils import are_sets_equal
+from elc.force._2_small_box_neutral.reference_method.get_ewald_forces import (
+    get_ewald_forces_2d,
+)
 from elc.force.get_custom_elc_forces import get_elc_forces
-from elc.force._2_small_box_neutral.reference_method.get_ewald_forces import get_ewald_forces_2d
 
 
 def run_basic(
@@ -25,7 +27,11 @@ def run_basic(
     system.box_l = [lx, ly, lz]
 
     positions = get_rdm_constrained_points_np(
-        lx, ly, lz - gap_size - 1e-3, particle_count, max_distance=10
+        lx,
+        ly,
+        lz - gap_size - 1e-3,
+        particle_count,
+        max_distance=10,
     )
 
     for i in range(particle_count):

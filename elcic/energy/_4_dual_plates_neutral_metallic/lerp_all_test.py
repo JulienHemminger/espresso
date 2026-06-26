@@ -1,14 +1,12 @@
-import copy
-
 import espressomd
 import numpy as np
-from elcic.energy.get_custom_elcic_energy import get_elcic_energy
-from common.legacy.energy import get_legacy_energy
 
+from common.legacy.energy import get_legacy_energy
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
 from elcic.energy._2_single_plate_neutral_non_metallic.reference_method.get_ewald2d_elcic import (
     get_ewald2d_elcic,
 )
-from common.plotting.param_lerp_energy_plot import run_lerp_plot
+from elcic.energy.get_custom_elcic_energy import get_elcic_energy
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -42,13 +40,21 @@ end_params = {
 }
 end_params["lz"] = end_params["gap_size"] + 10
 
+
 def eval_reference(system, params):
     return get_ewald2d_elcic(params)
 
+
 plot_metrics = {
     ("Legacy", (("color", "green"), ("linestyle", ":"))): get_legacy_energy,
-    ("Custom", (("color", "blue"), ("linestyle", "-"), ("linewidth", 2))): get_elcic_energy,
-    ("Reference", (("color", "red"), ("marker", "o"), ("linestyle", "None"))): eval_reference
+    (
+        "Custom",
+        (("color", "blue"), ("linestyle", "-"), ("linewidth", 2)),
+    ): get_elcic_energy,
+    (
+        "Reference",
+        (("color", "red"), ("marker", "o"), ("linestyle", "None")),
+    ): eval_reference,
 }
 
 run_lerp_plot(

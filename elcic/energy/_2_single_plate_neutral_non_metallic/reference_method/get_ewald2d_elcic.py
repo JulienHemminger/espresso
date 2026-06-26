@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import erfcx, erf, erfc
+from scipy.special import erf, erfc, erfcx
 
 
 def get_ewald2d_elcic(params, k_max=10, n_real=10, tol=1e-8):

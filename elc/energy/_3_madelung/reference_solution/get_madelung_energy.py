@@ -1,8 +1,10 @@
 import numpy as np
+
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import (
     get_direct_sum_energy as get_direct_sum_energy,
 )
 from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
+
 
 def get_madelung_energy(system, ions_list, gap_size=1, accuracy=1e-8):
     madelung_refs = []
@@ -30,8 +32,9 @@ def get_madelung_energy(system, ions_list, gap_size=1, accuracy=1e-8):
         )
         madelung_refs.append(madelung_2d_ref)
 
-
-        E_3d, E_dipole, E_recip, E_nonneutral = get_elc_energy_contribs(gap_size=gap_size, pw_error=accuracy, system=system, prefactor=1.0)
+        E_3d, E_dipole, E_recip, E_nonneutral = get_elc_energy_contribs(
+            gap_size=gap_size, pw_error=accuracy, system=system, prefactor=1.0
+        )
         elc_energy = E_3d + E_dipole + E_recip + E_nonneutral
         elc_energies.append(elc_energy)
 

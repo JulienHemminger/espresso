@@ -7,9 +7,7 @@
 
 # Python Prototyping for Modern ELC & ELCIC
 
-![example\_plot.png](example_plot.png)
-
-
+![1.00](example_plot.png)
 
 This repository contains a clean, test-driven Python implementation of Electrostatic Layer Correction (ELC) and ELC with Image Charges (ELCIC). It serves as a modern, independently validated prototype aimed at replacing the complex and unmaintainable legacy implementations within the ESPResSo molecular dynamics package.
 
@@ -49,9 +47,9 @@ Implementation and validation of Regular ELC (2D+h slab systems without dielectr
 
 Extension of the ELC implementation to support dielectric interfaces using image charges. Divided into `energy/` and `force/`, and categorized by interface complexity:
 
-* \*\*`_1_` to `_3_single_plate/**`: Isolates near-field interactions and validates the reflection of charges against a single dielectric boundary.
-* \*\*`_4_` to `_6_dual_plates/**`: Handles simultaneous, bidirectional reflections across top and bottom interfaces. Includes analytical far-field treatment of higher-order reflection layers ($L_{\pm2}$).
-* **`param_sweep/`**: Exhaustive validation scripts that sweep a massive parameter domain (box sizes, gaps, valences, dielectric contrasts) to ensure robustness and target an error margin of $< 10^{-8}$.
+* `_1_` to `_3_single_plate/`: Isolates near-field interactions and validates the reflection of charges against a single dielectric boundary.
+* `_4_` to `_6_dual_plates/`: Handles simultaneous, bidirectional reflections across top and bottom interfaces. Includes analytical far-field treatment of higher-order reflection layers ($L_{\pm2}$).
+* **`param_sweep/`**: Exhaustive validation scripts that sweep a massive parameter domain (box sizes, gaps, valences, dielectric contrasts) to ensure robustness.
 
 ## Outlook
 

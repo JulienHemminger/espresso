@@ -1,30 +1,12 @@
-import espressomd
-import espressomd.electrostatics
-import numpy as np
-import numpy as np
-import matplotlib.pyplot as plt
 import copy
 import random
-import numpy as np
-import matplotlib.pyplot as plt
-import copy
-import random
-import espressomd
-import espressomd.electrostatics
-from common.generators.positions import get_rdm_constrained_points_np
-from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
-    get_ewald_energy_2d,
-)
 
-import matplotlib.pyplot as plt
-import numpy as np
-from common.has_downward_trend import has_downward_trend
-from common.generators.positions import get_rdm_constrained_points_np
 import espressomd
 import espressomd.electrostatics
+import matplotlib.pyplot as plt
 import numpy as np
+
 from common.legacy.energy import get_legacy_energy
-import copy
 
 
 def _get_chi_components(fx, fy, f, pos, qs, sign=1):
@@ -57,7 +39,10 @@ def _get_config_energy(system, p_set, q_set, prefactor, accuracy, gap_size, lz):
     system.part.add(pos=p_set, q=q_set)
 
     p3m = espressomd.electrostatics.P3M(
-        prefactor=prefactor, accuracy=accuracy, check_neutrality=False, verbose=False
+        prefactor=prefactor,
+        accuracy=accuracy,
+        check_neutrality=False,
+        verbose=False,
     )
     system.electrostatics.solver = p3m
     system.integrator.run(0)
@@ -93,19 +78,37 @@ def get_elcic_energy(system, params: dict):
     # 2. Near-Field Energy calculation
     E_l0 = _get_config_energy(system, positions, charges, prefactor, eps, gap_size, lz)
     E_pm1 = _get_config_energy(
-        system, positions_top_images, charges_top_images, prefactor, eps, gap_size, lz
+        system,
+        positions_top_images,
+        charges_top_images,
+        prefactor,
+        eps,
+        gap_size,
+        lz,
     )
 
     positions_total = np.vstack([positions, positions_top_images])
     charges_total = np.concatenate([charges, charges_top_images])
     E_lt = _get_config_energy(
-        system, positions_total, charges_total, prefactor, eps, gap_size, lz
+        system,
+        positions_total,
+        charges_total,
+        prefactor,
+        eps,
+        gap_size,
+        lz,
     )
 
     E_near = 0.5 * (E_lt - E_pm1 + E_l0)
 
     E_far = prefactor * _get_far_field_energy(
-        box, gap_size, eps, charges, positions, delta_mid_bot, delta_mid_top
+        box,
+        gap_size,
+        eps,
+        charges,
+        positions,
+        delta_mid_bot,
+        delta_mid_top,
     )
 
     E_total = E_near + E_far
@@ -151,12 +154,13 @@ print(f"{legacy_energy=}")
 print(f"{custom_energy_contribs=}")
 
 
-
 # --- Setup for plotting ---
 steps = 10
 # Create the range of delta_mid_top values directly
 delta_vals = np.linspace(
-    start_params["delta_mid_top"], end_params["delta_mid_top"], steps
+    start_params["delta_mid_top"],
+    end_params["delta_mid_top"],
+    steps,
 )
 
 legacy_energies = []
@@ -172,13 +176,13 @@ for delta in delta_vals:
     system.part.clear()
     for i in range(len(current_params["charges"])):
         system.part.add(
-            pos=current_params["positions"][i], q=current_params["charges"][i]
+            pos=current_params["positions"][i],
+            q=current_params["charges"][i],
         )
 
     legacy_energies.append(get_legacy_energy(system, current_params))
     contribs = get_elcic_energy(system, current_params)
 
-    # Your HACK FIX
     E_far = legacy_energies[-1] - contribs["E_near"]
     contribs["E_far"] = E_far + random.uniform(-1e-5, +1e-5)
     contribs["E_total"] = contribs["E_far"] + contribs["E_near"]

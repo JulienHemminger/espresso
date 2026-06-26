@@ -1,16 +1,14 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import espressomd
-from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy as get_direct_sum_energy
 import espressomd.electrostatics
-from common.plotting.utils.plot_saving import save_plot_with_timestamp
-from common.plotting.param_lerp_energy_plot import run_lerp_plot
-from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
 import numpy as np
-import espressomd
-import matplotlib.pyplot as plt
 
-# Assuming 'run_lerp_plot', 'get_direct_sum_energy', and 'get_elc_energy_contribs' 
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
+from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import (
+    get_direct_sum_energy as get_direct_sum_energy,
+)
+from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
+
+# Assuming 'run_lerp_plot', 'get_direct_sum_energy', and 'get_elc_energy_contribs'
 # are already defined or imported here.
 
 # --- 1. Set Up Constants & Bounds ---
@@ -48,24 +46,37 @@ end_params = {
 # --- 3. Define Metric Evaluation Functions ---
 # Each function matches the signature: (system, params) -> float
 
+
 def eval_analytical(system, params):
     return get_direct_sum_energy(system)
 
+
 def eval_e_3d(system, params):
     E_3d, _, _, _ = get_elc_energy_contribs(
-        params["gap_size"], params["pw_error"], system, params["prefactor"]
+        params["gap_size"],
+        params["pw_error"],
+        system,
+        params["prefactor"],
     )
     return E_3d
 
+
 def eval_e_dipole(system, params):
     _, E_dipole, E_recip, _ = get_elc_energy_contribs(
-        params["gap_size"], params["pw_error"], system, params["prefactor"]
+        params["gap_size"],
+        params["pw_error"],
+        system,
+        params["prefactor"],
     )
     return E_dipole + E_recip
 
+
 def eval_sum(system, params):
     E_3d, E_dipole, E_recip, _ = get_elc_energy_contribs(
-        params["gap_size"], params["pw_error"], system, params["prefactor"]
+        params["gap_size"],
+        params["pw_error"],
+        system,
+        params["prefactor"],
     )
     return E_3d + E_dipole + E_recip
 
@@ -76,7 +87,10 @@ metrics_to_plot = {
     ("E_3d", (("color", "cyan"), ("linestyle", ":"))): eval_e_3d,
     ("E_dipole", (("color", "skyblue"), ("linestyle", ":"))): eval_e_dipole,
     ("Sum (E_3d + E_dipole)", (("color", "blue"), ("linestyle", "-"))): eval_sum,
-    ("Analytical", (("color", "red"), ("marker", "o"), ("linestyle", "None"))): eval_analytical
+    (
+        "Analytical",
+        (("color", "red"), ("marker", "o"), ("linestyle", "None")),
+    ): eval_analytical,
 }
 
 # --- 5. Initialize System and Run ---
@@ -91,5 +105,5 @@ run_lerp_plot(
     start_params=start_params,
     end_params=end_params,
     lerp_step_count=6,
-    plot_metrics=metrics_to_plot
+    plot_metrics=metrics_to_plot,
 )

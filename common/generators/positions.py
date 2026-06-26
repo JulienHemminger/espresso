@@ -9,7 +9,12 @@ def get_rdm_point(l_x, l_y, l_z):
 
 
 def get_rdm_constrained_points(
-    l_x, l_y, l_z, point_count=2, min_distance=1.0, max_distance=None
+    l_x,
+    l_y,
+    l_z,
+    point_count=2,
+    min_distance=1.0,
+    max_distance=None,
 ):
     """
     Returns a list of random points within a 3D box.
@@ -52,11 +57,21 @@ def get_rdm_constrained_points(
 
 
 def get_rdm_constrained_points_np(
-    l_x, l_y, l_z, point_count=2, min_distance=1.0, max_distance=None
+    l_x,
+    l_y,
+    l_z,
+    point_count=2,
+    min_distance=1.0,
+    max_distance=None,
 ):
     return [
         np.array(x)
         for x in get_rdm_constrained_points(
-            l_x, l_y, l_z, point_count, min_distance, max_distance
+            l_x,
+            l_y,
+            l_z,
+            point_count,
+            min_distance,
+            max_distance,
         )
     ]

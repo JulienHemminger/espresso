@@ -1,31 +1,46 @@
-from common.plotting.param_lerp_energy_plot import run_lerp_plot
-import numpy as np
-import matplotlib.pyplot as plt
 import espressomd
-from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
-    get_ewald_energy_2d
-)
 import espressomd.electrostatics
-from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
+import numpy as np
 
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
+from elc.energy._2_small_box_neutral_dipole.reference_solution.get_ewald2d_energy import (
+    get_ewald_energy_2d,
+)
+from elc.energy.get_custom_elc_energy import get_elc_energy_contribs
 
 # --- Modular Callback Wrappers for the Metrics Dictionary ---
 
+
 def eval_e_3d(system, params):
-    return get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])[0]
+    return get_elc_energy_contribs(
+        params["gap_size"], params["pw_error"], system, params["prefactor"]
+    )[0]
+
 
 def eval_e_dipole(system, params):
-    return get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])[1]
+    return get_elc_energy_contribs(
+        params["gap_size"], params["pw_error"], system, params["prefactor"]
+    )[1]
+
 
 def eval_e_recip(system, params):
-    return get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])[2]
+    return get_elc_energy_contribs(
+        params["gap_size"], params["pw_error"], system, params["prefactor"]
+    )[2]
+
 
 def eval_e_nonneutr(system, params):
-    return get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])[3]
+    return get_elc_energy_contribs(
+        params["gap_size"], params["pw_error"], system, params["prefactor"]
+    )[3]
+
 
 def eval_e_sum(system, params):
-    contribs = get_elc_energy_contribs(params["gap_size"], params["pw_error"], system, params["prefactor"])
+    contribs = get_elc_energy_contribs(
+        params["gap_size"], params["pw_error"], system, params["prefactor"]
+    )
     return sum(contribs)
+
 
 def eval_analytical(system, params):
     return get_ewald_energy_2d(params)
@@ -57,9 +72,12 @@ metrics_to_plot = {
     ("E_3d", (("linestyle", ":"), ("color", "cyan"))): eval_e_3d,
     ("Sum", (("linestyle", "-"), ("color", "blue"), ("linewidth", 2))): eval_e_sum,
     ("E_recip", (("linestyle", ":"), ("color", "steelblue"))): eval_e_recip,
-    ("Analytical", (("marker", "o"), ("linestyle", "None"), ("color", "red"))): eval_analytical,
+    (
+        "Analytical",
+        (("marker", "o"), ("linestyle", "None"), ("color", "red")),
+    ): eval_analytical,
     ("E_dipole", (("linestyle", ":"), ("color", "skyblue"))): eval_e_dipole,
-    ("E_non_neutr", (("linestyle", "-"), ("color", "lime"))): eval_e_nonneutr
+    ("E_non_neutr", (("linestyle", "-"), ("color", "lime"))): eval_e_nonneutr,
 }
 
 # --- Execution ---
@@ -69,5 +87,5 @@ run_lerp_plot(
     start_params=start_params,
     end_params=end_params,
     lerp_step_count=20,
-    plot_metrics=metrics_to_plot
+    plot_metrics=metrics_to_plot,
 )

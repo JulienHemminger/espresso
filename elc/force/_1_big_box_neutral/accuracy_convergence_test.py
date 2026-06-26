@@ -1,10 +1,13 @@
+import espressomd
 import matplotlib.pyplot as plt
 import numpy as np
-from common.has_downward_trend import has_downward_trend
+
 from common.generators.positions import get_rdm_constrained_points_np
+from elc.force._2_small_box_neutral.reference_method.get_ewald_forces import (
+    get_ewald_forces_2d,
+)
 from elc.force.get_custom_elc_forces import get_elc_forces_contribs
-from elc.force._2_small_box_neutral.reference_method.get_ewald_forces import get_ewald_forces_2d
-import espressomd
+
 
 def run_accuracy_convergence(
     system,
@@ -19,7 +22,10 @@ def run_accuracy_convergence(
     lx, ly, lz = system.box_l
     particle_count = len(charges)
     positions = get_rdm_constrained_points_np(
-        lx, ly, lz - gap_size - 1e-3, particle_count
+        lx,
+        ly,
+        lz - gap_size - 1e-3,
+        particle_count,
     )
 
     elc_errors = []
@@ -33,7 +39,10 @@ def run_accuracy_convergence(
         ana_forces = get_ewald_forces_2d(system, n_max=100, prefactor=prefactor)
 
         pref, f_3d, f_elc_recip, f_corr_moments = get_elc_forces_contribs(
-            system, gap_size, acc, prefactor
+            system,
+            gap_size,
+            acc,
+            prefactor,
         )
 
         f_final = list(f_3d + pref * (f_elc_recip + f_corr_moments))
@@ -42,8 +51,8 @@ def run_accuracy_convergence(
         elc_errors.append(
             abs(
                 np.linalg.norm(f_final[i] - ana_forces[i])
-                / np.linalg.norm(ana_forces[i])
-            )
+                / np.linalg.norm(ana_forces[i]),
+            ),
         )  # Vector L2 Relative Error
 
         contrib_data["P3M (3D)"].append(np.linalg.norm(f_3d[i]))
@@ -51,7 +60,7 @@ def run_accuracy_convergence(
         contrib_data["ELC Reciprocal"].append(pref * np.linalg.norm(f_elc_recip[i]))
 
     # --- Assertions ---
-    #assert has_downward_trend(elc_errors)
+    # assert has_downward_trend(elc_errors)
 
     if show_convergence_plot:
         fig, ax1 = plt.subplots(figsize=(10, 7))
@@ -87,7 +96,11 @@ def run_accuracy_convergence(
         )
 
         ax1.loglog(
-            accuracies, accuracies, "k:", alpha=0.5, label="Target Accuracy (1:1)"
+            accuracies,
+            accuracies,
+            "k:",
+            alpha=0.5,
+            label="Target Accuracy (1:1)",
         )
 
         # Formatting
@@ -110,8 +123,11 @@ def run_accuracy_convergence(
         fig.tight_layout()
         plt.show()
 
+
 system = espressomd.System(box_l=[80, 80, 20])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-run_accuracy_convergence(system, prefactor=1.0, gap_size=1.0, charges=[+1, -1])  # PASSED
+run_accuracy_convergence(
+    system, prefactor=1.0, gap_size=1.0, charges=[+1, -1]
+)  # PASSED

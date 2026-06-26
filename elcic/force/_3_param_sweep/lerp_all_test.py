@@ -1,11 +1,9 @@
-import copy
-
 import espressomd
 import numpy as np
 
 from common.legacy.forces import get_legacy_forces
-from elcic.force.get_custom_elcic_forces import get_elcic_forces
 from common.plotting.param_lerp_force_plot import run_lerp_plot
+from elcic.force.get_custom_elcic_forces import get_elcic_forces
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -21,7 +19,7 @@ start_params = {
     "delta_mid_bot": +1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    'lambda': 20,
+    "lambda": 20,
     "positions": [np.array([6, 5, 4]), np.array([3, 2, 1])],
 }
 start_params["lz"] = start_params["gap_size"] + 40
@@ -36,7 +34,7 @@ end_params = {
     "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    'lambda': 1,
+    "lambda": 1,
     "positions": [np.array([4, 5, 6]), np.array([1, 2, 3])],
 }
 end_params["lz"] = start_params["gap_size"] + 10
@@ -51,14 +49,3 @@ run_lerp_plot(
     get_analytical_force=None,
     steps=12,
 )
-
-# TLDR: stuck at abour err=1e-3. LLM seems delusional. Its convinced the error stems from the "f_corr_moments" section
-
-
-"""
-Action Tree
-* idk, maybe again a more step-wise, section-per-section approach: NO
-
-* only wary one param (e.g. gap_size), see if error correlates, fix code: TODO
-* give up: MAYBE
-"""

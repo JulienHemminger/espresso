@@ -1,0 +1,13 @@
+[tool.ruff]
+# Select all rules
+lint.select = ["ALL"]
+
+# Ignore a few specific rules that are usually too noisy
+lint.ignore = [
+    "D",      # Ignore missing docstrings (remove this if you want strict docs)
+    "ANN101", # Ignore missing 'self' type annotation
+]
+
+[tool.ruff.format]
+# Enable the formatter
+preview = true

@@ -4,7 +4,6 @@ params_count = 20
 params_sets = []
 
 for i in range(params_count):
-
     params = {
         "lx": np.random.uniform(10.0, 50.0),
         "ly": np.random.uniform(10.0, 50.0),
@@ -22,10 +21,9 @@ for i in range(params_count):
         np.array([
             np.random.uniform(eps, params["lx"] - eps),
             np.random.uniform(eps, params["ly"] - eps),
-            np.random.uniform(eps, params["lz"] - params["gap_size"] - eps)
-        ]) for _ in range(len(params["charges"]))
+            np.random.uniform(eps, params["lz"] - params["gap_size"] - eps),
+        ])
+        for _ in range(len(params["charges"]))
     ]
 
     params_sets.append(params)
-
-# in raw latex write these domains of paramters.. use mathematical notation and formulas.

@@ -24,7 +24,12 @@ def show_convergence_contribution_plot(
     ax1.bar(x_pos, a_3d, label="|Sum E_3D|", alpha=0.3, color="blue")
     ax1.bar(x_pos, a_corr, bottom=a_3d, label="|Sum E_Corr|", alpha=0.3, color="green")
     ax1.bar(
-        x_pos, a_far, bottom=a_3d + a_corr, label="|E_Far|", alpha=0.3, color="orange"
+        x_pos,
+        a_far,
+        bottom=a_3d + a_corr,
+        label="|E_Far|",
+        alpha=0.3,
+        color="orange",
     )
 
     # Parameter Text Box (kept same)
@@ -55,7 +60,12 @@ def show_convergence_contribution_plot(
         label="Analytical",
     )
     ax2.scatter(
-        x_pos, energy_legacy, color="black", marker="D", s=80, label="Legacy Value"
+        x_pos,
+        energy_legacy,
+        color="black",
+        marker="D",
+        s=80,
+        label="Legacy Value",
     )
     ax2.scatter(x_pos, energy_elcic, color="red", marker="o", s=80, label="ELCIC Value")
 
@@ -73,7 +83,7 @@ def show_convergence_contribution_plot(
     print("-" * 50)
     for i, acc in enumerate(accuracies):
         print(
-            f"{acc:<10.0e} | {e_3d_sums[i]:<12.6f} | {e_corr_sums[i]:<12.6f} | {e_far_vals[i]:<12.6f}"
+            f"{acc:<10.0e} | {e_3d_sums[i]:<12.6f} | {e_corr_sums[i]:<12.6f} | {e_far_vals[i]:<12.6f}",
         )
     print("=" * 50 + "\n")
 

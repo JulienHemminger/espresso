@@ -1,9 +1,13 @@
-import numpy as np
 import espressomd
+import numpy as np
+
 from common.legacy.energy import get_legacy_energy
-from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import get_direct_sum_energy
+
 # Assuming param_lerp_plot is inside your common/plotting path
 from common.plotting.param_lerp_energy_plot import run_lerp_plot
+from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import (
+    get_direct_sum_energy,
+)
 
 # 1. Initialize the system ONCE
 system = espressomd.System(box_l=[50, 50, 50])
@@ -33,14 +37,21 @@ def eval_analytical(sys, params):
     # Your analytical function only takes system in your original code
     return get_direct_sum_energy(sys)
 
+
 def eval_legacy(sys, params):
     return get_legacy_energy(sys, params, timeout_duration_sec=600)
 
 
 # 4. Map metrics using the hashable tuple-of-tuples format for matplotlib configurations
 metrics_to_plot = {
-    ("Analytical", (("color", "blue"), ("marker", "o"), ("linewidth", 2))): eval_analytical,
-    ("Legacy", (("color", "orange"), ("marker", "s"), ("linestyle", "--"), ("linewidth", 2))): eval_legacy
+    (
+        "Analytical",
+        (("color", "blue"), ("marker", "o"), ("linewidth", 2)),
+    ): eval_analytical,
+    (
+        "Legacy",
+        (("color", "orange"), ("marker", "s"), ("linestyle", "--"), ("linewidth", 2)),
+    ): eval_legacy,
 }
 
 # 5. Execute using the generalized plotting runner
@@ -49,5 +60,5 @@ run_lerp_plot(
     start_params=start_params,
     end_params=end_params,
     lerp_step_count=20,
-    plot_metrics=metrics_to_plot
+    plot_metrics=metrics_to_plot,
 )

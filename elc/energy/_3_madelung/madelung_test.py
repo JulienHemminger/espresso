@@ -1,12 +1,12 @@
-from common.plotting.param_lerp_energy_plot import run_lerp_plot
-import numpy as np
 import espressomd
+
+from common.plotting.param_lerp_energy_plot import run_lerp_plot
 from elc.energy._1_big_box_neutral_dipole.reference_solution.get_direct_sum_energy import (
     get_direct_sum_energy as get_direct_sum_energy,
 )
-
-from elc.energy._3_madelung.reference_solution.get_madelung_energy import get_madelung_energy
-
+from elc.energy._3_madelung.reference_solution.get_madelung_energy import (
+    get_madelung_energy,
+)
 
 # --- 1. Define custom evaluation wrapper functions ---
 # These functions will automatically receive (system, params) from the generalized script
