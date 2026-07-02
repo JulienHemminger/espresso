@@ -52,17 +52,24 @@ refs, elcs = run_madelung(system, ions_range)
 fig, ax1 = plt.subplots(figsize=(10, 6))
 
 # Primary Y-axis: Energy
-color = "tab:blue"
+color = "dodgerblue"
 ax1.set_xlabel("Ions per Axis")
 ax1.set_ylabel("Energy", color=color)
-ax1.scatter(ions_range, refs, color="red", label="Analytical Reference", alpha=0.7)
-ax1.plot(ions_range, elcs, "x-", color=color, label="ELC Energy", alpha=0.7)
+ax1.plot(
+    ions_range,
+    refs,
+    label="Reference",
+    marker="x",
+    linestyle="solid",
+    color="purple",
+)
+ax1.plot(ions_range, elcs, marker="o", color=color, label="Custom", linestyle="dashed")
 ax1.tick_params(axis="y", labelcolor=color)
 ax1.legend(loc="upper left")
 
 # Secondary Y-axis: Absolute Difference
 ax2 = ax1.twinx()
-color = "tab:cyan"
+color = "coral"
 abs_diff = np.abs(np.array(refs) - np.array(elcs))
 ax2.set_ylabel("abs(Difference)", color=color)
 ax2.plot(ions_range, abs_diff, "s:", color=color, label="Difference")
@@ -70,9 +77,6 @@ ax2.tick_params(axis="y", labelcolor=color)
 ax2.set_yscale("log")  # Often useful to see differences on a log scale
 ax2.legend(loc="upper right")
 
-plt.title(
-    "2D Madelung Energy and Absolute Difference vs Grid Size, Only for even Ion Counts, since else sytems would be non-neutral"
-)
 plt.grid(True, which="both", axis="x", linestyle="--", alpha=0.5)
 plt.tight_layout()
 plt.show()
