@@ -61,7 +61,7 @@ plt.figure(figsize=(10, 6))  # Increased width to accommodate the text
 plt.plot(
     l_xy_values,
     direct_sum_results,
-    label="Direct Sum",
+    label="Direct Sum without PBC",
     marker="o",
     linestyle="--",
     color="purple",

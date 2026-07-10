@@ -135,13 +135,13 @@ for z in z_values:
 plt.figure(figsize=(10, 6))
 
 # Plot components
-plt.plot(z_values, E_3d_list, label="E_3d", linestyle=":", color="cyan")
-plt.plot(z_values, E_dipole_list, label="E_dipole", linestyle=":", color="skyblue")
-plt.plot(z_values, E_far_list, label="E_far", linestyle=":", color="steelblue")
+plt.plot(z_values, E_3d_list, label=r"$E_{3D}$", linestyle=":", color="cyan")
+plt.plot(z_values, E_dipole_list, label=r"$E_{dipole}$", linestyle=":", color="skyblue")
+plt.plot(z_values, E_far_list, label=r"$E_{far}$", linestyle=":", color="steelblue")
 plt.plot(
     z_values,
     E_sum_list,
-    label="Sum (E_3d + E_dipole + E_far)",
+    label=r"$E_{total}$",
     linestyle="-",
     color="dodgerblue",
 )
@@ -154,7 +154,7 @@ plt.plot(
     color="purple",
 )
 
-plt.xlabel("Particle Z Position")
+plt.xlabel("Particle z Position")
 plt.ylabel("Energy")
 plt.legend()
 plt.grid(True)

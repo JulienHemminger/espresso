@@ -1,13 +1,14 @@
 import espressomd
 import matplotlib.pyplot as plt
 import numpy as np
+from src.common.plot_saving import save_plot_with_timestamp
 from src.elc.energy.analytical.large_box_direct_sum import (
     get_direct_sum_energy as get_direct_sum_energy,
 )
 from src.elc.energy.custom_elc_energy import get_elc_energy
 
 
-def run_madelung(system, ions_list, gap_size=1, accuracy=1e-6):
+def run_madelung(system, ions_list, gap_size=1, accuracy=1e-12):
     madelung_refs = []
     elc_energies = []
 
@@ -41,12 +42,19 @@ def run_madelung(system, ions_list, gap_size=1, accuracy=1e-6):
     return madelung_refs, elc_energies
 
 
+"""
+Error caused by
+* custom elc: NO (i get same error with legacy_elc)
+* reference_energy: YES
+"""
+
+
 # Setup
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-ions_range = range(2, 20 + 1, 2)  # Testing different grid sizes
+ions_range = range(2, 20 + 1, 4)  # Testing different grid sizes
 refs, elcs = run_madelung(system, ions_range)
 
 fig, ax1 = plt.subplots(figsize=(10, 6))
@@ -65,7 +73,7 @@ ax1.plot(
 )
 ax1.plot(ions_range, elcs, marker="o", color=color, label="Custom", linestyle="dashed")
 ax1.tick_params(axis="y", labelcolor=color)
-ax1.legend(loc="upper left")
+
 
 # Secondary Y-axis: Absolute Difference
 ax2 = ax1.twinx()
@@ -75,8 +83,15 @@ ax2.set_ylabel("abs(Difference)", color=color)
 ax2.plot(ions_range, abs_diff, "s:", color=color, label="Difference")
 ax2.tick_params(axis="y", labelcolor=color)
 ax2.set_yscale("log")  # Often useful to see differences on a log scale
-ax2.legend(loc="upper right")
+
+lines_1, labels_1 = ax1.get_legend_handles_labels()
+lines_2, labels_2 = ax2.get_legend_handles_labels()
+
+# Combine them and place in a single location
+ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="upper center")
 
 plt.grid(True, which="both", axis="x", linestyle="--", alpha=0.5)
 plt.tight_layout()
+
+save_plot_with_timestamp(fig=fig)
 plt.show()

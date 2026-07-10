@@ -1,28 +1,14 @@
+import copy
+
 import espressomd
 import espressomd.electrostatics
+import matplotlib.pyplot as plt
 import numpy as np
+from src.elc.energy.legacy_elc_energy import get_legacy_energy
 
-
-def _get_chi_components(fx, fy, f, pos, qs, sign=1):
-    """Product decomposition for the ELC reciprocal sum."""
-    arg_x, arg_y, arg_z = 2.0 * np.pi * fx, 2.0 * np.pi * fy, 2.0 * np.pi * f
-    xs, ys, zs = pos.T
-
-    # Use real/imaginary parts to represent sin/cos product decomposition
-    ez = np.exp(sign * 2.0 * np.pi * f * zs[:, None])
-
-    cx = np.cos(arg_x * xs[:, None])
-    sx = np.sin(arg_x * xs[:, None])
-    cy = np.cos(arg_y * ys[:, None])
-    sy = np.sin(arg_y * ys[:, None])
-
-    return [
-        np.sum(qs[:, None] * ez * c1 * c2, axis=0)
-        for c1, c2 in [(cx, cy), (sx, cy), (cx, sy), (sx, sy)]
-    ]
 
 def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
-   return 0
+    return 0
 
 
 def _get_config_energy(system, p_set, q_set, prefactor, accuracy, gap_size, lz):
@@ -93,20 +79,7 @@ def get_elcic_energy(system, params: dict):
         "E_total": E_total,
     }
 
-import espressomd
-import espressomd.electrostatics
-from common.generators.position_generator import get_rdm_constrained_points_np
-from elc.energy.analytical.analytical_elc_energy import get_ewald_energy_2d
 
-import matplotlib.pyplot as plt
-import numpy as np
-from src.common.has_downward_trend import has_downward_trend
-from common.generators.position_generator import get_rdm_constrained_points_np
-import espressomd
-import espressomd.electrostatics
-import numpy as np
-from src.elc.energy.legacy_elc_energy import get_legacy_energy
-import copy
 system = espressomd.System(box_l=[80, 80, 20])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
@@ -142,19 +115,17 @@ legacy_energy=-0.01670777087467143
 custom_energy_contribs={'E_l0': np.float64(1.0065395656095748), 'E_pm1': np.float64(1.0065395656095746), 'E_lt': np.float64(0.6040646429898985), 'E_near': np.float64(0.30203232149494935), 'E_far': np.float64(1.065556484982957e+19), 'E_total': np.float64(1.065556484982957e+19)}
 
 """
-import numpy as np
-import matplotlib.pyplot as plt
 import copy
 import random
+
 import numpy as np
-import matplotlib.pyplot as plt
-import copy
-import random
 
 # --- Setup for plotting ---
 steps = 10
 # Create the range of delta_mid_top values directly
-delta_vals = np.linspace(start_params["delta_mid_top"], end_params["delta_mid_top"], steps)
+delta_vals = np.linspace(
+    start_params["delta_mid_top"], end_params["delta_mid_top"], steps
+)
 
 legacy_energies = []
 total_custom_energies = []
@@ -164,12 +135,14 @@ e_l0_list, e_pm1_list, e_lt_list = [], [], []
 for delta in delta_vals:
     current_params = copy.deepcopy(start_params)
     current_params["delta_mid_top"] = delta
-    
+
     # Update system and compute energies
     system.part.clear()
     for i in range(len(current_params["charges"])):
-        system.part.add(pos=current_params["positions"][i], q=current_params["charges"][i])
-    
+        system.part.add(
+            pos=current_params["positions"][i], q=current_params["charges"][i]
+        )
+
     legacy_energies.append(get_legacy_energy(system, current_params))
     contribs = get_elcic_energy(system, current_params)
 
@@ -177,11 +150,11 @@ for delta in delta_vals:
     E_far = legacy_energies[-1] - contribs["E_near"]
     contribs["E_far"] = E_far + random.uniform(-1e-5, +1e-5)
     contribs["E_total"] = contribs["E_far"] + contribs["E_near"]
-    
-    total_custom_energies.append(contribs['E_total'])
-    e_l0_list.append(contribs['E_l0'])
-    e_pm1_list.append(contribs['E_pm1'])
-    e_lt_list.append(contribs['E_lt'])
+
+    total_custom_energies.append(contribs["E_total"])
+    e_l0_list.append(contribs["E_l0"])
+    e_pm1_list.append(contribs["E_pm1"])
+    e_lt_list.append(contribs["E_lt"])
 # --- Plotting Code ---
 fig, ax1 = plt.subplots(figsize=(10, 6))
 ax2 = ax1.twinx()
@@ -195,25 +168,48 @@ proportions = stack_data / np.where(total_abs_stack == 0, 1, total_abs_stack)
 width = (delta_vals[1] - delta_vals[0]) * 0.8
 
 # Plot bars on ax2 (behind)
-ax2.bar(delta_vals, proportions[0], width=width, label='E_l0 %', alpha=0.3, zorder=0)
-ax2.bar(delta_vals, proportions[1], width=width, bottom=proportions[0], label='E_pm1 %', alpha=0.3, zorder=0)
-ax2.bar(delta_vals, proportions[2], width=width, bottom=proportions[0] + proportions[1], label='E_lt %', alpha=0.3, zorder=0)
-ax2.set_ylabel('Component Proportion')
+ax2.bar(delta_vals, proportions[0], width=width, label="E_l0 %", alpha=0.3, zorder=0)
+ax2.bar(
+    delta_vals,
+    proportions[1],
+    width=width,
+    bottom=proportions[0],
+    label="E_pm1 %",
+    alpha=0.3,
+    zorder=0,
+)
+ax2.bar(
+    delta_vals,
+    proportions[2],
+    width=width,
+    bottom=proportions[0] + proportions[1],
+    label="E_lt %",
+    alpha=0.3,
+    zorder=0,
+)
+ax2.set_ylabel("Component Proportion")
 ax2.set_ylim(0, 1)
 
 # Compute difference
 energy_diff = np.array(legacy_energies) - np.array(total_custom_energies)
 
 # Plot difference on ax1 (front)
-l1, = ax1.plot(delta_vals, energy_diff, 'k-o', label='Difference (Legacy - Custom)', linewidth=2, zorder=1)
+(l1,) = ax1.plot(
+    delta_vals,
+    energy_diff,
+    "k-o",
+    label="Difference (Legacy - Custom)",
+    linewidth=2,
+    zorder=1,
+)
 
-ax1.set_xlabel('delta_mid_top')
-ax1.set_ylabel('Energy Difference')
-ax1.grid(True, linestyle='--', alpha=0.5)
+ax1.set_xlabel("delta_mid_top")
+ax1.set_ylabel("Energy Difference")
+ax1.grid(True, linestyle="--", alpha=0.5)
 
 # Combine legends
 lines2, labels2 = ax2.get_legend_handles_labels()
-ax1.legend([l1] + lines2, ['Legacy - Custom Diff'] + labels2, loc='upper left')
+ax1.legend([l1] + lines2, ["Legacy - Custom Diff"] + labels2, loc="upper left")
 
 plt.tight_layout()
 plt.show()

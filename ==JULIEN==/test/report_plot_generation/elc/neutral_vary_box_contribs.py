@@ -122,13 +122,15 @@ for l_xy in lxy_values:
 fig = plt.figure(figsize=(10, 6))
 
 
-plt.plot(lxy_values, E_3d_list, label="E_3d", linestyle="--", color="cyan")
-plt.plot(lxy_values, E_dipole_list, label="E_dipole", linestyle="--", color="skyblue")
-plt.plot(lxy_values, E_far_list, label="E_far", linestyle="--", color="steelblue")
+plt.plot(lxy_values, E_3d_list, label=r"$E_{3D}$", linestyle="--", color="cyan")
+plt.plot(
+    lxy_values, E_dipole_list, label=r"$E_{dipole}$", linestyle="--", color="skyblue"
+)
+plt.plot(lxy_values, E_far_list, label=r"$E_{far}$", linestyle="--", color="steelblue")
 plt.plot(
     lxy_values,
     E_sum_list,
-    label="Sum (E_3d + E_dipole + E_far)",
+    label=r"$E_{total}$",
     linestyle="solid",
     color="dodgerblue",
 )
@@ -140,6 +142,17 @@ plt.plot(
     linestyle="None",
     color="purple",
 )
+
+# Calculate absolute error
+error = np.abs(np.array(E_sum_list) - np.array(analytical_results))
+
+# Create secondary y-axis
+ax2 = plt.gca().twinx()
+ax2.plot(lxy_values, error, label="|E_total - Ewald 2D|", linestyle=":", color="orange")
+ax2.set_yscale("log")
+ax2.set_ylabel("Error", color="orange")
+ax2.tick_params(axis="y", labelcolor="orange")
+
 
 plt.xlabel(r"$L_{xy}$")
 plt.ylabel("Energy")
