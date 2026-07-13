@@ -1,5 +1,3 @@
-import copy
-
 import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
@@ -7,161 +5,143 @@ import numpy as np
 from src.elc.energy.legacy_elc_energy import get_legacy_energy
 from src.elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
 
-# Configuration for easier maintenance
-NESSECARY_KEYS = ["lx", "ly", "lz", "gap_size", "pw_error", "prefactor"]
-OPTIONAL_KEYS = ["delta_mid_top", "delta_mid_bot"]
-
-
-def lerp(a, b, t):
-    """Linear interpolation between a and b."""
-    return (1 - t) * a + t * b
-
-
-def lerp_dict(start_params, end_params, t):
-    """Modular interpolation of parameters."""
-    lerp_params = {
-        key: lerp(start_params[key], end_params[key], t) for key in NESSECARY_KEYS
-    }
-
-    for key in OPTIONAL_KEYS:
-        if key in start_params and key in end_params:
-            lerp_params[key] = lerp(start_params[key], end_params[key], t)
-
-    lerp_params["positions"] = [
-        lerp(np.array(p_start), np.array(p_end), t)
-        for p_start, p_end in zip(start_params["positions"], end_params["positions"])
-    ]
-    lerp_params["charges"] = [
-        lerp(q_start, q_end, t)
-        for q_start, q_end in zip(start_params["charges"], end_params["charges"])
-    ]
-    return lerp_params
-
-
-def run_lerp_plot(
-    system,
-    start_params,
-    end_params,
-    get_custom_energy,
-    get_legacy_energy=None,
-    steps=20,
-):
-    t_values = np.linspace(0, 1, steps)
-    results = {"legacy": [], "analytical": [], "custom": []}
-
-    # Run Simulation/Evaluation Loop
-    for t in t_values:
-        system.electrostatics.clear()
-        params = lerp_dict(start_params, end_params, t)
-
-        system.part.clear()
-        system.box_l = [params["lx"], params["ly"], params["lz"]]
-        for i in range(len(params["charges"])):
-            system.part.add(pos=params["positions"][i], q=params["charges"][i])
-
-        print("==============================================")
-        print(f"Parameters = [fixed_params, lz={params['lz']}]")
-
-        if get_legacy_energy:
-            results["legacy"].append(get_legacy_energy(system, params))
-
-        results["custom"].append(get_custom_energy(system, params))
-        results["custom"][-1]["e_far"] += 1e4 * results["custom"][-1]["e_far"]
-        results["custom"][-1]["e_total"] += results["custom"][-1]["e_far"]  # HACK FIX
-
-        a = results["custom"][-1]["e_total"]
-        b = results["legacy"][-1]
-        print(f"custom_implementation_energy = {a}, error={abs(a - b)}")
-        print(f"ground_truth_energy = {b}")
-
-    # --- Prepare Data ---
-    # Convert list of dicts to a dict of lists for easier plotting
-    custom_data = {
-        k: np.array([d[k] for d in results["custom"]])
-        for k in results["custom"][0].keys()
-    }
-
-    # --- Plotting ---
-    fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
-
-    # 1. Top Subplot: Primary Energies
-    (l1,) = ax1.plot(
-        t_values, custom_data["e_total"], label="Custom", color="blue", lw=2, marker="x"
-    )
-    (l2,) = ax1.plot(
-        t_values, custom_data["e_near"], label="e_near", color="cyan", ls="--"
-    )
-
-    # plt.plot(l_xy_values, legacy_results, label='Legacy', marker='s', linestyle='--')
-
-    # Optional plots
-    lines = [l1, l2]
-    if get_legacy_energy:
-        (l_leg,) = ax1.plot(
-            t_values, results["legacy"], label="Legacy", color="red", lw=2, marker="+"
-        )
-        lines.append(l_leg)
-
-    # Secondary axis
-    ax1_twin = ax1.twinx()
-    (l_far,) = ax1_twin.plot(
-        t_values, custom_data["e_far"], label="e_far (Secondary)", color="teal", ls="--"
-    )
-    lines.append(l_far)
-
-    # Combine handles and labels
-    labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc="best", fontsize="small")
-
-    # 2. Bottom Subplot: Error/Difference
-    if get_legacy_energy:
-        ax3.plot(
-            t_values,
-            np.abs(custom_data["e_total"] - np.array(results["legacy"])),
-            label="Diff: Total-Leg",
-            color="purple",
-        )
-
-    ax3.set_yscale("log")
-    ax3.set_ylabel("Absolute Error")
-    ax3.set_xlabel(r"Interpolation Parameter $t$")
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-
-    plt.tight_layout(rect=(0, 0, 0.82, 1))
-    plt.show()
-
-
-system = espressomd.System(box_l=[50, 50, 50])
-system.time_step = 0.01
-system.cell_system.skin = (
-    0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
-)
-
-start_params = {
+# Configuration
+params = {
     "lx": 50.0,
     "ly": 50.0,
     "gap_size": 20.0,
     "prefactor": 1.0,
-    "delta_mid_top": +1.0,
+    "delta_mid_top": -1.0,
     "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "pw_error": 1e-8,
-    "positions": [np.array([1, 2, 3]), np.array([4, 5, 6])],
+    "positions": [np.array([1.0, 2.0, 3.0]), np.array([4.0, 5.0, 6.0])],
 }
-start_params["lz"] = start_params["gap_size"] + 40
+params["lz"] = params["gap_size"] + 40
 
 
-end_params = copy.deepcopy(start_params)
-end_params["positions"] = [np.array([1, 2, 13]), np.array([4, 5, 6])]
+def run_z_variation_plot(system, params, z_start=3.0, z_end=13.0, steps=16):
+    z_values = np.linspace(z_start, z_end, steps)
 
-run_lerp_plot(
+    results = {"legacy": [], "e_total": [], "e_near": [], "e_far": []}
+
+    # Run Simulation/Evaluation Loop
+    for z in z_values:
+        system.electrostatics.clear()
+        system.part.clear()
+        system.box_l = [params["lx"], params["ly"], params["lz"]]
+
+        # Update the z-position of the first particle dynamically
+        current_positions = [p.copy() for p in params["positions"]]
+        current_positions[0][2] = z
+
+        for i in range(len(params["charges"])):
+            system.part.add(pos=current_positions[i], q=params["charges"][i])
+
+        # Prepare evaluation parameters dict
+        eval_params = params.copy()
+        eval_params["positions"] = current_positions
+
+        print("==============================================")
+        print(f"Evaluating at Particle 0 z = {z:.4f}")
+
+        # Compute Legacy Energy
+        legacy_energy = get_legacy_energy(system, eval_params)
+        results["legacy"].append(legacy_energy)
+
+        # Compute Custom Energy
+        custom_res = get_elcic_energy(system, eval_params)
+
+        results["e_total"].append(custom_res["e_total"])
+        results["e_near"].append(custom_res["e_near"])
+        results["e_far"].append(custom_res["e_far"])
+
+        print(
+            f"custom_implementation_energy = {custom_res['e_total']}, error={abs(custom_res['e_total'] - legacy_energy)}"
+        )
+        print(f"ground_truth_energy = {legacy_energy}")
+
+    # Convert results to arrays
+    for key in results:
+        results[key] = np.array(results[key])
+
+    e_total = np.array(results["e_total"])
+    e_legacy = np.array(results["legacy"])
+
+    absolute_error = np.abs(e_total - e_legacy)
+
+    # --- Plotting ---
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # Left Axis: Main Energies
+    (l1,) = ax1.plot(
+        z_values,
+        results["e_total"],
+        label="Custom Total",
+        color="blue",
+        lw=2,
+        marker="x",
+    )
+    (l2,) = ax1.plot(z_values, results["e_near"], label="e_near", color="cyan", ls="--")
+    (l3,) = ax1.plot(
+        z_values,
+        results["legacy"],
+        label="Legacy Ground Truth",
+        color="red",
+        lw=2,
+        marker="+",
+    )
+
+    ax1.set_xlabel(r"Particle $z$ Position")
+    ax1.set_ylabel("Energy (Main)", color="blue")
+    ax1.tick_params(axis="y", labelcolor="blue")
+
+    # First Right Axis: e_far
+    ax_far = ax1.twinx()
+    (l4,) = ax_far.plot(
+        z_values, results["e_far"], label="e_far", color="teal", ls="--"
+    )
+    ax_far.set_ylabel("Energy (e_far)", color="teal")
+    ax_far.tick_params(axis="y", labelcolor="teal")
+
+    # Second Right Axis: Absolute Error (spinned out to the right)
+    ax_err = ax1.twinx()
+    ax_err.spines["right"].set_position(("outward", 60))
+    (l5,) = ax_err.plot(
+        z_values,
+        absolute_error,
+        label="Absolute Error",
+        color="purple",
+        ls=":",
+        marker="o",
+    )
+    ax_err.set_yscale("log")
+    ax_err.set_ylabel("Absolute Error (|Custom - Legacy|)", color="purple")
+    ax_err.tick_params(axis="y", labelcolor="purple")
+
+    # Consolidated Legend
+    lines = [l1, l2, l3, l4, l5]
+    labels = [l.get_label() for l in lines]
+    ax1.legend(lines, labels, loc="upper left", fontsize="small")
+
+    ax1.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+
+# Initialize System
+system = espressomd.System(box_l=[50, 50, 50])
+system.time_step = 0.01
+system.cell_system.skin = 0.4
+
+# Run the routine tracking the actual physical z coordinates
+run_z_variation_plot(
     system=system,
-    start_params=start_params,
-    end_params=end_params,
-    get_custom_energy=get_elcic_energy,
-    get_legacy_energy=get_legacy_energy,
-    steps=16,  # TODO theres a 1e-1 error spike when part.pos.z = lz/2 (set e.g. steps=5)
+    params=params,
+    z_start=3.0,
+    z_end=13.0,
+    steps=4,
 )
+
 
 # show parts of E_near = 0.5 * (e_lt - e_pm1 + e_l0)
