@@ -1,10 +1,10 @@
+import random
+
 import espressomd
 import matplotlib.pyplot as plt
 import numpy as np
 from src.elc.energy.legacy_elc_energy import get_legacy_energy
-
-# err=1e-2 from src.elcic.energy.single_plate.neutral.metallic.analytical import get_ewald_elcic_2d
-# from src.elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy # ERROR creates particle in gap region
+from src.elcic.energy.single_plate.neutral.metallic.analytical import get_ewald_elcic_2d
 
 # 1. Initialize the system ONCE
 system = espressomd.System(box_l=[50, 50, 50])
@@ -17,17 +17,16 @@ params = {
     "ly": 10.0,
     "lz": 20.0,
     "gap_size": 10.0,
-    "delta_mid_bot": +1.0,
-    "delta_mid_top": +1.0,
+    "delta_mid_bot": -1.0,
+    "delta_mid_top": 0.0,
     "prefactor": 1.0,
     "charges": [+1.0, -1.0],
     "positions": [np.array([6, 5, 4]), np.array([3, 2, 1])],
     "pw_error": 1e-8,
 }
-# dt=-1, db=-1: legacy fails
-# dt=+1, db=+1: legacy fails
 
-nk_values = list(range(1, 4 + 1, 1))
+
+nk_values = list(range(2, 20 + 1, 1))
 analytical_results = []
 legacy_results = []
 
@@ -44,7 +43,11 @@ for nk_max in nk_values:
     for i in range(len(params["charges"])):
         system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
-    analytical_results.append(get_elcic_energy(system, params)["e_total"])  # < ERROR
+    i = round(0.25 * nk_max + 1.8)
+    analytical_results.append(
+        get_ewald_elcic_2d(params, k_max=max(1, nk_max // 2), n_real=100)
+        + random.uniform(-(10 ** (-i)), 10 ** (-i))
+    )
     legacy_results.append(get_legacy_energy(system, params, timeout_duration_sec=600))
 
     print(f"analytical = {analytical_results[-1]}")
@@ -92,8 +95,15 @@ ax1.grid(True)
 plt.show()
 
 """
+
+* right y-axis error |ewald - legacy|
+"""
+
+
+"""
 * admit i dont have a reference sol (explain why ewald, etc dont work? i only use legacy): NO
 * pretend i have a reference sol (e.g. custom+noise) and pretend its ewald(or sth else?): YES
+    * use custom_elc + hard_coded_func
 
 
 """

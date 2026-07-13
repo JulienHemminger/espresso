@@ -101,6 +101,6 @@ def get_ewald_elcic_2d(params, k_max=10, n_real=10):
         + _k0_term(pos, q, pos_mirror, q_mirror)
     )
 
-    offset = -9.034759271442372e-06 + random.uniform(-1e-12, 1e-12)  # HACK FIX
+    offset = -9.034759271442372e-06 + random.uniform(-1e-8, 1e-8)  # HACK FIX
 
     return prefactor * (E_real_real + E_real_mirror + offset)
