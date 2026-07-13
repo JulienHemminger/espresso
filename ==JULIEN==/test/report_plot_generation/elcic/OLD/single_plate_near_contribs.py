@@ -1,4 +1,5 @@
 import copy
+import random
 
 import espressomd
 import espressomd.electrostatics
@@ -110,15 +111,7 @@ custom_energy_contribs = get_elcic_energy(system, start_params)
 
 print(f"{legacy_energy=}")
 print(f"{custom_energy_contribs=}")
-"""
-legacy_energy=-0.01670777087467143
-custom_energy_contribs={'E_l0': np.float64(1.0065395656095748), 'E_pm1': np.float64(1.0065395656095746), 'E_lt': np.float64(0.6040646429898985), 'E_near': np.float64(0.30203232149494935), 'E_far': np.float64(1.065556484982957e+19), 'E_total': np.float64(1.065556484982957e+19)}
 
-"""
-import copy
-import random
-
-import numpy as np
 
 # --- Setup for plotting ---
 steps = 10

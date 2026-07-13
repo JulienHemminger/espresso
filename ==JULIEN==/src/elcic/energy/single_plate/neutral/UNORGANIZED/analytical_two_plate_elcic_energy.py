@@ -1,4 +1,3 @@
-import numpy as np
 import espressomd
 import espressomd.electrostatics
 
@@ -21,10 +20,19 @@ params["positions"] = [
 
 """
 
-def ewald_two_plate_elcic_energy(system:espressomd.System, gap_size:float, pw_error:float, prefactor:float, delta_mid_bot:float, delta_mid_top:float):
+
+def ewald_two_plate_elcic_energy(
+    system: espressomd.System,
+    gap_size: float,
+    pw_error: float,
+    prefactor: float,
+    delta_mid_bot: float,
+    delta_mid_top: float,
+    **kwargs,
+):
     """
     Calculate total electrostatic energy of a 2d+h slab system with dielectric interfaces.
-    
+
     Parameters:
     -----------
     system : espressomd.System
@@ -39,7 +47,7 @@ def ewald_two_plate_elcic_energy(system:espressomd.System, gap_size:float, pw_er
         Dielectric contrast factor for bottom interface: (εm - εb)/(εm + εb)
     delta_mid_top : float
         Dielectric contrast factor for top interface: (εm - εt)/(εm + εt)
-    
+
     Returns:
     --------
     float: Energy
@@ -47,6 +55,5 @@ def ewald_two_plate_elcic_energy(system:espressomd.System, gap_size:float, pw_er
     lx, ly, lz = system.box_l
     particles = system.part.all()
     qs, (xs, ys, zs) = particles.q, particles.pos.T
-   
 
     return 0

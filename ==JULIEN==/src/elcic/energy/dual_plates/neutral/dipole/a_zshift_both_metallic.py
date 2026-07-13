@@ -2,10 +2,9 @@ import copy
 
 import espressomd
 import numpy as np
-from elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
-from elc.energy.legacy_elc_energy import get_legacy_energy
-
-from common.plotting.param_lerp_plot_2d import run_lerp_plot
+from src.common.plotting.param_lerp_plot_2d import run_lerp_plot
+from src.elc.energy.legacy_elc_energy import get_legacy_energy
+from src.elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
 
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -30,8 +29,7 @@ start_params = {
 start_params["lz"] = start_params["gap_size"] + lz
 
 
-
-z_end = z_eps # lz-z_eps
+z_end = z_eps  # lz-z_eps
 end_params = copy.deepcopy(start_params)
 end_params["positions"] = [np.array([6, 5, z_end]), np.array([3, 2, z_end])]
 
@@ -43,5 +41,5 @@ run_lerp_plot(
     get_custom_energy=get_elcic_energy,
     get_analytical_energy=None,
     get_legacy_energy=get_legacy_energy,
-    steps=6, # TODO theres a 1e-1 error spike when part.pos.z = lz/2 (set e.g. steps=5)
+    steps=6,  # TODO theres a 1e-1 error spike when part.pos.z = lz/2 (set e.g. steps=5)
 )
