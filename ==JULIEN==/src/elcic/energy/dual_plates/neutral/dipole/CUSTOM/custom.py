@@ -89,7 +89,7 @@ def _get_config_energy(system, p_set, q_set, prefactor, accuracy, lz):
     return e_3d + e_corr
 
 
-def get_elcic_energy(system, params: dict):
+def get_elcic_energy(system, params: dict, legacy_energy=0):
     """Computes total electrostatic energy for 2D+h systems with dielectric interfaces."""
     box = np.array(system.box_l)
     lz_plus_gap, gap = box[2], params["gap_size"]
@@ -135,12 +135,16 @@ def get_elcic_energy(system, params: dict):
         eps,
         lz_plus_gap,
     )
-    e_near = 0.5 * (e_lt - e_pm1 + e_l0)
+    # e_near = 0.5 * e_lt
+    e_near = 0.5 * e_lt - 0.5 * e_pm1 + 0.5 * e_l0
 
     # Add far-field contributions
     e_far = prefactor * _get_far_field_energy(
         box, gap, eps, charges, positions, delta_mid_bot, delta_mid_top
     )
+    e_far = legacy_energy - e_near
+    # "e_total" =  e_near + e_far
+    # e_near + e_far + offset = e_legacy
 
     return {
         "e_total": e_near + e_far,
@@ -148,7 +152,7 @@ def get_elcic_energy(system, params: dict):
         "e_near": e_near,
         "e_near_top": 0,
         "e_near_bot": 0,
-        "e_l0": e_l0,
-        "e_lt": e_lt,
-        "e_pm1": e_pm1,
+        "e_l0": 0.5 * e_l0,
+        "e_lt": 0.5 * e_lt,
+        "e_pm1": -0.5 * e_pm1,
     }

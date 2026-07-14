@@ -1,12 +1,19 @@
 import espressomd
-import espressomd.electrostatics
-import matplotlib.pyplot as plt
 import numpy as np
+from src.common.plotting.param_lerp_energy_plot import run_lerp_plot
 from src.elc.energy.legacy_elc_energy import get_legacy_energy
 from src.elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
+from src.elcic.energy.single_plate.neutral.metallic.analytical import (
+    get_ewald_elcic_2d as get_ewald2d_elcic,
+)
 
-# Configuration
-params = {
+system = espressomd.System(box_l=[50, 50, 50])
+system.time_step = 0.01
+system.cell_system.skin = (
+    0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
+)
+
+start_params = {
     "lx": 50.0,
     "ly": 50.0,
     "gap_size": 20.0,
@@ -14,134 +21,54 @@ params = {
     "delta_mid_top": -1.0,
     "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
+    "positions": [np.array([1, 2, 3]), np.array([4, 5, 6])],
     "pw_error": 1e-8,
-    "positions": [np.array([1.0, 2.0, 3.0]), np.array([4.0, 5.0, 6.0])],
 }
-params["lz"] = params["gap_size"] + 40
+start_params["lz"] = start_params["gap_size"] + 40
+
+end_params = {
+    "lx": 10.0,
+    "ly": 10.0,
+    "gap_size": 10.0,
+    "prefactor": 1.0,
+    "delta_mid_top": -1.0,
+    "delta_mid_bot": -1.0,
+    "charges": [+1.0, -1.0],
+    "positions": [np.array([6, 5, 6]), np.array([3, 2, 1])],
+    "pw_error": 1e-8,
+}
+end_params["lz"] = end_params["gap_size"] + 10
 
 
-def run_z_variation_plot(system, params, z_start=3.0, z_end=13.0, steps=16):
-    z_values = np.linspace(z_start, z_end, steps)
-
-    results = {"legacy": [], "e_total": [], "e_near": [], "e_far": []}
-
-    # Run Simulation/Evaluation Loop
-    for z in z_values:
-        system.electrostatics.clear()
-        system.part.clear()
-        system.box_l = [params["lx"], params["ly"], params["lz"]]
-
-        # Update the z-position of the first particle dynamically
-        current_positions = [p.copy() for p in params["positions"]]
-        current_positions[0][2] = z
-
-        for i in range(len(params["charges"])):
-            system.part.add(pos=current_positions[i], q=params["charges"][i])
-
-        # Prepare evaluation parameters dict
-        eval_params = params.copy()
-        eval_params["positions"] = current_positions
-
-        print("==============================================")
-        print(f"Evaluating at Particle 0 z = {z:.4f}")
-
-        # Compute Legacy Energy
-        legacy_energy = get_legacy_energy(system, eval_params)
-        results["legacy"].append(legacy_energy)
-
-        # Compute Custom Energy
-        custom_res = get_elcic_energy(system, eval_params)
-
-        results["e_total"].append(custom_res["e_total"])
-        results["e_near"].append(custom_res["e_near"])
-        results["e_far"].append(custom_res["e_far"])
-
-        print(
-            f"custom_implementation_energy = {custom_res['e_total']}, error={abs(custom_res['e_total'] - legacy_energy)}"
-        )
-        print(f"ground_truth_energy = {legacy_energy}")
-
-    # Convert results to arrays
-    for key in results:
-        results[key] = np.array(results[key])
-
-    e_total = np.array(results["e_total"])
-    e_legacy = np.array(results["legacy"])
-
-    absolute_error = np.abs(e_total - e_legacy)
-
-    # --- Plotting ---
-    fig, ax1 = plt.subplots(figsize=(10, 6))
-
-    # Left Axis: Main Energies
-    (l1,) = ax1.plot(
-        z_values,
-        results["e_total"],
-        label="Custom Total",
-        color="blue",
-        lw=2,
-        marker="x",
-    )
-    (l2,) = ax1.plot(z_values, results["e_near"], label="e_near", color="cyan", ls="--")
-    (l3,) = ax1.plot(
-        z_values,
-        results["legacy"],
-        label="Legacy Ground Truth",
-        color="red",
-        lw=2,
-        marker="+",
-    )
-
-    ax1.set_xlabel(r"Particle $z$ Position")
-    ax1.set_ylabel("Energy (Main)", color="blue")
-    ax1.tick_params(axis="y", labelcolor="blue")
-
-    # First Right Axis: e_far
-    ax_far = ax1.twinx()
-    (l4,) = ax_far.plot(
-        z_values, results["e_far"], label="e_far", color="teal", ls="--"
-    )
-    ax_far.set_ylabel("Energy (e_far)", color="teal")
-    ax_far.tick_params(axis="y", labelcolor="teal")
-
-    # Second Right Axis: Absolute Error (spinned out to the right)
-    ax_err = ax1.twinx()
-    ax_err.spines["right"].set_position(("outward", 60))
-    (l5,) = ax_err.plot(
-        z_values,
-        absolute_error,
-        label="Absolute Error",
-        color="purple",
-        ls=":",
-        marker="o",
-    )
-    ax_err.set_yscale("log")
-    ax_err.set_ylabel("Absolute Error (|Custom - Legacy|)", color="purple")
-    ax_err.tick_params(axis="y", labelcolor="purple")
-
-    # Consolidated Legend
-    lines = [l1, l2, l3, l4, l5]
-    labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc="upper left", fontsize="small")
-
-    ax1.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
+def eval_reference(system, params):
+    return get_ewald2d_elcic(params)
 
 
-# Initialize System
-system = espressomd.System(box_l=[50, 50, 50])
-system.time_step = 0.01
-system.cell_system.skin = 0.4
+def get_ref_error(system, params):
+    return np.abs(get_elcic_energy(system, params) - eval_reference(system, params))
 
-# Run the routine tracking the actual physical z coordinates
-run_z_variation_plot(
+
+def get_legacy_error(system, params):
+    return np.abs(get_elcic_energy(system, params) - get_legacy_energy(system, params))
+
+
+# Energy metrics (Primary)
+plot_metrics = {
+    ("Legacy", (("color", "green"), ("linestyle", ":"))): get_legacy_energy,
+    ("Custom", (("color", "blue"), ("linestyle", "-"))): get_elcic_energy,
+}
+
+# Error metrics (Secondary)
+error_metrics = {
+    ("|Custom-Ref|", (("color", "purple"), ("linestyle", "--"))): get_ref_error,
+    ("|Custom-Legacy|", (("color", "orange"), ("linestyle", "-."))): get_legacy_error,
+}
+
+run_lerp_plot(
     system=system,
-    params=params,
-    z_start=3.0,
-    z_end=13.0,
-    steps=4,
+    start_params=start_params,
+    end_params=end_params,
+    lerp_step_count=10,
+    plot_metrics=plot_metrics,
+    error_metrics=error_metrics,
 )
-
-
-# show parts of E_near = 0.5 * (e_lt - e_pm1 + e_l0)
