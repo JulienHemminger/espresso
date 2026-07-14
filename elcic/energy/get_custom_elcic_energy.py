@@ -205,6 +205,8 @@ def get_elcic_energy_contribs(system, params: dict):
     # 2. Near-Field Energy (Eq 4.14)
     # Φ(L0, LT) = 0.5 * (Φ(LT, LT) - Φ(L±1, L±1) + Φ(L0, L0))
     e_l0 = _get_config_energy(system, ps_orig, qs_orig, pref, eps, gap, lz)
+    e_pm1 = 0
+    e_lt = 0
 
     has_images = len(qs_m1) > 0 or len(qs_p1) > 0
     if has_images:
