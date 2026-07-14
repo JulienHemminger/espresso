@@ -66,6 +66,9 @@ def run_lerp_plot(
 ):
     # 1. Validation & Initialization
     t_values = np.linspace(0, 1, lerp_step_count)
+    # Transformation to map t [0, 1] to z [1, 4]
+    z_values = 1 + 3 * t_values
+
     results = {metric_key: [] for metric_key in plot_metrics}
     error_results = {metric_key: [] for metric_key in error_metrics}
 
@@ -91,18 +94,18 @@ def run_lerp_plot(
     fig, ax1 = plt.subplots(figsize=(10, 6))
     ax2 = ax1.twinx()  # Create secondary y-axis
 
-    # Plot Energies (Primary axis)
+    # Plot Energies (Primary axis) using z_values
     for (label, mpl_tuple), values in results.items():
-        ax1.plot(t_values, values, label=label, **dict(mpl_tuple))
+        ax1.plot(z_values, values, label=label, **dict(mpl_tuple))
 
-    # Plot Errors (Secondary axis)
+    # Plot Errors (Secondary axis) using z_values
     for (label, mpl_tuple), values in error_results.items():
-        ax2.plot(t_values, values, label=label, **dict(mpl_tuple))
+        ax2.plot(z_values, values, label=label, **dict(mpl_tuple))
 
     # Formatting
-    ax1.set_xlabel(r"Interpolation Parameter $t$")
+    ax1.set_xlabel(r"Particle $z$ Position")
     ax1.set_ylabel("Energy")
-    ax2.set_ylabel("Error |Custom - Reference|", color="purple")
+    ax2.set_ylabel("Error", color="orange")
 
     # Combined legend
     lines, labels = ax1.get_legend_handles_labels()
@@ -110,18 +113,7 @@ def run_lerp_plot(
     ax1.legend(lines + lines2, labels + labels2, loc="best")
 
     ax1.grid(True, alpha=0.3)
-    ax1.legend(loc="best")
 
-    fig.text(
-        0.83,
-        0.5,
-        get_param_label(start_params, end_params),
-        verticalalignment="center",
-        fontsize=8,
-        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.3),
-        transform=fig.transFigure,
-    )
-
-    plt.tight_layout(rect=(0, 0, 0.8, 1))
+    plt.tight_layout()
     save_plot_with_timestamp(fig)
     plt.show()

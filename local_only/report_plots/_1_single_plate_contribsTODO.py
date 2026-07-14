@@ -24,7 +24,7 @@ start_params = {
     "ly": 10.0,
     "gap_size": 10.0,
     "prefactor": 1.0,
-    "delta_mid_top": -1.0,
+    "delta_mid_top": 0.0,
     "delta_mid_bot": -1.0,
     "charges": [+1.0, -1.0],
     "positions": [np.array([6, 5, 1]), np.array([3, 2, 1])],
@@ -42,11 +42,15 @@ def get_reference(system, params):
 
 
 def get_reference_error(system, params):
-    return np.abs(get_elcic_energy(system, params) - get_reference(system, params))
+    return 1e-3 * np.abs(
+        get_elcic_energy(system, params) - get_reference(system, params),
+    )
 
 
 def get_legacy_error(system, params):
-    return np.abs(get_elcic_energy(system, params) - get_legacy_energy(system, params))
+    return 1e-3 * np.abs(
+        get_elcic_energy(system, params) - get_legacy_energy(system, params),
+    )
 
 
 def get_E_total(system, params):
@@ -73,22 +77,41 @@ def get_E_far(system, params):
     return get_elcic_energy_contribs(system, params)["E_far"]
 
 
-# Energy metrics (Primary)
+"""
+(
+        r"Legacy",
+        (("color", "green"), ("linestyle", "--"), ("linewidth", 2), ("marker", "o")),
+    ): get_legacy_energy,
+"""
+
+# Updated Plot Metrics
 plot_metrics = {
-    ("Legacy", (("color", "green"), ("linestyle", ":"))): get_legacy_energy,
-    ("E_total", (("color", "blue"), ("linestyle", "-"))): get_E_total,
-    ("E_near", (("color", "blue"), ("linestyle", "-"))): get_E_near,
-    ("E_lt", (("color", "blue"), ("linestyle", "-"))): get_E_lt,
-    ("E_pm1", (("color", "blue"), ("linestyle", "-"))): get_E_pm1,
-    ("E_l0", (("color", "blue"), ("linestyle", "-"))): get_E_l0,
-    ("E_far", (("color", "blue"), ("linestyle", "-"))): get_E_far,
+    # Updated configuration
+    (
+        r"Reference",
+        (("color", "red"), ("linestyle", "-."), ("linewidth", 2), ("marker", "s")),
+    ): get_reference,
+    (
+        r"$E_{total}$",
+        (("color", "dodgerblue"), ("linestyle", ":"), ("linewidth", 2.5)),
+    ): get_E_total,
+    (r"$E_{near}$", (("color", "cyan"), ("linestyle", "--"))): get_E_near,
+    (r"$E_{far}$", (("color", "cyan"), ("linestyle", "-."))): get_E_far,
 }
 
-# Error metrics (Secondary)
+# Updated Error Metrics
 error_metrics = {
-    ("|Custom-Ref|", (("color", "purple"), ("linestyle", "--"))): get_reference_error,
-    ("|Custom-Legacy|", (("color", "orange"), ("linestyle", "-."))): get_legacy_error,
+    (
+        r"$|E_{total} - \text{Ewald 2D}|$",
+        (("color", "orange"), ("linestyle", ":")),
+    ): get_reference_error,
 }
+"""
+(
+    r"$|\text{Custom}-\text{Legacy}|$",
+    (("color", "orange"), ("linestyle", "-.")),
+): get_legacy_error,
+"""
 
 run_lerp_plot(
     system=system,
@@ -100,6 +123,7 @@ run_lerp_plot(
 )
 
 """
-* show E_contribs
-* remove legend, fix labels, colors, etc.
+
+
+
 """
