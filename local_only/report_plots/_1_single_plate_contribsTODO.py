@@ -34,7 +34,7 @@ start_params["lz"] = start_params["gap_size"] + 10
 
 
 end_params = copy.deepcopy(start_params)
-end_params["positions"] = [np.array([6, 5, 4]), np.array([3, 2, 4])]
+end_params["positions"] = [np.array([6, 5, 9]), np.array([3, 2, 9])]
 
 
 def get_reference(system, params):
@@ -77,16 +77,7 @@ def get_E_far(system, params):
     return get_elcic_energy_contribs(system, params)["E_far"]
 
 
-"""
-(
-        r"Legacy",
-        (("color", "green"), ("linestyle", "--"), ("linewidth", 2), ("marker", "o")),
-    ): get_legacy_energy,
-"""
-
-# Updated Plot Metrics
 plot_metrics = {
-    # Updated configuration
     (
         r"Reference",
         (("color", "red"), ("linestyle", "-."), ("linewidth", 2), ("marker", "s")),
@@ -95,11 +86,11 @@ plot_metrics = {
         r"$E_{total}$",
         (("color", "dodgerblue"), ("linestyle", ":"), ("linewidth", 2.5)),
     ): get_E_total,
-    (r"$E_{near}$", (("color", "cyan"), ("linestyle", "--"))): get_E_near,
-    (r"$E_{lt}$", (("color", "steelblue"), ("linestyle", "--"))): get_E_lt,
-    (r"$E_{pm1}$", (("color", "skyblue"), ("linestyle", "--"))): get_E_pm1,
+    # (r"$E_{near}$", (("color", "cyan"), ("linestyle", "--"))): get_E_near,
+    # (r"$E_{lt}$", (("color", "steelblue"), ("linestyle", "--"))): get_E_lt,
+    # (r"$E_{pm1}$", (("color", "skyblue"), ("linestyle", "--"))): get_E_pm1,
     (r"$E_{l0}$", (("color", "purple"), ("linestyle", "--"))): get_E_l0,
-    (r"$E_{far}$", (("color", "cyan"), ("linestyle", "-."))): get_E_far,
+    # (r"$E_{far}$", (("color", "cyan"), ("linestyle", "-."))): get_E_far,
 }
 
 # Updated Error Metrics
@@ -109,12 +100,6 @@ error_metrics = {
         (("color", "orange"), ("linestyle", ":")),
     ): get_reference_error,
 }
-"""
-(
-    r"$|\text{Custom}-\text{Legacy}|$",
-    (("color", "orange"), ("linestyle", "-.")),
-): get_legacy_error,
-"""
 
 run_lerp_plot(
     system=system,
