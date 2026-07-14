@@ -1,8 +1,3 @@
-from collections.abc import Callable
-from typing import Any
-
-import espressomd
-import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -62,53 +57,60 @@ def get_param_label(start_params: dict, end_params: dict) -> str:
 
 
 def run_lerp_plot(
-    system: espressomd.System,
-    start_params: dict,
-    end_params: dict,
-    lerp_step_count: int,
-    plot_metrics: dict[
-        tuple[str, tuple[tuple[str, Any], ...]],
-        Callable[[espressomd.System, dict], float],
-    ],
+    system,
+    start_params,
+    end_params,
+    lerp_step_count,
+    plot_metrics,
+    error_metrics,
 ):
-    """
-    Evaluates dynamic system properties across a linear parameter space and plots them.
-
-    :param plot_metrics: Dict mapping ((label_string, ((param_name, value), ...))) -> function(system, params)
-    """
-    # 1. Validation
-    validate_inputs(start_params, end_params, lerp_step_count)
-
-    # 2. Initialization
+    # 1. Validation & Initialization
     t_values = np.linspace(0, 1, lerp_step_count)
     results = {metric_key: [] for metric_key in plot_metrics}
+    error_results = {metric_key: [] for metric_key in error_metrics}
 
-    # 3. Execution Loop
+    # 2. Execution Loop
     for t in t_values:
         system.electrostatics.clear()
         system.part.clear()
-
         params = lerp_dict(start_params, end_params, t)
+
         system.box_l = [params["lx"], params["ly"], params["lz"]]
         for i in range(len(params["charges"])):
             system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
-        for (label, mpl_tuple), eval_func in plot_metrics.items():
-            value = eval_func(system, params)
-            results[(label, mpl_tuple)].append(value)
+        # Calculate Energies
+        for key, eval_func in plot_metrics.items():
+            results[key].append(eval_func(system, params))
 
-    # 4. Plot Generation
-    fig, ax = plt.subplots(figsize=(10, 6))
+        # Calculate Errors
+        for key, eval_func in error_metrics.items():
+            error_results[key].append(eval_func(system, params))
 
+    # 3. Plot Generation
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    ax2 = ax1.twinx()  # Create secondary y-axis
+
+    # Plot Energies (Primary axis)
     for (label, mpl_tuple), values in results.items():
-        # Convert the immutable tuple back into a dictionary for matplotlib
-        mpl_params = dict(mpl_tuple)
-        ax.plot(t_values, values, label=label, **mpl_params)
+        ax1.plot(t_values, values, label=label, **dict(mpl_tuple))
 
-    ax.set_xlabel(r"Interpolation Parameter $t$")
-    ax.set_ylabel("Energy")
-    ax.grid(True, alpha=0.3)
-    ax.legend(loc="best")
+    # Plot Errors (Secondary axis)
+    for (label, mpl_tuple), values in error_results.items():
+        ax2.plot(t_values, values, label=label, **dict(mpl_tuple))
+
+    # Formatting
+    ax1.set_xlabel(r"Interpolation Parameter $t$")
+    ax1.set_ylabel("Energy")
+    ax2.set_ylabel("Error |Custom - Reference|", color="purple")
+
+    # Combined legend
+    lines, labels = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines + lines2, labels + labels2, loc="best")
+
+    ax1.grid(True, alpha=0.3)
+    ax1.legend(loc="best")
 
     fig.text(
         0.83,

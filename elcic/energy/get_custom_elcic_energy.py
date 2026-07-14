@@ -61,18 +61,25 @@ def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
         chi_local = _get_chi_components(fx, fy, f, ps[m_bot], qs[m_bot], sign=0)
         # Term 1: q * (db * delta * L(2lz + z) + delta * L(2lz - z))
         t1 = l_pq_sum(2 * lz + ps[m_bot, 2, None], db * delta) + l_pq_sum(
-            2 * lz - ps[m_bot, 2, None], delta
+            2 * lz - ps[m_bot, 2, None],
+            delta,
         )
         term_sum = np.sum(t1, axis=0)
         chi_m2_p = [chi_m2_p[i] + chi_local[i] * term_sum for i in range(4)]
 
     if np.any(m_near_top):
         chi_local = _get_chi_components(
-            fx, fy, f, ps[m_near_top], qs[m_near_top], sign=0
+            fx,
+            fy,
+            f,
+            ps[m_near_top],
+            qs[m_near_top],
+            sign=0,
         )
         # Term 2: q * (db * L(z) + delta * L(2lz - z))
         t2 = l_pq_sum(ps[m_near_top, 2, None], db) + l_pq_sum(
-            2 * lz - ps[m_near_top, 2, None], delta
+            2 * lz - ps[m_near_top, 2, None],
+            delta,
         )
         term_sum = np.sum(t2, axis=0)
         chi_m2_p = [chi_m2_p[i] + chi_local[i] * term_sum for i in range(4)]
@@ -86,17 +93,24 @@ def _get_far_field_energy(box, gap_size, pw_error, qs, ps, db, dt):
         chi_local = _get_chi_components(fx, fy, f, ps[m_top], qs[m_top], sign=0)
         # Eq 4.10 logic
         t1 = l_pq_sum(4 * lz - ps[m_top, 2, None], dt * delta) + l_pq_sum(
-            2 * lz + ps[m_top, 2, None], delta
+            2 * lz + ps[m_top, 2, None],
+            delta,
         )
         term_sum = np.sum(t1, axis=0)
         chi_p2_m = [chi_p2_m[i] + chi_local[i] * term_sum for i in range(4)]
 
     if np.any(m_near_bot):
         chi_local = _get_chi_components(
-            fx, fy, f, ps[m_near_bot], qs[m_near_bot], sign=0
+            fx,
+            fy,
+            f,
+            ps[m_near_bot],
+            qs[m_near_bot],
+            sign=0,
         )
         t2 = l_pq_sum(2 * lz - ps[m_near_bot, 2, None], dt) + l_pq_sum(
-            2 * lz + ps[m_near_bot, 2, None], delta
+            2 * lz + ps[m_near_bot, 2, None],
+            delta,
         )
         term_sum = np.sum(t2, axis=0)
         chi_p2_m = [chi_p2_m[i] + chi_local[i] * term_sum for i in range(4)]
@@ -128,7 +142,13 @@ def _get_non_neutral_correction(box, zs, qs):
 
 
 def _get_config_energy(
-    system, p_set, q_set, prefactor, accuracy, gap_size, physical_lz
+    system,
+    p_set,
+    q_set,
+    prefactor,
+    accuracy,
+    gap_size,
+    physical_lz,
 ):
     """Computes P3M + ELC dipole correction (Eq 3.10)."""
     lx, ly, _ = system.box_l
@@ -156,6 +176,10 @@ def _get_config_energy(
 
 
 def get_elcic_energy(system, params: dict):
+    return get_elcic_energy_contribs(system, params)["E_total"]
+
+
+def get_elcic_energy_contribs(system, params: dict):
     box = np.array(system.box_l)
     lz = box[2]
     gap, eps = params["gap_size"], params["pw_error"]
@@ -193,7 +217,7 @@ def get_elcic_energy(system, params: dict):
         qs_total = np.concatenate([qs_orig, qs_img])
         e_lt = _get_config_energy(system, ps_total, qs_total, pref, eps, gap, lz)
 
-        e_near = 0.5 * (e_lt - e_pm1 + e_l0)
+        e_near = 0.5 * e_lt - 0.5 * e_pm1 + 0.5 * e_l0
     else:
         e_near = e_l0
 
@@ -205,4 +229,11 @@ def get_elcic_energy(system, params: dict):
     system.box_l = box
     system.part.add(pos=ps_orig, q=qs_orig)
 
-    return e_near + e_far
+    return {
+        "E_total": e_near + e_far,
+        "E_near": e_near,
+        "E_lt": +0.5 * e_lt,
+        "E_pm1": -0.5 * e_pm1,
+        "E_l0": +0.5 * e_l0,
+        "E_far": e_far,
+    }
