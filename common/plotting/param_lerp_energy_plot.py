@@ -66,8 +66,6 @@ def run_lerp_plot(
 ):
     # 1. Validation & Initialization
     t_values = np.linspace(0, 1, lerp_step_count)
-    # Transformation to map t [0, 1] to z [1, 4]
-    z_values = 1 + 3 * t_values
 
     results = {metric_key: [] for metric_key in plot_metrics}
     error_results = {metric_key: [] for metric_key in error_metrics}
@@ -96,14 +94,14 @@ def run_lerp_plot(
 
     # Plot Energies (Primary axis) using z_values
     for (label, mpl_tuple), values in results.items():
-        ax1.plot(z_values, values, label=label, **dict(mpl_tuple))
+        ax1.plot(t_values, values, label=label, **dict(mpl_tuple))
 
     # Plot Errors (Secondary axis) using z_values
     for (label, mpl_tuple), values in error_results.items():
-        ax2.plot(z_values, values, label=label, **dict(mpl_tuple))
+        ax2.plot(t_values, values, label=label, **dict(mpl_tuple))
 
     # Formatting
-    ax1.set_xlabel(r"Particle $z$ Position")
+    ax1.set_xlabel(r"Interpolation Parameter t")
     ax1.set_ylabel("Energy")
     ax2.set_ylabel("Error", color="orange")
 
