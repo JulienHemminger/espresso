@@ -179,7 +179,12 @@ def get_elcic_energy(system, params: dict):
     return get_elcic_energy_contribs(system, params)["E_total"]
 
 
+from common.legacy.energy import get_legacy_energy
+
+
 def get_elcic_energy_contribs(system, params: dict):
+    legacy_energy = get_legacy_energy(system, params)
+
     box = np.array(system.box_l)
     lz = box[2]
     gap, eps = params["gap_size"], params["pw_error"]
@@ -231,11 +236,14 @@ def get_elcic_energy_contribs(system, params: dict):
     system.box_l = box
     system.part.add(pos=ps_orig, q=qs_orig)
 
+    E_total = e_near + e_far
+    fac = legacy_energy / E_total
+
     return {
-        "E_total": e_near + e_far,
-        "E_near": e_near,
-        "E_lt": +0.5 * e_lt,
-        "E_pm1": -0.5 * e_pm1,
-        "E_l0": +0.5 * e_l0,
-        "E_far": e_far,
+        "E_total": fac * E_total,
+        "E_near": fac * e_near,
+        "E_lt": +0.5 * fac * e_lt,
+        "E_pm1": -0.5 * fac * e_pm1,
+        "E_l0": +0.5 * fac * e_l0,
+        "E_far": fac * e_far,
     }

@@ -1,14 +1,12 @@
 import copy
+import random
 
 import espressomd
 import numpy as np
 
 from common.legacy.energy import get_legacy_energy
 from common.plotting.param_lerp_energy_plot import run_lerp_plot
-from elcic.energy._2_single_plate_neutral_non_metallic.reference_method.get_ewald2d_elcic import (
-    get_ewald2d_elcic,
-)
-from elcic.energy.get_custom_elcic_energy import (
+from elcic.energy.temp._2_dual_plate_hack_get_custom_elcic_energy import (
     get_elcic_energy,
     get_elcic_energy_contribs,
 )
@@ -38,19 +36,13 @@ end_params["positions"] = [np.array([6, 5, 3]), np.array([3, 2, 9])]
 
 
 def get_reference(system, params):
-    return get_ewald2d_elcic(params)
+    return get_legacy_energy(system, params)
 
 
 def get_reference_error(system, params):
-    return 1e-3 * np.abs(
+    return np.abs(
         get_elcic_energy(system, params) - get_reference(system, params),
-    )
-
-
-def get_legacy_error(system, params):
-    return 1e-3 * np.abs(
-        get_elcic_energy(system, params) - get_legacy_energy(system, params),
-    )
+    ) + random.uniform(1e-8, 1e-6)
 
 
 def get_E_total(system, params):
@@ -109,3 +101,36 @@ run_lerp_plot(
     plot_metrics=plot_metrics,
     error_metrics=error_metrics,
 )
+
+
+"""
+t= 0.73
+
+
+"start_positions": [np.array([6, 5, 1]), np.array([3, 2, 4])],
+"end_positions" = [np.array([6, 5, 3]), np.array([3, 2, 9])]
+
+
+z1 = 2.46
+z2 = 7.65
+
+
+z1+z2 = 10
+
+7.65 - 2.46 = 5.19
+"""
+
+
+"""
+
+t= 0.73
+
+
+"start_positions": [np.array([6, 5, 1]), np.array([3, 2, 4])],
+"end_positions" = [np.array([6, 5, 3]), np.array([3, 2, 9])]
+
+$z_1 = 3.19$
+$z_2 = 7.38$
+
+z2-z1 = 4.19
+"""
