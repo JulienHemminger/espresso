@@ -42,8 +42,6 @@ class Block(Button):
         )
         self.block_type = block_type
 
-        # Track glued faces: a set containing direction vectors (tuples)
-        # relative to this block that are glued to neighbors.
         self.glued_faces = set()
 
         blocks_in_world.append(self)
