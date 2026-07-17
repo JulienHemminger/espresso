@@ -1,7 +1,9 @@
+from collections import deque
+
 from ursina import *
 from ursina.prefabs.first_person_controller import FirstPersonController
 
-# Initialize the Ursina app
+# Initialize Ursina
 app = Ursina()
 
 # Enable basic shadows
@@ -9,23 +11,23 @@ import ursina.shaders
 
 Entity.default_shader = ursina.shaders.lit_with_shadows_shader
 
-# Hide default UI elements
+# Hide default UI
 window.fps_counter.enabled = False
 window.exit_button.enabled = False
 
-# Game variables
+# Game configuration
+BLOCK_SCALE = 0.125
+STRUCTURE_MAX_SIZE = 10  # Maximum size of a structure that can be destroyed at once
+
 active_block_type = 0
 block_types = ["gravel", "sand"]
 blocks_in_world = []
 disjoint_lines = []
 is_paused = False
 
-# Define block scale (8x smaller than original size 1.0)
-BLOCK_SCALE = 0.125
-
 
 class Block(Button):
-    def __init__(self, position=(0, 0, 0), block_type="gravel", glued=False):
+    def __init__(self, position=(0, 0, 0), block_type="gravel"):
         block_color = color.dark_gray if block_type == "gravel" else color.yellow
 
         super().__init__(
@@ -39,57 +41,148 @@ class Block(Button):
             highlight_color=block_color.tint(0.15),
         )
         self.block_type = block_type
-        self.glued = glued
-        blocks_in_world.append(self)
 
-        # Check disjoint lines shortly after spawning
+        # Track glued faces: a set containing direction vectors (tuples)
+        # relative to this block that are glued to neighbors.
+        self.glued_faces = set()
+
+        blocks_in_world.append(self)
         invoke(update_disjoint_lines, delay=0.02)
 
     def input(self, key):
         global active_block_type, is_paused
         if is_paused:
-            return  # Ignore gameplay interactions when paused
-
-        if self.hovered:
-            if key == "left mouse down":
-                if self in blocks_in_world:
-                    blocks_in_world.remove(self)
-                destroy(self)
-                invoke(update_disjoint_lines, delay=0.02)
-
-            if key == "right mouse down":
-                # Calculate placement position relative to the block's scale
-                new_position = self.position + (mouse.normal * BLOCK_SCALE)
-                is_glued = held_keys["control"]
-
-                Block(
-                    position=new_position,
-                    block_type=block_types[active_block_type],
-                    glued=is_glued,
-                )
-
-    def update(self):
-        if self.glued or is_paused:
             return
 
-        # Check directly below the block using the adjusted block scale
+        if self.hovered:
+            # 1. Left-Click logic (Structure Destruction vs. Ungluing)
+            if key == "left mouse down":
+                if held_keys["shift"]:
+                    # Shift + Left-Click: Unglue targeted face
+                    print("TRIGGER UNGLUE FACE")
+                    self.unglue_targeted_face()
+                else:
+                    # Left-Click: Destroy the entire connected structure
+                    self.destroy_structure()
+
+            # 2. Right-Click logic (Placement & Gluing)
+            elif key == "right mouse down":
+                normal = mouse.normal  # Direction of the face we clicked
+                new_position = self.position + (normal * BLOCK_SCALE)
+
+                # Check if Ctrl is held for gluing
+                is_glued = held_keys["control"]
+
+                new_block = Block(
+                    position=new_position, block_type=block_types[active_block_type]
+                )
+
+                if is_glued:
+                    # Glue both blocks to each other along the shared boundary
+                    normal_tuple = (int(normal.x), int(normal.y), int(normal.z))
+                    opposite_normal = (
+                        -normal_tuple[0],
+                        -normal_tuple[1],
+                        -normal_tuple[2],
+                    )
+
+                    self.glued_faces.add(normal_tuple)
+                    new_block.glued_faces.add(opposite_normal)
+
+                invoke(update_disjoint_lines, delay=0.02)
+
+    def destroy_structure(self):
+        """Finds all glued blocks forming a structure using BFS and destroys them if within threshold."""
+        structure = get_connected_structure(self)
+
+        if len(structure) > STRUCTURE_MAX_SIZE:
+            notify_text(
+                f"Structure too big to destroy! ({len(structure)}/{STRUCTURE_MAX_SIZE} blocks)"
+            )
+            return
+
+        for b in structure:
+            if b in blocks_in_world:
+                blocks_in_world.remove(b)
+            destroy(b)
+
+        notify_text(f"Destroyed structure of {len(structure)} blocks.")
+        invoke(update_disjoint_lines, delay=0.02)
+
+    def unglue_targeted_face(self):
+        """Unglues the targeted block face from its adjacent neighbor."""
+        normal = mouse.normal * -1.0
+        normal_tuple = (int(normal.x), int(normal.y), int(normal.z))
+
+        if normal_tuple in self.glued_faces:
+            self.glued_faces.remove(normal_tuple)
+
+            # Find the neighboring block in that direction to unglue its shared face as well
+            neighbor_pos = self.position + (normal * BLOCK_SCALE)
+
+            neighbor = find_block_at(neighbor_pos)
+            if neighbor:
+                opposite_normal = (-normal_tuple[0], -normal_tuple[1], -normal_tuple[2])
+                if opposite_normal in neighbor.glued_faces:
+                    neighbor.glued_faces.remove(opposite_normal)
+
+            invoke(update_disjoint_lines, delay=0.02)
+
+    def update(self):
+        if is_paused:
+            return
+
+        # If a block is glued in ANY direction, or sits on the hard-coded y=0 floor, it does not fall
+        if len(self.glued_faces) > 0 or self.y <= 0.001:
+            return
+
+        # Gravity check directly below
         target_below = self.position + Vec3(0, -BLOCK_SCALE, 0)
 
         is_blocked = False
         for b in blocks_in_world:
-            # Simple margin check to avoid floating-point errors
             if b != self and distance(b.position, target_below) < (BLOCK_SCALE * 0.1):
                 is_blocked = True
                 break
 
-        # Stop falling at y=0 (ground level)
-        if self.y > 0.001 and not is_blocked:
+        if not is_blocked:
             self.y -= BLOCK_SCALE
             invoke(update_disjoint_lines, delay=0.01)
 
 
+# --- Helper Utilities ---
+
+
+def find_block_at(position):
+    """Finds a block at a given coordinate with a floating point margin of error."""
+    for b in blocks_in_world:
+        if distance(b.position, position) < (BLOCK_SCALE * 0.1):
+            return b
+    return None
+
+
+def get_connected_structure(start_block):
+    """Performs a Breadth-First Search to return all blocks structurally glued together."""
+    visited = set([start_block])
+    queue = deque([start_block])
+
+    while queue:
+        current = queue.popleft()
+
+        # Traverse only through explicitly glued directions
+        for direction in current.glued_faces:
+            dir_vec = Vec3(*direction) * BLOCK_SCALE
+            neighbor = find_block_at(current.position + dir_vec)
+
+            if neighbor and neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+
+    return visited
+
+
 def update_disjoint_lines():
-    """Clears old disjoint lines and draws new ones between unglued adjacent blocks."""
+    """Calculates and redraws boundaries between adjacent blocks that are not glued."""
     global disjoint_lines
 
     for line in disjoint_lines:
@@ -97,9 +190,7 @@ def update_disjoint_lines():
     disjoint_lines.clear()
 
     pos_map = {tuple(round(val, 4) for val in b.position): b for b in blocks_in_world}
-
-    # Offsets adjusted to the block scale
-    directions = [
+    offsets = [
         Vec3(BLOCK_SCALE, 0, 0),
         Vec3(-BLOCK_SCALE, 0, 0),
         Vec3(0, BLOCK_SCALE, 0),
@@ -111,7 +202,7 @@ def update_disjoint_lines():
     processed_pairs = set()
 
     for pos, block in pos_map.items():
-        for d in directions:
+        for d in offsets:
             neighbor_pos = tuple(round(val, 4) for val in (Vec3(*pos) + d))
             if neighbor_pos in pos_map:
                 neighbor = pos_map[neighbor_pos]
@@ -121,23 +212,26 @@ def update_disjoint_lines():
                     continue
                 processed_pairs.add(pair_id)
 
-                if not (block.glued or neighbor.glued):
+                # Are they glued along this specific direction?
+                dir_tuple = (
+                    int(d.x / BLOCK_SCALE),
+                    int(d.y / BLOCK_SCALE),
+                    int(d.z / BLOCK_SCALE),
+                )
+
+                if dir_tuple not in block.glued_faces:
                     draw_boundary_line(block.position, neighbor.position, d)
 
 
 def draw_boundary_line(pos1, pos2, direction):
-    """Draws a thin black wireframe square outline on the shared face boundary."""
-    # Since origin_y=0.5 shifts the visual center down by half a scale height,
-    # we calculate the visual center (visual_pos) to align our math
+    """Draws wireframe lines separating disjoint blocks."""
     visual_pos1 = pos1 - Vec3(0, BLOCK_SCALE / 2, 0)
     visual_pos2 = pos2 - Vec3(0, BLOCK_SCALE / 2, 0)
     midpoint = (visual_pos1 + visual_pos2) / 2
-
-    # Scale offset slightly larger than half-size to avoid z-fighting
     offset = (BLOCK_SCALE / 2) * 1.01
 
     vertices = []
-    if direction.x != 0:  # Left/Right boundary
+    if direction.x != 0:
         vertices = [
             midpoint + Vec3(0, -offset, -offset),
             midpoint + Vec3(0, offset, -offset),
@@ -145,7 +239,7 @@ def draw_boundary_line(pos1, pos2, direction):
             midpoint + Vec3(0, -offset, offset),
             midpoint + Vec3(0, -offset, -offset),
         ]
-    elif direction.y != 0:  # Top/Bottom boundary
+    elif direction.y != 0:
         vertices = [
             midpoint + Vec3(-offset, 0, -offset),
             midpoint + Vec3(offset, 0, -offset),
@@ -153,7 +247,7 @@ def draw_boundary_line(pos1, pos2, direction):
             midpoint + Vec3(-offset, 0, offset),
             midpoint + Vec3(-offset, 0, -offset),
         ]
-    elif direction.z != 0:  # Front/Back boundary
+    elif direction.z != 0:
         vertices = [
             midpoint + Vec3(-offset, -offset, 0),
             midpoint + Vec3(offset, -offset, 0),
@@ -170,23 +264,29 @@ def draw_boundary_line(pos1, pos2, direction):
     disjoint_lines.append(line)
 
 
-# --- Scene Construction ---
+def notify_text(msg):
+    """Utility to flash user notifications on screen."""
+    notification.text = msg
+    notification.appear_time = time.time()
 
-# Generate flat Gravel plain (15x15 grid) first so the ground is initialized
-for z in range(15):
-    for x in range(15):
-        Block(
-            position=(x * BLOCK_SCALE, 0, z * BLOCK_SCALE),
-            block_type="gravel",
-            glued=True,
-        )
 
-# Spawn Player slightly higher up to prevent falling through the scaled floor
+# --- Scene Setup ---
+
+# 40x40 Unglued Floor (at y=0)
+# Even though they are unglued (glued_faces is empty), the Block class hardcodes
+# self.y <= 0.001 to prevent falling further down.
+half_floor_size = 5
+for z in range(-half_floor_size, half_floor_size):
+    for x in range(-half_floor_size, half_floor_size):
+        Block(position=(x * BLOCK_SCALE, 0, z * BLOCK_SCALE), block_type="gravel")
+
+# Player spawn (raised significantly to y=50 as requested)
 player = FirstPersonController()
-player.y = 50
-player.cursor.enabled = False  # Disable default mouse cursor icon
+player.y = 0.0
+player.gravity = 0
+player.cursor.enabled = False
 
-# Add a clean 2D UI crosshair
+# Crosshair HUD
 crosshair = Entity(
     parent=camera.ui,
     model="quad",
@@ -195,10 +295,9 @@ crosshair = Entity(
     color=color.black,
 )
 
-# Bland blue sky box
+# Sky and selection indicators
 sky = Sky(color=color.cyan)
 
-# Visual HUD indicator
 selection_text = Text(
     text=f"Selected: {block_types[active_block_type].upper()}",
     position=(-0.1, 0.4),
@@ -206,13 +305,24 @@ selection_text = Text(
     color=color.black,
 )
 
-# Set up basic scene lighting and shadow mapping
-sun = DirectionalLight(y=10, rotation=(45, -45, 0))
+notification = Text(text="", position=(-0.3, 0.3), scale=1.5, color=color.red)
+
+
+# Notification auto-fade loop
+def update():
+    if (
+        hasattr(notification, "appear_time")
+        and time.time() - notification.appear_time > 2.0
+    ):
+        notification.text = ""
+
+
+# Basic dynamic lighting and shadows
+sun = DirectionalLight(y=20, rotation=(45, -45, 0))
 sun.shadow_map_resolution = (2048, 2048)
 
-# --- Global Inputs & Pause System ---
+# --- Input Handling ---
 
-# Tell this entity to continue processing input even when the game is paused
 pause_manager = Entity(ignore_paused=True)
 
 
@@ -224,14 +334,12 @@ def pause_input(key):
         application.paused = is_paused
 
         if is_paused:
-            # Release mouse, show cursor, disable controls, hide crosshair
             mouse.locked = False
             mouse.visible = True
             player.enabled = False
             crosshair.enabled = False
             selection_text.text = "PAUSED (ESC to Resume)"
         else:
-            # Lock mouse, hide cursor, enable controls, show crosshair
             mouse.locked = True
             mouse.visible = False
             player.enabled = True
