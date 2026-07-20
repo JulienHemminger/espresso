@@ -142,11 +142,11 @@ def get_elcic_energy(system, params: dict, legacy_energy=0):
     e_far = prefactor * _get_far_field_energy(
         box, gap, eps, charges, positions, delta_mid_bot, delta_mid_top
     )
-    e_far = legacy_energy - e_near
+    # e_far = legacy_energy - e_near
     # "e_total" =  e_near + e_far
     # e_near + e_far + offset = e_legacy
 
-    return {
+    vals = {
         "e_total": e_near + e_far,
         "e_far": e_far,
         "e_near": e_near,
@@ -156,3 +156,5 @@ def get_elcic_energy(system, params: dict, legacy_energy=0):
         "e_lt": 0.5 * e_lt,
         "e_pm1": -0.5 * e_pm1,
     }
+    print(f"E_CONTRIBS = {vals}")
+    return vals

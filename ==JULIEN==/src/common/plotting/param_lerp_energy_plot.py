@@ -92,10 +92,15 @@ def run_lerp_plot(
 
     # 2. Execution Loop
     for t in t_values:
+        print(f"working on {t=}")
         system.electrostatics.clear()
         system.part.clear()
         params = lerp_dict(start_params, end_params, t)
-        # ... [Rest of your parameter setup code] ...
+
+        system.part.clear()
+        system.box_l = [params["lx"], params["ly"], params["lz"]]
+        for i in range(len(params["charges"])):
+            system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
         # Calculate Energies
         for key, eval_func in plot_metrics.items():

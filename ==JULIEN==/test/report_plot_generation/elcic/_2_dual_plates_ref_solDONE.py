@@ -1,5 +1,3 @@
-import random
-
 import espressomd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,12 +24,12 @@ params = {
 }
 
 
-nk_values = list(range(2, 20 + 1, 1))
+t_values = np.linspace(-1, 1, num=20)
 analytical_results = []
 legacy_results = []
 
 # 2. Iterate and update the existing system
-for nk_max in nk_values:
+for t in t_values:
     # A. Clear system for reconfiguration
     system.part.clear()
     system.electrostatics.clear()
@@ -43,11 +41,10 @@ for nk_max in nk_values:
     for i in range(len(params["charges"])):
         system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
-    i = round(0.25 * nk_max + 1.8)
-    analytical_results.append(
-        get_ewald_elcic_2d(params, k_max=max(1, nk_max // 2), n_real=100)
-        + random.uniform(-(10 ** (-i)), 10 ** (-i))
-    )
+    params["delta_mid_bot"] = +t
+    params["delta_mid_top"] = -t
+
+    analytical_results.append(get_ewald_elcic_2d(params, k_max=10, n_real=100))
     legacy_results.append(get_legacy_energy(system, params, timeout_duration_sec=600))
 
     print(f"analytical = {analytical_results[-1]}")
@@ -57,15 +54,15 @@ fig, ax1 = plt.subplots(figsize=(10, 6))
 
 # Plot on the primary axis
 ax1.plot(
-    nk_values,
+    t_values,
     analytical_results,
-    label="Ewald 2D",
+    label="ICM-Ewald 2D",
     marker="o",
     linestyle="--",
     color="purple",
 )
 ax1.plot(
-    nk_values,
+    t_values,
     legacy_results,
     label="Legacy ELCIC",
     marker="s",
@@ -73,17 +70,23 @@ ax1.plot(
     color="blue",
 )
 ax1.set_ylabel("Energy")
-ax1.set_xlabel(r"Summation Cutoff $k_{max}$")
+ax1.set_xlabel(r"Reflection coefficient parameter t")
 
 # Calculate absolute error
 error = np.abs(np.array(legacy_results) - np.array(analytical_results))
 
 # Create secondary y-axis
 ax2 = ax1.twinx()
-ax2.plot(nk_values, error, label="|Legacy - Ewald 2D|", linestyle=":", color="orange")
+ax2.plot(
+    t_values,
+    error,
+    label="|Legacy ELCIC - ICM-Ewald 2D|",
+    linestyle=":",
+    color="orange",
+)
 ax2.set_yscale("log")
 ax2.set_ylabel("Error", color="orange")
-ax2.tick_params(axis="y", labelcolor="orange")
+ax2.tick_params(axis="y")
 
 # Combine handles and labels from both axes
 lines1, labels1 = ax1.get_legend_handles_labels()
@@ -91,19 +94,9 @@ lines2, labels2 = ax2.get_legend_handles_labels()
 ax1.legend(lines1 + lines2, labels1 + labels2, loc="center right")
 
 ax1.grid(True)
+from src.common.plot_saving import save_plot_with_timestamp
+
+save_plot_with_timestamp(fig)
+
 
 plt.show()
-
-"""
-
-* right y-axis error |ewald - legacy|
-"""
-
-
-"""
-* admit i dont have a reference sol (explain why ewald, etc dont work? i only use legacy): NO
-* pretend i have a reference sol (e.g. custom+noise) and pretend its ewald(or sth else?): YES
-    * use custom_elc + hard_coded_func
-
-
-"""
