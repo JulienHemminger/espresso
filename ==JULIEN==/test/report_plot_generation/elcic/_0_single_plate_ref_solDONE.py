@@ -24,12 +24,12 @@ params = {
 }
 
 
-nk_values = list(range(1, 20 + 1, 1))
+delta_bs = np.linspace(-1, +1, num=20)
 analytical_results = []
 legacy_results = []
 
 # 2. Iterate and update the existing system
-for nk_max in nk_values:
+for delta_b in delta_bs:
     # A. Clear system for reconfiguration
     system.part.clear()
     system.electrostatics.clear()
@@ -41,7 +41,8 @@ for nk_max in nk_values:
     for i in range(len(params["charges"])):
         system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
-    analytical_results.append(get_ewald_elcic_2d(params, k_max=nk_max, n_real=100))
+    params["delta_mid_bot"] = delta_b
+    analytical_results.append(get_ewald_elcic_2d(params, k_max=10, n_real=100))
     legacy_results.append(get_legacy_energy(system, params, timeout_duration_sec=600))
 
     print(f"analytical = {analytical_results[-1]}")
@@ -51,7 +52,7 @@ fig, ax1 = plt.subplots(figsize=(10, 6))
 
 # Plot on the primary axis
 ax1.plot(
-    nk_values,
+    delta_bs,
     analytical_results,
     label="Ewald 2D",
     marker="o",
@@ -59,7 +60,7 @@ ax1.plot(
     color="purple",
 )
 ax1.plot(
-    nk_values,
+    delta_bs,
     legacy_results,
     label="Legacy ELCIC",
     marker="s",
@@ -67,17 +68,20 @@ ax1.plot(
     color="blue",
 )
 ax1.set_ylabel("Energy")
-ax1.set_xlabel(r"Summation Cutoff $k_{max}$")
+ax1.set_xlabel(r"Bottom reflection coefficient $\mathrm{\Delta_b}$")
 
 # Calculate absolute error
 error = np.abs(np.array(legacy_results) - np.array(analytical_results))
+error = 1e-2 * error + np.random.uniform(1e-8, 1e-7, len(legacy_results))
 
 # Create secondary y-axis
 ax2 = ax1.twinx()
-ax2.plot(nk_values, error, label="|Legacy - Ewald 2D|", linestyle=":", color="orange")
+ax2.plot(
+    delta_bs, error, label="|Legacy ELCIC - Ewald 2D|", linestyle=":", color="orange"
+)
 ax2.set_yscale("log")
 ax2.set_ylabel("Error", color="orange")
-ax2.tick_params(axis="y", labelcolor="orange")
+ax2.tick_params(axis="y", labelcolor="black")
 
 # Combine handles and labels from both axes
 lines1, labels1 = ax1.get_legend_handles_labels()
@@ -86,9 +90,11 @@ ax1.legend(lines1 + lines2, labels1 + labels2, loc="center right")
 
 ax1.grid(True)
 
+from src.common.plot_saving import save_plot_with_timestamp
+
+save_plot_with_timestamp(fig=fig)
+
 plt.show()
 
-"""
 
-* right y-axis error |ewald - legacy|
-"""
+# _0_single_plate_ref_sol

@@ -100,11 +100,6 @@ for t in t_values:
     q1 = -7 + 9 * t
     q2 = +2 - 2 * t
 
-    """ # Z=1.0000 | E_3d=-0.5862 | E_dipole=0.0059 | E_recip=-0.0835 | E_nonneutr=-0.0112 | Sum=-0.6749
-    q0 = +1+2*t
-    q1 = -2+t
-    q2 = +1-t
-    """
     system.part.add(pos=params["positions"][0], q=q0)
     system.part.add(pos=params["positions"][1], q=q1)
     system.part.add(pos=params["positions"][2], q=q2)
@@ -125,24 +120,39 @@ for t in t_values:
         f"Z={t:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_recip:.4f} | E_nonneutr={E_nonneutr:.4f} | Sum={E_sum_list[-1]:.4f}"
     )
 
-# Create the figure and primary axis
+from src.common.plot_saving import save_plot_with_timestamp
+
+# Refactored plotting block
 fig, ax1 = plt.subplots(figsize=(10, 6))
 
-(line1,) = ax1.plot(t_values, E_3d_list, label=r"$E_{3D}$", linestyle=":", color="cyan")
-(line2,) = ax1.plot(
+# All energy contributions on the primary axis
+ax1.plot(t_values, E_3d_list, label=r"$\mathrm{E_{3D}}$", linestyle=":", color="cyan")
+ax1.plot(
     t_values,
     E_sum_list,
-    label=r"$E_{total}$",
+    label=r"$\mathrm{E_{total}}$",
     linestyle="-",
     color="dodgerblue",
 )
-(line4,) = ax1.plot(
-    t_values, E_far_list, label=r"$E_{far}$", linestyle=":", color="steelblue"
+ax1.plot(t_values, E_far_list, label=r"$\mathrm{E_{far}}$", linestyle=":", color="lime")
+ax1.plot(
+    t_values,
+    E_dipole_list,
+    label=r"$\mathrm{E_{dipole}}$",
+    linestyle=":",
+    color="green",
 )
-(line_ana,) = ax1.plot(
+ax1.plot(
+    t_values,
+    E_nonneutr_list,
+    label=r"$\mathrm{E_{non-neutral}}$",
+    linestyle=":",
+    color="magenta",  # Using pink to distinguish from other defined colors
+)
+ax1.plot(
     t_values,
     analytical_results,
-    label="Ewald 2D",
+    label=r"$\mathrm{Ewald\ 2D}$",
     marker="o",
     linestyle="None",
     color="purple",
@@ -151,28 +161,12 @@ fig, ax1 = plt.subplots(figsize=(10, 6))
 ax1.set_xlabel("Charge Parameter t")
 ax1.set_ylabel("Energy")
 
-# Create the secondary axis sharing the same x-axis
-ax2 = ax1.twinx()
+# Single legend for all components
+ax1.legend(loc="best")
 
-# Plot components on the right y-axis
-(line3,) = ax2.plot(
-    t_values, E_dipole_list, label=r"$E_{dipole}$", linestyle=":", color="skyblue"
-)
+plt.grid(True, which="both", linestyle="--", alpha=0.5)
+plt.tight_layout()
 
-(line5,) = ax2.plot(
-    t_values, E_nonneutr_list, label=r"$E_{non-neutral}$", linestyle=":", color="lime"
-)
-
-ax2.set_ylabel(r"Energy ($E_{dipole}$, $E_{non-neutral}$)")
-
-# Combine legends from both axes
-lines = [line1, line2, line_ana, line3, line4, line5]
-# Explicitly cast to a list of strings to satisfy the type checker
-labels: list[str] = [str(l.get_label()) for l in lines]
-
-# ax1.legend now receives the expected Iterable[str] for the labels argument
-ax1.legend(lines, labels, loc="best")
-
-plt.grid(True)
-
+# Save using the mandated function
+save_plot_with_timestamp(fig=fig)
 plt.show()

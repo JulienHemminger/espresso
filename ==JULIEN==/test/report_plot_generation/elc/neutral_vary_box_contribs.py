@@ -117,46 +117,64 @@ for l_xy in lxy_values:
     print(
         f"Z={l_xy:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_far={E_far:.4f} | Sum={E_sum_list[-1]:.4f}"
     )
+import numpy as np
+from src.common.plot_saving import save_plot_with_timestamp
 
-# 3. Plotting
-fig = plt.figure(figsize=(10, 6))
+# Refactored plotting block
+fig, ax1 = plt.subplots(figsize=(10, 6))
 
-
-plt.plot(lxy_values, E_3d_list, label=r"$E_{3D}$", linestyle="--", color="cyan")
-plt.plot(
-    lxy_values, E_dipole_list, label=r"$E_{dipole}$", linestyle="--", color="skyblue"
+# Plot components with mandated colors and labels
+ax1.plot(
+    lxy_values, E_3d_list, label=r"$\mathrm{E_{3D}}$", linestyle="--", color="cyan"
 )
-plt.plot(lxy_values, E_far_list, label=r"$E_{far}$", linestyle="--", color="steelblue")
-plt.plot(
+ax1.plot(
+    lxy_values,
+    E_dipole_list,
+    label=r"$\mathrm{E_{dipole}}$",
+    linestyle="--",
+    color="green",
+)
+ax1.plot(
+    lxy_values, E_far_list, label=r"$\mathrm{E_{far}}$", linestyle="--", color="lime"
+)
+ax1.plot(
     lxy_values,
     E_sum_list,
-    label=r"$E_{total}$",
+    label=r"$\mathrm{E_{total}}$",
     linestyle="solid",
     color="dodgerblue",
 )
-plt.plot(
+ax1.plot(
     lxy_values,
     analytical_results,
-    label="Ewald 2D",
+    label=r"$\mathrm{Ewald\ 2D}$",
     marker="o",
     linestyle="None",
     color="purple",
 )
 
+ax1.set_xlabel(r"$L_{\mathrm{xy}}$")
+ax1.set_ylabel("Energy")
+
 # Calculate absolute error
 error = np.abs(np.array(E_sum_list) - np.array(analytical_results))
 
 # Create secondary y-axis
-ax2 = plt.gca().twinx()
-ax2.plot(lxy_values, error, label="|E_total - Ewald 2D|", linestyle=":", color="orange")
+ax2 = ax1.twinx()
+error_color = "orange"
+ax2.plot(lxy_values, error, label="Error", linestyle=":", color=error_color)
 ax2.set_yscale("log")
-ax2.set_ylabel("Error", color="orange")
-ax2.tick_params(axis="y", labelcolor="orange")
+ax2.set_ylabel("Error", color=error_color)
+ax2.tick_params(axis="y", labelcolor=error_color)
 
+# Combine labels into a single legend
+lines_1, labels_1 = ax1.get_legend_handles_labels()
+lines_2, labels_2 = ax2.get_legend_handles_labels()
+ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="best")
 
-plt.xlabel(r"$L_{xy}$")
-plt.ylabel("Energy")
-plt.legend()
-plt.grid(True)
+plt.grid(True, which="both", linestyle="--", alpha=0.5)
+plt.tight_layout()
 
+# Save using the mandated function
+save_plot_with_timestamp(fig=fig)
 plt.show()

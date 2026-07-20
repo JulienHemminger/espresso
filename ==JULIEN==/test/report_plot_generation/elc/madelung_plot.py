@@ -1,7 +1,6 @@
 import espressomd
 import matplotlib.pyplot as plt
 import numpy as np
-from src.common.plot_saving import save_plot_with_timestamp
 from src.elc.energy.analytical.large_box_direct_sum import (
     get_direct_sum_energy as get_direct_sum_energy,
 )
@@ -41,13 +40,6 @@ def run_madelung(system, box_widths, gap_size=1, accuracy=1e-12):
     return madelung_refs, elc_energies
 
 
-"""
-Error caused by
-* custom elc: NO (i get same error with legacy_elc)
-* reference_energy: YES
-"""
-
-
 # Setup
 system = espressomd.System(box_l=[50, 50, 50])
 system.time_step = 0.01
@@ -56,41 +48,54 @@ system.cell_system.skin = 0.4
 box_sizes = range(10, 30 + 1, 1)
 refs, elcs = run_madelung(system, box_sizes)
 
+
+from src.common.plot_saving import save_plot_with_timestamp
+
+# Assuming variables box_sizes, refs, and elcs are defined in your context
 fig, ax1 = plt.subplots(figsize=(10, 6))
 
 # Primary Y-axis: Energy
-color = "dodgerblue"
-ax1.set_xlabel("Box Size")
+# Mapping "Reference" to "Analytical / Direct Sum / Ewald 2D" (purple)
+# Mapping "ELC" to "Legacy ELC" (orange) as per guidelines
+ax1.set_xlabel(r"$L_{\mathrm{xy}}$")
 ax1.set_ylabel("Energy")
+
 ax1.plot(
     box_sizes,
     refs,
-    label="Reference",
+    label=r"$\mathrm{Analytical}$",  # Assuming reference represents analytical
     marker="x",
     linestyle="solid",
     color="purple",
 )
-ax1.plot(box_sizes, elcs, marker="o", color=color, label="ELC", linestyle="dashed")
-ax1.tick_params(axis="y", labelcolor=color)
+ax1.plot(
+    box_sizes, elcs, marker="o", color="orange", label="Custom ELC", linestyle="dashed"
+)
 
-
-# Secondary Y-axis: Absolute Difference
+# Secondary Y-axis: Absolute Difference (Error)
 ax2 = ax1.twinx()
-color = "coral"
+error_color = "red"  # Distinct from energy lines
 abs_diff = np.abs(np.array(refs) - np.array(elcs))
-ax2.set_ylabel("Error", color=color)
-ax2.plot(box_sizes, abs_diff, "s:", color=color, label="|ELC - Reference|")
-ax2.tick_params(axis="y", labelcolor=color)
-ax2.set_yscale("log")  # Often useful to see differences on a log scale
 
+ax2.set_ylabel("Error", color=error_color)
+ax2.plot(
+    box_sizes,
+    abs_diff,
+    "s:",
+    color=error_color,
+    label=r"$\mathrm{|Analytical - Custom\ ELC|}$",
+)
+ax2.tick_params(axis="y", labelcolor=error_color, colors=error_color)
+ax2.set_yscale("log")
+
+# Combine labels into a single legend
 lines_1, labels_1 = ax1.get_legend_handles_labels()
 lines_2, labels_2 = ax2.get_legend_handles_labels()
-
-# Combine them and place in a single location
 ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="upper center")
 
 plt.grid(True, which="both", axis="x", linestyle="--", alpha=0.5)
 plt.tight_layout()
 
+# Save using the mandated function
 save_plot_with_timestamp(fig=fig)
 plt.show()

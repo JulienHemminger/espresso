@@ -1,0 +1,25 @@
+For all plots
+* colors for lines
+    $\mathrm{E_{3D}}$: cyan
+    $\mathrm{E_{dipole}}$: green
+    $\mathrm{E_{far}}$: lime
+    $\mathrm{E_{total}}$: dodgerblue
+    Analytical / Direct Sum / Ewald 2D: purple, magenta, violet, pink
+    Legacy ELC: orange
+    ... (dont pick too similar colors in the same plot. try to keep the color for e.g. Legacy ELC consistent across plots)
+
+
+
+* labels
+    * contribution labels should look like this: r"$\mathrm{E_{3D}}$",
+
+    * label it "Legacy ELC" (not just "Legacy")
+
+
+    * all energies (and contributions) on left axis. only if available error (in range 1e-7) on right y axis
+        * match the color of the right y-axis label and ticks
+        
+
+
+    * always have labeled axes
+    * all labels should be on a single legend

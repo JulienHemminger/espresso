@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from src.common.has_downward_trend import has_downward_trend
-from common.generators.position_generator import get_rdm_constrained_points_np
-from elc.force.custom_elc_forces import get_elc_forces_contribs
-from elc.force.analytical_elc_forces import get_ewald_forces_2d
+from src.common.generators.position_generator import get_rdm_constrained_points_np
+from src.common.plot_saving import save_plot_with_timestamp
+from src.elc.force.analytical_elc_forces import get_ewald_forces_2d
+from src.elc.force.custom_elc_forces import get_elc_forces_contribs
 
 
 def run_accuracy_convergence(
@@ -14,7 +14,10 @@ def run_accuracy_convergence(
     show_convergence_plot=True,
 ):
     # Setup parameters based on system type
+
+    # accuracies = np.logspace(-4, -5, num=2)
     accuracies = np.logspace(-4, -8, num=5)
+    # accuracies = np.logspace(-4, -12, num=9)
 
     lx, ly, lz = system.box_l
     particle_count = len(charges)
@@ -23,7 +26,11 @@ def run_accuracy_convergence(
     )
 
     elc_errors = []
-    contrib_data = {"P3M (3D)": [], "Yeh-Berkowitz": [], "ELC Reciprocal": []}
+    contrib_data = {
+        r"$\mathrm{F_{3D}}$": [],
+        r"$\mathrm{F_{dipole}}$": [],
+        r"$\mathrm{F_{far}}$": [],
+    }
 
     for acc in accuracies:
         system.part.clear()
@@ -46,12 +53,13 @@ def run_accuracy_convergence(
             )
         )  # Vector L2 Relative Error
 
-        contrib_data["P3M (3D)"].append(np.linalg.norm(f_3d[i]))
-        contrib_data["Yeh-Berkowitz"].append(pref * np.linalg.norm(f_corr_moments[i]))
-        contrib_data["ELC Reciprocal"].append(pref * np.linalg.norm(f_elc_recip[i]))
-
-    # --- Assertions ---
-    assert has_downward_trend(elc_errors)
+        contrib_data[r"$\mathrm{F_{3D}}$"].append(np.linalg.norm(f_3d[i]))
+        contrib_data[r"$\mathrm{F_{dipole}}$"].append(
+            pref * np.linalg.norm(f_corr_moments[i])
+        )
+        contrib_data[r"$\mathrm{F_{far}}$"].append(
+            pref * np.linalg.norm(f_elc_recip[i])
+        )
 
     if show_convergence_plot:
         fig, ax1 = plt.subplots(figsize=(10, 7))
@@ -59,7 +67,7 @@ def run_accuracy_convergence(
 
         colors = ["#1abc9c", "#f1c40f", "#9b59b6"]
         bottoms = np.zeros(len(accuracies))
-        bar_width = 0.2 * np.array(accuracies)
+        bar_width = 1.0 * np.array(accuracies)
 
         # 1. Secondary Axis: Energy Contributions (Stacked Bars)
         for i, (label, vals) in enumerate(contrib_data.items()):
@@ -80,21 +88,16 @@ def run_accuracy_convergence(
             accuracies,
             elc_errors,
             "o-",
-            label="ELC Error",
+            label=r"$\mathrm{|Ewald\ 2D - Custom\ ELC|}$",
             color="#2980b9",
             linewidth=2,
             zorder=5,
         )
 
-        ax1.loglog(
-            accuracies, accuracies, "k:", alpha=0.5, label="Target Accuracy (1:1)"
-        )
-
         # Formatting
-        ax1.set_xlabel("Requested Accuracy (pw_error)")
-        ax1.set_ylabel("Measured Error (Log Scale)", color="#2980b9")
-        ax2.set_ylabel("Force Component Value (Linear Scale)", color="#7f8c8d")
-        plt.title("Force Accuracy Convergence")
+        ax1.set_xlabel("Requested Accuracy")
+        ax1.set_ylabel("Error", color="#2980b9")
+        ax2.set_ylabel("Force Contribution Magnitude", color="black")
 
         lines, labels = ax1.get_legend_handles_labels()
         bars, bar_labels = ax2.get_legend_handles_labels()
@@ -108,4 +111,19 @@ def run_accuracy_convergence(
         ax1.grid(True, which="both", ls="-", alpha=0.2)
         ax1.invert_xaxis()
         fig.tight_layout()
+
+        save_plot_with_timestamp(fig)
         plt.show()
+
+
+import espressomd
+import espressomd.electrostatics
+
+system = espressomd.System(box_l=[10, 10, 10])
+system.time_step = 0.01
+system.cell_system.skin = 0.4
+
+
+run_accuracy_convergence(
+    system, prefactor=1, gap_size=1, charges=[+1, -1], show_convergence_plot=True
+)

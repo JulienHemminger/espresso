@@ -54,39 +54,46 @@ for l_xy in l_xy_values:
     print(f"direct_sum_results = {direct_sum_results[-1]}")
     print(f"legacy_results = {legacy_results[-1]}")
 
-# 3. Plotting
-plt.figure(figsize=(10, 6))  # Increased width to accommodate the text
+from src.common.plot_saving import save_plot_with_timestamp
 
+# Refactored plotting block
+fig, ax1 = plt.subplots(figsize=(10, 6))
 
-plt.plot(
+# Plot components with mandated colors and labels
+ax1.plot(
     l_xy_values,
     direct_sum_results,
-    label="Direct Sum without PBC",
+    label=r"$\mathrm{Direct\ Sum}$",
     marker="o",
     linestyle="--",
     color="purple",
 )
-plt.plot(
+ax1.plot(
     l_xy_values,
     ewald_results,
-    label="Ewald 2D",
+    label=r"$\mathrm{Ewald\ 2D}$",
     marker="s",
     linestyle="--",
-    color="orchid",
+    color="magenta",
 )
-plt.plot(
+ax1.plot(
     l_xy_values,
     legacy_results,
-    label="Legacy",
+    label="Legacy ELC",
     marker="x",
     linestyle=(0, (5, 10)),
     color="orange",
 )
 
+ax1.set_xlabel(r"$L_{\mathrm{xy}}$")
+ax1.set_ylabel("Energy")
 
-plt.xlabel(r"$L_{xy}$")
-plt.ylabel("Energy")
-plt.legend()
-plt.grid(True)
+# Ensure single legend
+ax1.legend()
 
+plt.grid(True, which="both", linestyle="--", alpha=0.5)
+plt.tight_layout()
+
+# Save using the mandated function
+save_plot_with_timestamp(fig=fig)
 plt.show()

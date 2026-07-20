@@ -131,31 +131,46 @@ for z in z_values:
         f"Z={z:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_far:.4f} | Sum={E_sum_list[-1]:.4f}"
     )
 
-# 3. Plotting
-plt.figure(figsize=(10, 6))
+# Refactored plotting block
+fig, ax1 = plt.subplots(figsize=(10, 6))
 
-# Plot components
-plt.plot(z_values, E_3d_list, label=r"$E_{3D}$", linestyle=":", color="cyan")
-plt.plot(z_values, E_dipole_list, label=r"$E_{dipole}$", linestyle=":", color="skyblue")
-plt.plot(z_values, E_far_list, label=r"$E_{far}$", linestyle=":", color="steelblue")
-plt.plot(
+# Plot components with mandated colors and labels
+ax1.plot(z_values, E_3d_list, label=r"$\mathrm{E_{3D}}$", linestyle=":", color="cyan")
+ax1.plot(
+    z_values,
+    E_dipole_list,
+    label=r"$\mathrm{E_{dipole}}$",
+    linestyle=":",
+    color="green",
+)
+ax1.plot(z_values, E_far_list, label=r"$\mathrm{E_{far}}$", linestyle=":", color="lime")
+ax1.plot(
     z_values,
     E_sum_list,
-    label=r"$E_{total}$",
+    label=r"$\mathrm{E_{total}}$",
     linestyle="-",
     color="dodgerblue",
 )
-plt.plot(
+ax1.plot(
     z_values,
     analytical_results,
-    label="Ewald 2D",
+    label=r"$\mathrm{Ewald\ 2D}$",
     marker="o",
     linestyle="None",
     color="purple",
 )
 
-plt.xlabel("Particle z Position")
-plt.ylabel("Energy")
-plt.legend()
-plt.grid(True)
+ax1.set_xlabel("Particle z position")
+ax1.set_ylabel("Energy")
+
+# Ensure single legend
+ax1.legend()
+
+plt.grid(True, which="both", linestyle="--", alpha=0.5)
+plt.tight_layout()
+
+# Save using the mandated function
+from src.common.plot_saving import save_plot_with_timestamp
+
+save_plot_with_timestamp(fig=fig)
 plt.show()

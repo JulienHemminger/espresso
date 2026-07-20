@@ -51,19 +51,20 @@ for l_xy in l_xy_values:
     print(f"analytical = {analytical_results[-1]}")
     print(f"legacy = {legacy_results[-1]}")
 
-# 3. Plotting
-plt.figure(figsize=(10, 6))  # Increased width to accommodate the text
+from src.common.plot_saving import save_plot_with_timestamp
 
+# Refactored plotting block
+fig, ax1 = plt.subplots(figsize=(10, 6))
 
-plt.plot(
+ax1.plot(
     l_xy_values,
     analytical_results,
-    label="Analytical",
+    label=r"$\mathrm{Analytical}$",
     marker="o",
     linestyle="--",
     color="purple",
 )
-plt.plot(
+ax1.plot(
     l_xy_values,
     legacy_results,
     label="Legacy ELC",
@@ -72,9 +73,15 @@ plt.plot(
     color="orange",
 )
 
-plt.xlabel(r"$L_{xy}$")
-plt.ylabel("Energy")
-plt.legend()
-plt.grid(True)
+ax1.set_xlabel(r"$L_{\mathrm{xy}}$")
+ax1.set_ylabel("Energy")
 
+# Ensure single legend
+ax1.legend()
+
+plt.grid(True, which="both", linestyle="--", alpha=0.5)
+plt.tight_layout()
+
+# Save using the mandated function
+save_plot_with_timestamp(fig=fig)
 plt.show()
