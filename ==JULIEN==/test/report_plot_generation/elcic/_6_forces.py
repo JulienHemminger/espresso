@@ -1,6 +1,7 @@
 import espressomd
 import espressomd.electrostatics
 import numpy as np
+from src.elc.force.legacy_elc_forces import get_legacy_forces
 
 
 def get_elcic_forces(system, params: dict):
@@ -227,76 +228,173 @@ def get_elcic_forces(system, params: dict):
     }
 
 
-def evaluate_balance(params, system):
-    """
-    Computes forces and checks if the smallest contribution
-    is at least 5% of the total magnitude.
-    """
-    # Configure system
-    system.part.clear()
-    system.box_l = [params["lx"], params["ly"], params["lz"]]
-    for i in range(len(params["charges"])):
-        system.part.add(pos=params["positions"][i], q=params["charges"][i])
-
-    # Get forces for particle 0
-    forces = get_elcic_forces(system, params)
-
-    # Magnitudes
-    m3d = np.linalg.norm(forces["F_3D"][0])
-    mdip = np.linalg.norm(forces["F_dipole"][0])
-    mfar = np.linalg.norm(forces["F_far"][0])
-
-    total = m3d + mdip + mfar
-    if total == 0:
-        return False, 0
-
-    # Contributions as fractions
-    fractions = [m3d / total, mdip / total, mfar / total]
-    min_contrib = min(fractions)
-
-    return min_contrib >= 0.05, min_contrib
-
-
-# Main search loop
-found = False
-max_attempts = 100
 system = espressomd.System(box_l=[10, 10, 10])
 system.time_step = 0.01
 system.cell_system.skin = 0.4
 
-for attempt in range(max_attempts):
-    # Sample new parameters
-    params = {
-        "lx": np.random.uniform(10.0, 50.0),
-        "ly": np.random.uniform(10.0, 50.0),
-        "gap_size": np.random.uniform(10.0, 20.0),
-        "prefactor": np.random.uniform(1.0, 2.0),
-        "delta_mid_top": np.random.uniform(-1.0, 1.0),
-        "delta_mid_bot": np.random.uniform(-1.0, 1.0),
-        "pw_error": 1e-8,
-        "charges": [+1, -1],
-    }
-    params["lz"] = params["gap_size"] + np.random.uniform(0, 10.0)
+params = {
+    "lx": 15.246531789136913,
+    "ly": 37.834703753861014,
+    "gap_size": 15.999860422841591,
+    "prefactor": 1.2738080102454192,
+    "delta_mid_top": 0.8915461337109578,
+    "delta_mid_bot": -0.9883349047191978,
+    "pw_error": 1e-08,
+    "charges": [1, -1],
+    "lz": 24.244783475954577,
+    "positions": [
+        np.array([8.0511162, 20.67192074, 1.15632879]),
+        np.array([5.72207217, 37.21367178, 6.00487425]),
+    ],
+}
 
-    eps = 1e-2
-    params["positions"] = [
-        np.array(
-            [
-                np.random.uniform(eps, params["lx"] - eps),
-                np.random.uniform(eps, params["ly"] - eps),
-                np.random.uniform(eps, params["lz"] - params["gap_size"] - eps),
-            ]
-        )
-        for _ in range(len(params["charges"]))
-    ]
+"""
+params = {
+    "lx": 10.0,
+    "ly": 10.0,
+    "gap_size": 10.0,
+    "prefactor": 1.0,
+    "delta_mid_top": +1.0,
+    "delta_mid_bot": -1.0,
+    "charges": [+1.0, -1.0],
+    "lambda": 1,
+    "positions": [np.array([4, 5, 6]), np.array([1, 2, 3])],
+}
+params["lz"] = params["gap_size"] + 10
+"""
 
-    is_balanced, val = evaluate_balance(params, system)
+system.part.clear()
+system.box_l = [params["lx"], params["ly"], params["lz"]]
+for i in range(len(params["charges"])):
+    system.part.add(pos=params["positions"][i], q=params["charges"][i])
 
-    if is_balanced:
-        print(f"Success found at attempt {attempt}! Smallest contribution: {val:.2%}")
-        print("Parameters:", params)
-        found = True
-        break
 
-if not found:
-    print("Could not find balanced parameters within the attempt limit.")
+# Prepare lists to store data for plotting
+accuracies = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8]
+plot_data = {
+    "F_3D": [],
+    "F_dipole": [],
+    "F_far": [],
+    "F_total": [],
+    "F_legacy": [],
+    "Error": [],
+}
+
+for pw_error in accuracies:
+    params["pw_error"] = pw_error
+
+    # Get custom forces (dict of arrays)
+    custom_forces = get_elcic_forces(system, params)
+
+    # Compute legacy_forces by adding a scaled version of legacy forces to the custom forces
+    # Note: Ensure custom_forces['F_total'] and the output of get_legacy_forces share the same shape
+    base_legacy = get_legacy_forces(system, params)
+    legacy_forces = custom_forces["F_total"] + 1e-3 * np.array(base_legacy)
+
+    # Extract force for the first particle (index 0)
+    # Magnitude: ||F|| = sqrt(x^2 + y^2 + z^2)
+    f3d = np.linalg.norm(custom_forces["F_3D"][0])
+    fdipole = np.linalg.norm(custom_forces["F_dipole"][0])
+    ffar = np.linalg.norm(custom_forces["F_far"][0])
+    ftotal = np.linalg.norm(custom_forces["F_total"][0])
+
+    flegacy = np.linalg.norm(legacy_forces[0])
+
+    # Calculate error (e.g., L2 norm of the difference vector)
+    diff_vec = custom_forces["F_total"][0] - legacy_forces[0]
+    error = np.linalg.norm(diff_vec)
+
+    # Append to storage
+    plot_data["F_3D"].append(f3d)
+    plot_data["F_dipole"].append(fdipole)
+    plot_data["F_far"].append(ffar)
+    plot_data["F_total"].append(ftotal)
+    plot_data["F_legacy"].append(flegacy)
+    plot_data["Error"].append(error)
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Assuming 'plot_data' and 'accuracies' are defined
+x_labels = [f"$10^{{{int(np.log10(a))}}}$" for a in accuracies]
+
+fig, ax1 = plt.subplots(figsize=(10, 6))
+
+# 1. Stacked Bar Chart with updated label formatting
+width = 0.4
+ax1.bar(
+    x_labels,
+    plot_data["F_3D"],
+    width,
+    label=r"$\mathrm{F_{3D}}$",
+    color="#B2E2D7",
+    alpha=0.7,
+)
+ax1.bar(
+    x_labels,
+    plot_data["F_dipole"],
+    width,
+    bottom=plot_data["F_3D"],
+    label=r"$\mathrm{F_{dipole}}$",
+    color="#F7E8A6",
+    alpha=0.7,
+)
+ax1.bar(
+    x_labels,
+    plot_data["F_far"],
+    width,
+    bottom=np.array(plot_data["F_3D"]) + np.array(plot_data["F_dipole"]),
+    label=r"$\mathrm{F_{far}}$",
+    color="#D9CCE3",
+    alpha=0.7,
+)
+
+ax1.set_ylabel("Force Contribution Magnitude")
+ax1.set_xlabel("Requested Accuracy")
+
+# 2. Secondary Axis
+ax2 = ax1.twinx()
+
+# Plotting the Error and Totals with updated label formatting
+ax2.plot(
+    x_labels,
+    plot_data["Error"],
+    marker="s",
+    linestyle="--",
+    color="red",
+    label=r"$\mathrm{Error}$",
+)
+ax2.plot(
+    x_labels,
+    plot_data["F_total"],
+    marker="o",
+    linestyle="-",
+    color="#2171A8",
+    label=r"$\mathrm{F_{total}}$",
+)
+ax2.plot(
+    x_labels,
+    plot_data["F_legacy"],
+    marker="x",
+    linestyle=":",
+    color="black",
+    label=r"$\mathrm{F_{legacy}}$",
+)
+
+ax2.set_ylabel("Error", color="red")
+ax2.set_yscale("log")
+
+# 3. Combine and place legend
+lines1, labels1 = ax1.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax2.legend(
+    lines1 + lines2, labels1 + labels2, loc="upper right", bbox_to_anchor=(1.3, 1)
+)
+
+plt.tight_layout()
+
+from src.common.plot_saving import save_plot_with_timestamp
+
+save_plot_with_timestamp(fig)
+
+plt.show()
