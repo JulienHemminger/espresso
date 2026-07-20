@@ -1,6 +1,6 @@
-import numpy as np
 import espressomd
 import espressomd.electrostatics
+import numpy as np
 
 
 def get_elcic_forces(system, params: dict):
@@ -37,7 +37,6 @@ def get_elcic_forces(system, params: dict):
     pos = np.array([p.pos for p in parts])
     xs, ys, zs = pos[:, 0], pos[:, 1], pos[:, 2]
 
-
     # --- Step 1: Direct 3D Periodic Reference Evaluation ---
     p3m_base = espressomd.electrostatics.P3M(
         prefactor=prefactor,
@@ -47,7 +46,7 @@ def get_elcic_forces(system, params: dict):
     )
     system.electrostatics.solver = p3m_base
     system.integrator.run(0)
-    f_3d_baseline = np.array([p.f for p in parts])
+    f_3d = np.array([p.f for p in parts])
 
     # --- Step 2: Analytical Reciprocal Layer Correction Term ---
     f_max = -np.log(pw_err) / (2.0 * np.pi * gap_size)
@@ -59,9 +58,7 @@ def get_elcic_forces(system, params: dict):
     P, Q = np.meshgrid(p_range, q_range)
     P, Q = P.flatten(), Q.flatten()
 
-    mask = ((P != 0) | (Q != 0)) & (
-        np.sqrt((P / lx) ** 2 + (Q / ly) ** 2) <= f_max
-    )
+    mask = ((P != 0) | (Q != 0)) & (np.sqrt((P / lx) ** 2 + (Q / ly) ** 2) <= f_max)
     pk, qk = P[mask], Q[mask]
     fx, fy = pk / lx, qk / ly
     f_mag = np.sqrt(fx**2 + fy**2)
@@ -96,7 +93,7 @@ def get_elcic_forces(system, params: dict):
     denom_prog = 1.0 / (1.0 - delta_prod * np.exp(-2.0 * arg_z * h))
     term_pref = (1.0 / (lx * ly * f_mag)) * denom_prog
 
-    f_elcic_recip = np.zeros((n_real, 3))
+    f_far = np.zeros((n_real, 3))
     for i in range(4):
         tx = cx if i in [0, 2] else sx
         ty = cy if i in [0, 1] else sy
@@ -111,34 +108,28 @@ def get_elcic_forces(system, params: dict):
             + delta_prod * exp_factor * (exp_plus * chi_p[i] + exp_minus * chi_m[i])
         )
 
-        f_elcic_recip[:, 0] += (
-            qs[:, None] * dtx * ty * combined_fields @ term_pref
-        )
-        f_elcic_recip[:, 1] += (
-            qs[:, None] * tx * dty * combined_fields @ term_pref
-        )
+        f_far[:, 0] += qs[:, None] * dtx * ty * combined_fields @ term_pref
+        f_far[:, 1] += qs[:, None] * tx * dty * combined_fields @ term_pref
 
         # Signed Z components matching normal-direction asymmetry reflections
         z_fields = (
             delta_t * exp_factor * exp_plus * chi_m[i]
             - delta_b * exp_factor * exp_minus * chi_p[i]
         )
-        f_elcic_recip[:, 2] += (
-            qs[:, None] * arg_z * tx * ty * z_fields @ term_pref
-        )
+        f_far[:, 2] += qs[:, None] * arg_z * tx * ty * z_fields @ term_pref
 
     # --- Step 3: Complete Non-Neutral/Slab Background Alignment ---
-   # --- Step 3: Corrected Non-Neutral/Slab Background Alignment ---
-    f_corr_moments = np.zeros((n_real, 3))
-    
+    # --- Step 3: Corrected Non-Neutral/Slab Background Alignment ---
+    f_dipole = np.zeros((n_real, 3))
+
     # Fundamental global moments
-    xi0 = np.sum(qs)        # Net charge of the system
-    xi1 = np.sum(qs * zs)   # Net dipole moment along z
-    
+    xi0 = np.sum(qs)  # Net charge of the system
+    xi1 = np.sum(qs * zs)  # Net dipole moment along z
+
     # 1. Primary dielectric layer progression matching term
     if abs(1.0 - delta_prod) > 1e-9:
         pref_moments = -(4.0 * np.pi / (lx * ly * h)) * (1.0 / (1.0 - delta_prod))
-        f_corr_moments[:, 2] = (
+        f_dipole[:, 2] = (
             pref_moments
             * qs
             * (xi1 * (1.0 + delta_prod) - xi0 * zs * (1.0 - delta_prod))
@@ -148,16 +139,13 @@ def get_elcic_forces(system, params: dict):
     # These terms must scale proportionally to net-charge asymmetry (xi0).
     # For charge-neutral systems (xi0 = 0), these background forces must be zero.
     volume_factor = lx * ly * lz_full
-    
+
     # Linear and constant alignment updates
-    f_corr_moments[:, 2] += (4.0 * np.pi / volume_factor) * qs * zs * xi0
-    f_corr_moments[:, 2] -= (4.0 * np.pi / volume_factor) * qs * (xi1 - (lz_full / 2.0)) * xi0
-
-
-    f_elcic_corr = prefactor * (f_elcic_recip + f_corr_moments)
+    f_dipole[:, 2] += (4.0 * np.pi / volume_factor) * qs * zs * xi0
+    f_dipole[:, 2] -= (4.0 * np.pi / volume_factor) * qs * (xi1 - (lz_full / 2.0)) * xi0
 
     # --- Step 4: Near-field Layer Correction via Disjoint Set Evaluation ---
-    f_near_field_images = np.zeros((n_real, 3))
+    f_idk = np.zeros((n_real, 3))
     idx_bot = np.where((zs >= 0.0) & (zs <= lambda_))[0]
     idx_top = np.where((zs >= (h - lambda_)) & (zs <= h))[0]
 
@@ -175,7 +163,9 @@ def get_elcic_forces(system, params: dict):
 
         # Inject localized 1st-order image reflections
         for idx in idx_bot:
-            system.part.add(pos=np.array([xs[idx], ys[idx], -zs[idx]]), q=delta_b * qs[idx])
+            system.part.add(
+                pos=np.array([xs[idx], ys[idx], -zs[idx]]), q=delta_b * qs[idx]
+            )
 
         for idx in idx_top:
             system.part.add(
@@ -195,7 +185,7 @@ def get_elcic_forces(system, params: dict):
 
         parts_near = list(system.part.all())
         for idx in range(n_real):
-            f_near_field_images[idx] = parts_near[idx].f - f_3d_baseline[idx]
+            f_idk[idx] = parts_near[idx].f - f_3d[idx]
 
         # Restore native configuration cleanly
         system.part.clear()
@@ -207,27 +197,34 @@ def get_elcic_forces(system, params: dict):
         system.electrostatics.solver = p3m_base
 
     # --- Step 5: Final Aggregation and Detailed Tracking Printouts ---
-    f_elcic_corr = prefactor * (f_elcic_recip + f_corr_moments)
-    f_total_elcic = f_3d_baseline + f_elcic_corr + f_near_field_images
+    f_total_elcic = f_3d + f_far + f_dipole
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("         ELCIC COMPONENT-WISE TELEMETRY LOG")
-    print("="*60)
+    print("=" * 60)
     for idx in range(n_real):
         print(f"--- Particle {idx} (q={qs[idx]}, z={zs[idx]:.4f}) ---")
-        print(f"  3D Baseline P3M F : {f_3d_baseline[idx]}")
-        print(f"  Reciprocal ELCIC F: {prefactor * f_elcic_recip[idx]}")
-        print(f"  Moment CorrectionF: {prefactor * f_corr_moments[idx]}")
-        print(f"  Near-Field Image F: {f_near_field_images[idx]}")
+        print(f"  3D Baseline P3M F : {f_3d[idx]}")
+        print(f"  Reciprocal ELCIC F: {prefactor * f_far[idx]}")
+        print(f"  Moment CorrectionF: {prefactor * f_dipole[idx]}")
+        print(f"  Near-Field Image F: {f_idk[idx]}")
         print(f"  Computed Total F  : {f_total_elcic[idx]}")
-        
+
         # Replace this line with your analytical or high-accuracy reference grid truth vector
-        f_truth_actual = np.array([0.0, 0.0, 0.0]) 
-        
+        f_truth_actual = np.array([0.0, 0.0, 0.0])
+
         if np.any(f_truth_actual):
             err = f_total_elcic[idx] - f_truth_actual
             print(f"  Absolute Error Vec: {err}")
             print(f"  Max Absolute Error: {np.max(np.abs(err)):.4e}")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     return f_total_elcic
+    """
+    return {
+        "F_total": f_total_elcic,
+        "F_3D": f_3d,
+        "F_dipole": f_dipole,
+        "F_far": f_far,
+    }
+    """
