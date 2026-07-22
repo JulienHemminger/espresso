@@ -56,7 +56,7 @@ fig, ax1 = plt.subplots(figsize=(10, 6))
 ax1.plot(
     t_values,
     analytical_results,
-    label="ICM-Ewald 2D",
+    label="Ewald 2D",
     marker="o",
     linestyle="--",
     color="purple",
@@ -80,7 +80,7 @@ ax2 = ax1.twinx()
 ax2.plot(
     t_values,
     error,
-    label="|Legacy ELCIC - ICM-Ewald 2D|",
+    label="|Legacy ELCIC - Ewald 2D|",
     linestyle=":",
     color="orange",
 )
