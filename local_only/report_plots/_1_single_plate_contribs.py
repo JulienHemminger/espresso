@@ -87,9 +87,9 @@ plot_metrics = {
         (("color", "dodgerblue"), ("linestyle", ":"), ("linewidth", 2.5)),
     ): get_E_total,
     (r"$E_{near}$", (("color", "cyan"), ("linestyle", "--"))): get_E_near,
-    (r"$E_{lt}$", (("color", "steelblue"), ("linestyle", "--"))): get_E_lt,
+    (r"$E_{LT}$", (("color", "steelblue"), ("linestyle", "--"))): get_E_lt,
     (r"$E_{±1}$", (("color", "skyblue"), ("linestyle", "--"))): get_E_pm1,
-    (r"$E_{l0}$", (("color", "purple"), ("linestyle", "--"))): get_E_l0,
+    (r"$E_{L0}$", (("color", "purple"), ("linestyle", "--"))): get_E_l0,
     (r"$E_{far}$", (("color", "cyan"), ("linestyle", "-."))): get_E_far,
 }
 
