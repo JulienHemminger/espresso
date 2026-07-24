@@ -166,17 +166,26 @@ for z in z_values:
         f"Z={z:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_recip:.4f} | Sum={E_sum_list[-1]:.4f}"
     )
 
+linewidth = 3
 
 # Refactored plotting block
 fig, ax1 = plt.subplots(figsize=(10, 6))
 
 # Plot components with mandated colors and labels
-ax1.plot(z_values, E_3d_list, label=r"$\mathrm{E_{3D}}$", linestyle=":", color="cyan")
+ax1.plot(
+    z_values,
+    E_3d_list,
+    label=r"$\mathrm{E_{3D}}$",
+    linestyle=":",
+    linewidth=linewidth,
+    color="darkturquoise",
+)
 ax1.plot(
     z_values,
     E_dipole_list,
     label=r"$\mathrm{E_{dipole}}$",
     linestyle=":",
+    linewidth=linewidth,
     color="green",  # Updated from skyblue to green per guidelines
 )
 ax1.plot(
@@ -184,6 +193,7 @@ ax1.plot(
     E_sum_list,
     label=r"$\mathrm{E_{total}}$",
     linestyle="-",
+    linewidth=linewidth,
     color="dodgerblue",
 )
 ax1.plot(

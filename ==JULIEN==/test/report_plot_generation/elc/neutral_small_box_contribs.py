@@ -130,25 +130,41 @@ for z in z_values:
     print(
         f"Z={z:.4f} | E_3d={E_3d:.4f} | E_dipole={E_dipole:.4f} | E_recip={E_far:.4f} | Sum={E_sum_list[-1]:.4f}"
     )
-
+linewidth = 3
 # Refactored plotting block
 fig, ax1 = plt.subplots(figsize=(10, 6))
 
 # Plot components with mandated colors and labels
-ax1.plot(z_values, E_3d_list, label=r"$\mathrm{E_{3D}}$", linestyle=":", color="cyan")
+ax1.plot(
+    z_values,
+    E_3d_list,
+    label=r"$\mathrm{E_{3D}}$",
+    linestyle=":",
+    linewidth=linewidth,
+    color="darkturquoise",
+)
 ax1.plot(
     z_values,
     E_dipole_list,
     label=r"$\mathrm{E_{dipole}}$",
     linestyle=":",
+    linewidth=linewidth,
     color="green",
 )
-ax1.plot(z_values, E_far_list, label=r"$\mathrm{E_{far}}$", linestyle=":", color="lime")
+ax1.plot(
+    z_values,
+    E_far_list,
+    label=r"$\mathrm{E_{far}}$",
+    linestyle=":",
+    linewidth=linewidth,
+    color="lime",
+)
 ax1.plot(
     z_values,
     E_sum_list,
     label=r"$\mathrm{E_{total}}$",
     linestyle="-",
+    linewidth=linewidth,
     color="dodgerblue",
 )
 ax1.plot(
@@ -157,6 +173,7 @@ ax1.plot(
     label=r"$\mathrm{Ewald\ 2D}$",
     marker="o",
     linestyle="None",
+    linewidth=linewidth,
     color="purple",
 )
 

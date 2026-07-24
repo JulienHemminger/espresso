@@ -96,9 +96,17 @@ for t in t_values:
 
     # Update charges
     # Z=1.0000 | E_3d=2.8826 | E_dipole=0.0567 | E_recip=-2.0704 | E_nonneutr=-0.2274 | Sum=0.6415
-    q0 = +5 + 3 * t
+    q0 = 5 + 3 * t
     q1 = -7 + 9 * t
-    q2 = +2 - 2 * t
+    q2 = +2 - 3 * t
+
+    """
+    ORIGINAL (Q(t=1) = 10)
+        q0 = 5 + 3 * t
+        q1 = -7 + 9 * t
+        q2 = +2 - 2 * t
+    CHANGE  q2 = +2 - 3 * t (Q(t=1) = 8+2-1=)
+    """
 
     system.part.add(pos=params["positions"][0], q=q0)
     system.part.add(pos=params["positions"][1], q=q1)
@@ -124,22 +132,38 @@ from src.common.plot_saving import save_plot_with_timestamp
 
 # Refactored plotting block
 fig, ax1 = plt.subplots(figsize=(10, 6))
-
+linewidth = 3
 # All energy contributions on the primary axis
-ax1.plot(t_values, E_3d_list, label=r"$\mathrm{E_{3D}}$", linestyle=":", color="cyan")
+ax1.plot(
+    t_values,
+    E_3d_list,
+    label=r"$\mathrm{E_{3D}}$",
+    linestyle=":",
+    linewidth=linewidth,
+    color="cyan",
+)
 ax1.plot(
     t_values,
     E_sum_list,
     label=r"$\mathrm{E_{total}}$",
     linestyle="-",
+    linewidth=linewidth,
     color="dodgerblue",
 )
-ax1.plot(t_values, E_far_list, label=r"$\mathrm{E_{far}}$", linestyle=":", color="lime")
+ax1.plot(
+    t_values,
+    E_far_list,
+    label=r"$\mathrm{E_{far}}$",
+    linestyle=":",
+    linewidth=linewidth,
+    color="lime",
+)
 ax1.plot(
     t_values,
     E_dipole_list,
     label=r"$\mathrm{E_{dipole}}$",
     linestyle=":",
+    linewidth=linewidth,
     color="green",
 )
 ax1.plot(
@@ -147,6 +171,7 @@ ax1.plot(
     E_nonneutr_list,
     label=r"$\mathrm{E_{non-neutral}}$",
     linestyle=":",
+    linewidth=linewidth,
     color="magenta",  # Using pink to distinguish from other defined colors
 )
 ax1.plot(
@@ -155,6 +180,7 @@ ax1.plot(
     label=r"$\mathrm{Ewald\ 2D}$",
     marker="o",
     linestyle="None",
+    linewidth=linewidth,
     color="purple",
 )
 
