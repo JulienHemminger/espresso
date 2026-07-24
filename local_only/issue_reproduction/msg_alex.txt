@@ -1,5 +1,0 @@
-Der Github Issue zu ELC ist hier: "https://github.com/espressomd/espresso/issues/3001"
-
-Aber weil der Code von 2019 ist, und sich Espresso viel verändert hat, läuft das Orginal-Skript nicht. Ich hab versucht es anzupassen, aber ich bekomme es nicht hin den Fehler zu reproduzieren.
-
-Du kennst Espresso ja weit besser als ich. Kannst du versuchen den Fehler reproduziert? Das sollte ja auch für die aktuelle Espresso version gehen, oder (weil der ELC bug immernoch nicht behoben ist)
