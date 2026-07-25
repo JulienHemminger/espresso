@@ -17,6 +17,7 @@ system.cell_system.skin = (
     0.4  # NEED to fix "tuning failed: number of cells 6 is smaller than minimum 8"
 )
 
+
 start_params = {
     "lx": 10.0,
     "ly": 10.0,
@@ -32,7 +33,7 @@ start_params["lz"] = start_params["gap_size"] + 10
 
 
 end_params = copy.deepcopy(start_params)
-end_params["positions"] = [np.array([6, 5, 3]), np.array([3, 2, 6])]
+end_params["positions"] = [np.array([6, 5, 3]), np.array([3, 2, 7])]
 
 
 def get_reference(system, params):
@@ -106,13 +107,13 @@ plot_metrics = {
     ): get_E_far,
 }
 
+
 error_metrics = {
     (
         r"$|E_{total} - \text{Ewald 2D}|$",
         (("color", "orange"), ("linestyle", ":"), ("linewidth", fac * 1.0)),
     ): get_reference_error,
 }
-
 run_lerp_plot(
     system=system,
     start_params=start_params,
