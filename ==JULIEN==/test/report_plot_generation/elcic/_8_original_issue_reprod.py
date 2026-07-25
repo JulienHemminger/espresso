@@ -1,94 +1,61 @@
-import unittest as ut
-
 import espressomd
 import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-class ELC_vs_MMM2D_neutral(ut.TestCase):
-    # Handle to espresso system
-
-    system = espressomd.System(box_l=[1.0, 1.0, 1.0])
-    acc = 1e-6
-    elc_gap = 8.0
-    box_l = 10.0
-    bl2 = box_l * 0.5
-    system.time_step = 0.01
-    system.cell_system.skin = 0.1
-
-    def test_elc_vs_mmm2d(self):
-        params = {
-            "gap_size": self.elc_gap,
-            "maxPWerror": self.acc,
-            "delta_mid_bot": 0.1,
-            "delta_mid_top": 0.9,
-            "check_neutrality": False,
-        }
-
-        # ELC
-        self.system.box_l = [self.box_l, self.box_l, self.box_l + self.elc_gap]
-        self.system.use_verlet_lists = True
-        self.system.periodicity = [True, True, True]
-
-        q = 3.0
-        non_neutral_fac = 3.0
-
-        self.system.part.add(id=0, pos=(5.0, 5.0, 5.0), q=-non_neutral_fac * q)
-        self.system.part.add(id=1, pos=(2.0, 2.0, 5.0), q=q / 3.0)
-        self.system.part.add(id=2, pos=(2.0, 5.0, 2.0), q=q / 3.0)
-        self.system.part.add(id=3, pos=(5.0, 2.0, 7.0), q=q / 3.0)
-        # -9, 1, 1, 1
-
-        p3m = espressomd.electrostatics.P3M(
-            prefactor=1.0, accuracy=self.acc, check_neutrality=False
-        )
-
-        elc = espressomd.electrostatics.ELC(actor=p3m, **params)
-        self.system.electrostatics.solver = elc
-        elc_res = {}
-
-        elc_res = self.scan()
-
-        np.savetxt("data.dat", (elc_res))
-        print(elc_res)
-        # ================
-        data = np.array(elc_res)
-        z = data[:, 0]
-        fz = data[:, 3]
-        energy = data[:, 4]
-
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-
-        ax1.plot(z, fz, label="Force Z")
-        ax1.set_ylabel("Force")
-        ax1.legend()
-
-        ax2.plot(z, energy, label="Coulomb Energy", color="orange")
-        ax2.set_xlabel("z position")
-        ax2.set_ylabel("Energy")
-        ax2.legend()
-
-        plt.tight_layout()
-        plt.show()
-        # ================
-
-    def scan(self):
-        n = 100
-        d = 0.05
-        res = []
-        for i in range(n + 1):
-            z = self.box_l - d - 1.0 * i / n * (self.box_l - 2 * d)
-            self.system.part.by_id(0).pos = [self.bl2, self.bl2, z]
-            self.system.integrator.run(0)
-            energy = self.system.analysis.energy()
-            m = [z]
-            m.extend(self.system.part.by_id(0).f)
-            m.append(energy["coulomb"])
-            res.append(m)
-
-        return res
+acc = 1e-6
+gap_size = 8.0
+box_l = 10.0
 
 
-if __name__ == "__main__":
-    ut.main()
+system = espressomd.System(box_l=[box_l, box_l, box_l + gap_size])
+system.time_step = 0.01
+system.cell_system.skin = 0.1
+
+system.use_verlet_lists = True
+system.periodicity = [True, True, True]
+
+system.part.add(id=0, pos=(5.0, 5.0, 5.0), q=-9)
+system.part.add(id=1, pos=(2.0, 2.0, 5.0), q=+1)
+system.part.add(id=2, pos=(2.0, 5.0, 2.0), q=+1)
+system.part.add(id=3, pos=(5.0, 2.0, 7.0), q=+1)
+
+p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=acc, check_neutrality=False)
+
+elc = espressomd.electrostatics.ELC(
+    actor=p3m,
+    gap_size=gap_size,
+    maxPWerror=acc,
+    delta_mid_bot=0.1,
+    delta_mid_top=0.9,
+    check_neutrality=False,
+)
+system.electrostatics.solver = elc
+
+sample_count = 100
+z_step = 0.05
+n_samples = sample_count + 1
+
+z = np.linspace(box_l - z_step, 2 * z_step, n_samples)
+z_forces = np.empty(n_samples)
+energies = np.empty(n_samples)
+
+for i in range(n_samples):
+    system.part.by_id(0).pos = [2 * box_l, 2 * box_l, z[i]]
+    system.integrator.run(0)
+    z_forces[i] = system.part.by_id(0).f[2]
+    energies[i] = system.analysis.energy()["coulomb"]
+
+fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+ax1.plot(z, z_forces, label="Force Z")
+ax1.set_ylabel("Force")
+ax1.legend()
+
+ax2.plot(z, energies, label="Coulomb Energy", color="orange")
+ax2.set_xlabel("z position")
+ax2.set_ylabel("Energy")
+ax2.legend()
+
+plt.tight_layout()
+plt.show()
