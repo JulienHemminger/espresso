@@ -39,25 +39,19 @@ n_samples = sample_count + 1
 
 z_pad = 2
 z = np.linspace(z_pad, box_l - z_pad, n_samples)
-z_forces = np.empty(n_samples)
 energies = np.empty(n_samples)
 
 for i in range(n_samples):
     system.part.by_id(0).pos = [2 * box_l, 2 * box_l, z[i]]
     system.integrator.run(0)
-    z_forces[i] = system.part.by_id(0).f[2]
     energies[i] = system.analysis.energy()["coulomb"]
 
-fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+fig, ax = plt.subplots()
 
-ax1.plot(z, z_forces, label="Force Z")
-ax1.set_ylabel("Force")
-ax1.legend()
-
-ax2.plot(z, energies, label="Coulomb Energy", color="orange")
-ax2.set_xlabel("z position")
-ax2.set_ylabel("Energy")
-ax2.legend()
+ax.plot(z, energies, label="Coulomb Energy", color="orange")
+ax.set_xlabel("z position")
+ax.set_ylabel("Energy")
+ax.legend()
 
 plt.tight_layout()
 plt.show()
