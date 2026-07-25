@@ -18,43 +18,13 @@ class ELC_vs_MMM2D_neutral(ut.TestCase):
     system.cell_system.skin = 0.1
 
     def test_elc_vs_mmm2d(self):
-        elc_param_sets = {
-            "inert": {
-                "gap_size": self.elc_gap,
-                "maxPWerror": self.acc,
-                "check_neutrality": False,
-            },
-            "dielectric": {
-                "gap_size": self.elc_gap,
-                "maxPWerror": self.acc,
-                "delta_mid_bot": 0.1,
-                "delta_mid_top": 0.9,
-                "check_neutrality": False,
-            },
-            "const_pot_0": {
-                "gap_size": self.elc_gap,
-                "maxPWerror": self.acc,
-                "const_pot": True,
-                "pot_diff": 0.0,
-                "check_neutrality": False,
-            },
-            "const_pot_1": {
-                "gap_size": self.elc_gap,
-                "maxPWerror": self.acc,
-                "const_pot": True,
-                "pot_diff": 1.0,
-                "check_neutrality": False,
-            },
-            "const_pot_m1": {
-                "gap_size": self.elc_gap,
-                "maxPWerror": self.acc,
-                "const_pot": True,
-                "pot_diff": -1.0,
-                "check_neutrality": False,
-            },
+        params = {
+            "gap_size": self.elc_gap,
+            "maxPWerror": self.acc,
+            "delta_mid_bot": 0.1,
+            "delta_mid_top": 0.9,
+            "check_neutrality": False,
         }
-
-        case = "dielectric"
 
         # ELC
         self.system.box_l = [self.box_l, self.box_l, self.box_l + self.elc_gap]
@@ -74,16 +44,16 @@ class ELC_vs_MMM2D_neutral(ut.TestCase):
             prefactor=1.0, accuracy=self.acc, check_neutrality=False
         )
 
-        elc = espressomd.electrostatics.ELC(actor=p3m, **elc_param_sets[case])
+        elc = espressomd.electrostatics.ELC(actor=p3m, **params)
         self.system.electrostatics.solver = elc
         elc_res = {}
 
-        elc_res[case] = self.scan()
+        elc_res = self.scan()
 
-        np.savetxt("data.dat", (elc_res[case]))
-        print(elc_res[case])
+        np.savetxt("data.dat", (elc_res))
+        print(elc_res)
         # ================
-        data = np.array(elc_res[case])
+        data = np.array(elc_res)
         z = data[:, 0]
         fz = data[:, 3]
         energy = data[:, 4]

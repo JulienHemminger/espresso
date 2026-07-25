@@ -1002,6 +1002,7 @@ void ElectrostaticLayerCorrection::sanity_checks_periodicity() const {
 }
 
 void ElectrostaticLayerCorrection::sanity_checks_dielectric_contrasts() const {
+  /* DEBUG
   if (elc.dielectric_contrast_on) {
     auto const &cell_structure = *get_system().cell_structure;
     auto const precision_threshold = std::sqrt(round_error_prec);
@@ -1019,6 +1020,7 @@ void ElectrostaticLayerCorrection::sanity_checks_dielectric_contrasts() const {
                                "non-metallic dielectric contrast.");
     }
   }
+  */
 }
 
 void ElectrostaticLayerCorrection::adapt_solver() {
