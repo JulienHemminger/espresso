@@ -2,6 +2,7 @@ import unittest as ut
 
 import espressomd
 import espressomd.electrostatics
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -80,6 +81,26 @@ class ELC_vs_MMM2D_neutral(ut.TestCase):
 
         np.savetxt("data.dat", (elc_res[case]))
         print(elc_res[case])
+        # ================
+        data = np.array(elc_res[case])
+        z = data[:, 0]
+        fz = data[:, 3]
+        energy = data[:, 4]
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+        ax1.plot(z, fz, label="Force Z")
+        ax1.set_ylabel("Force")
+        ax1.legend()
+
+        ax2.plot(z, energy, label="Coulomb Energy", color="orange")
+        ax2.set_xlabel("z position")
+        ax2.set_ylabel("Energy")
+        ax2.legend()
+
+        plt.tight_layout()
+        plt.show()
+        # ================
 
     def scan(self):
         n = 100
