@@ -54,7 +54,7 @@ class ELC_vs_MMM2D_neutral(ut.TestCase):
             },
         }
 
-        case = "const_pot_0"
+        case = "dielectric"
 
         # ELC
         self.system.box_l = [self.box_l, self.box_l, self.box_l + self.elc_gap]
@@ -68,6 +68,7 @@ class ELC_vs_MMM2D_neutral(ut.TestCase):
         self.system.part.add(id=1, pos=(2.0, 2.0, 5.0), q=q / 3.0)
         self.system.part.add(id=2, pos=(2.0, 5.0, 2.0), q=q / 3.0)
         self.system.part.add(id=3, pos=(5.0, 2.0, 7.0), q=q / 3.0)
+        # -9, 1, 1, 1
 
         p3m = espressomd.electrostatics.P3M(
             prefactor=1.0, accuracy=self.acc, check_neutrality=False
