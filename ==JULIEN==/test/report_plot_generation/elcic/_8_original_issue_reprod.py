@@ -26,9 +26,10 @@ elc = espressomd.electrostatics.ELC(
     actor=p3m,
     gap_size=gap_size,
     maxPWerror=acc,
-    delta_mid_bot=0.1,
-    delta_mid_top=0.9,
+    delta_mid_bot=-1.0,
+    delta_mid_top=-1.0,
     check_neutrality=False,
+    const_pot=True,
 )
 system.electrostatics.solver = elc
 
@@ -36,7 +37,8 @@ sample_count = 100
 z_step = 0.05
 n_samples = sample_count + 1
 
-z = np.linspace(box_l - z_step, 2 * z_step, n_samples)
+z_pad = 2
+z = np.linspace(z_pad, box_l - z_pad, n_samples)
 z_forces = np.empty(n_samples)
 energies = np.empty(n_samples)
 
