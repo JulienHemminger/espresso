@@ -32,7 +32,7 @@ start_params["lz"] = start_params["gap_size"] + 10
 
 
 end_params = copy.deepcopy(start_params)
-end_params["positions"] = [np.array([6, 5, 3]), np.array([3, 2, 9])]
+end_params["positions"] = [np.array([6, 5, 3]), np.array([3, 2, 6])]
 
 
 def get_reference(system, params):
@@ -69,27 +69,47 @@ def get_E_far(system, params):
     return get_elcic_energy_contribs(system, params)["E_far"]
 
 
+fac = 3
 plot_metrics = {
     (
         r"Reference",
-        (("color", "red"), ("linestyle", "-."), ("linewidth", 2), ("marker", "s")),
+        (
+            ("color", "red"),
+            ("linestyle", "-."),
+            ("linewidth", fac * 1.0),
+            ("marker", "s"),
+        ),
     ): get_reference,
     (
         r"$E_{total}$",
-        (("color", "dodgerblue"), ("linestyle", ":"), ("linewidth", 2.5)),
+        (("color", "dodgerblue"), ("linestyle", ":"), ("linewidth", fac * 2.0)),
     ): get_E_total,
-    (r"$E_{near}$", (("color", "cyan"), ("linestyle", "--"))): get_E_near,
-    (r"$E_{LT}$", (("color", "steelblue"), ("linestyle", "--"))): get_E_lt,
-    (r"$E_{±1}$", (("color", "skyblue"), ("linestyle", "--"))): get_E_pm1,
-    (r"$E_{L0}$", (("color", "purple"), ("linestyle", "--"))): get_E_l0,
-    (r"$E_{far}$", (("color", "cyan"), ("linestyle", "-."))): get_E_far,
+    (
+        r"$E_{near}$",
+        (("color", "cyan"), ("linestyle", "--"), ("linewidth", fac * 1.0)),
+    ): get_E_near,
+    (
+        r"$E_{LT}$",
+        (("color", "steelblue"), ("linestyle", "--"), ("linewidth", fac * 1.0)),
+    ): get_E_lt,
+    (
+        r"$E_{±1}$",
+        (("color", "skyblue"), ("linestyle", "--"), ("linewidth", fac * 1.0)),
+    ): get_E_pm1,
+    (
+        r"$E_{L0}$",
+        (("color", "purple"), ("linestyle", "--"), ("linewidth", fac * 1.0)),
+    ): get_E_l0,
+    (
+        r"$E_{far}$",
+        (("color", "teal"), ("linestyle", "-."), ("linewidth", fac * 1.0)),
+    ): get_E_far,
 }
 
-# Updated Error Metrics
 error_metrics = {
     (
         r"$|E_{total} - \text{Ewald 2D}|$",
-        (("color", "orange"), ("linestyle", ":")),
+        (("color", "orange"), ("linestyle", ":"), ("linewidth", fac * 1.0)),
     ): get_reference_error,
 }
 
@@ -101,36 +121,3 @@ run_lerp_plot(
     plot_metrics=plot_metrics,
     error_metrics=error_metrics,
 )
-
-
-"""
-t= 0.73
-
-
-"start_positions": [np.array([6, 5, 1]), np.array([3, 2, 4])],
-"end_positions" = [np.array([6, 5, 3]), np.array([3, 2, 9])]
-
-
-z1 = 2.46
-z2 = 7.65
-
-
-z1+z2 = 10
-
-7.65 - 2.46 = 5.19
-"""
-
-
-"""
-
-t= 0.73
-
-
-"start_positions": [np.array([6, 5, 1]), np.array([3, 2, 4])],
-"end_positions" = [np.array([6, 5, 3]), np.array([3, 2, 9])]
-
-$z_1 = 3.19$
-$z_2 = 7.38$
-
-z2-z1 = 4.19
-"""

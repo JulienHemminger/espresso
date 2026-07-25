@@ -110,7 +110,7 @@ plot_metrics = {
     ): get_E_l0,
     (
         r"$E_{far}$",
-        (("color", "cyan"), ("linestyle", "-."), ("linewidth", fac * 1.0)),
+        (("color", "teal"), ("linestyle", "-."), ("linewidth", fac * 1.0)),
     ): get_E_far,
 }
 
