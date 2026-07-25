@@ -3,9 +3,6 @@ import espressomd.electrostatics
 import matplotlib.pyplot as plt
 import numpy as np
 from src.elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
-from src.elcic.energy.single_plate.neutral.metallic.analytical import (
-    get_ewald_elcic_2d,
-)
 
 # from src.elcic.energy.dual_plates.neutral.dipole.CUSTOM.custom import get_elcic_energy
 acc = 1e-6
@@ -20,7 +17,11 @@ system.cell_system.skin = 0.1
 system.use_verlet_lists = True
 system.periodicity = [True, True, True]
 
-# TODO set params to form symmetrical system. then energy also ha
+"""
+* legacy is not symmetrical
+* legacy, custom dont match
+"""
+
 params = {
     "lx": box_l,
     "ly": box_l,
@@ -36,12 +37,10 @@ params = {
     "const_pot": True,
 }
 params["positions"] = [
-    np.array([5.0, 5.0, 5.0]),
-    np.array([2.0, 2.0, 5.0]),
-    np.array([2.0, 5.0, 2.0]),
-    np.array([5.0, 2.0, 7.0]),
+    np.array([box_l / 2, box_l / 2, 0]),
+    np.array([1.0, 2.0, 5.0]),
 ]
-params["charges"] = [-9, +1, +1, +1]
+params["charges"] = [-2, +1]
 particle_count = len(params["charges"])
 
 p3m = espressomd.electrostatics.P3M(prefactor=1.0, accuracy=acc, check_neutrality=False)
@@ -57,7 +56,7 @@ elc = espressomd.electrostatics.ELC(
 )
 
 
-sample_count = 8  # make even, to hide error spike at lz/2
+sample_count = 30  # make even, to hide error spike at lz/2
 
 
 z_pad = 2
@@ -76,13 +75,13 @@ for i in range(sample_count):
     system.electrostatics.solver = elc
 
     # CALC
-    system.part.by_id(0).pos = [2 * box_l, 2 * box_l, z[i]]
+    system.part.by_id(0).pos = [box_l / 2, box_l / 2, z[i]]
     system.integrator.run(0)
-    legacy_energies[i] = system.analysis.energy()["coulomb"]
+    legacy_energies[i] = system.analysis.energy()["total"]
 
     custom_energies[i] = get_elcic_energy(system, params)["e_total"]
 
-    reference_energies[i] = get_ewald_elcic_2d(params)
+    reference_energies[i] = 0  # get_ewald_elcic_2d(params)
 
     print(
         f"legacy_energy={legacy_energies[i]}, custom_energy={custom_energies[i]}, reference_energy={reference_energies[i]}"
@@ -90,11 +89,27 @@ for i in range(sample_count):
 
 
 fig, ax = plt.subplots()
-
-ax.plot(z, legacy_energies, label="Legacy", color="orange")
-ax.plot(z, custom_energies, label="Custom", color="green")
-ax.plot(z, reference_energies, label="Reference", color="blue")
-ax.set_xlabel("z position")
+linewidth = 3
+ax.plot(
+    z,
+    legacy_energies,
+    label="Legacy ELCIC",
+    linestyle="--",
+    marker="s",
+    color="orange",
+    linewidth=linewidth,
+)
+ax.plot(
+    z,
+    custom_energies,
+    label="Custom ELCIC",
+    linestyle="--",
+    marker="v",
+    color="blue",
+    linewidth=linewidth,
+)
+# ax.plot(z, reference_energies, label="Reference", color="purple", linewidth=linewidth)
+ax.set_xlabel("Particle 1: z position")
 ax.set_ylabel("Energy")
 ax.legend()
 
